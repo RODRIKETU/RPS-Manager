@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPS Estacionamento | Visualizador Especializado</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --primary: #667eea;
+      --secondary: #764ba2;
+      --success: #48bb78;
+      --danger: #f56565;
+      --warning: #ed8936;
+      --info: #4299e1;
+      --parking: #ff7f50;
+      --gray-100: #f7fafc;
+      --gray-200: #edf2f7;
+      --gray-800: #2d3748;
+      --border-radius: 12px;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, var(--gray-100) 0%, #e6f3ff 100%);
+      color: var(--gray-800);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--parking) 0%, #ff6347 100%);
+      color: white;
+      border-radius: var(--border-radius);
+      padding: 32px;
+      margin-bottom: 30px;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+    }
+
+    .header p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+
+    .controls {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 24px;
+      margin-bottom: 30px;
+      box-shadow: var(--shadow);
+    }
+
+    .file-input-group {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .file-input-group input {
+      flex: 1;
+      min-width: 300px;
+      padding: 12px 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--parking) 0%, #ff6347 100%);
+      color: white;
+      box-shadow: var(--shadow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--parking);
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--parking);
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      color: var(--gray-800);
+      font-weight: 500;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .data-table {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .table-header {
+      background: var(--parking);
+      color: white;
+      padding: 20px 24px;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .table-content {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .table th, .table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .table th {
+      background: var(--gray-100);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+
+    .table tbody tr:hover {
+      background: var(--gray-100);
+    }
+
+    .chart-container {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .chart-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--gray-800);
+    }
+
+    .info-panel {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .info-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--gray-800);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .info-item:last-child {
+      border-bottom: none;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 60px;
+      color: var(--gray-800);
+    }
+
+    .loading.show {
+      display: block;
+    }
+
+    .loading i {
+      font-size: 3rem;
+      color: var(--parking);
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      transform: translateX(400px);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .notification.success { background: var(--success); }
+    .notification.error { background: var(--danger); }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .file-input-group {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .file-input-group input {
+        min-width: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1><i class="fas fa-parking"></i> RPS Estacionamento</h1>
+      <p>Visualizador especializado para arquivos de RPS de estacionamento</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="file-input-group">
+        <input type="text" id="fileName" placeholder="Digite o nome do arquivo (ex: Rpd Exemplo Estacionamento.txt)">
+        <button class="btn btn-primary" onclick="loadFile()">
+          <i class="fas fa-upload"></i> Carregar Arquivo
+        </button>
+        <button class="btn btn-primary" onclick="detectFileType()">
+          <i class="fas fa-search"></i> Detectar Tipo
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <i class="fas fa-spinner"></i>
+      <h3>Processando arquivo RPS...</h3>
+      <p>Aguarde enquanto analisamos os dados de estacionamento</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="statsGrid" style="display: none;">
+      <div class="stat-card">
+        <div class="stat-value" id="totalRPS">0</div>
+        <div class="stat-label">Total de RPS</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="valorTotal">R$ 0,00</div>
+        <div class="stat-label">Valor Total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="equipamentos">0</div>
+        <div class="stat-label">Equipamentos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="periodo">-</div>
+        <div class="stat-label">Período</div>
+      </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid" id="contentGrid" style="display: none;">
+      <!-- Data Table -->
+      <div class="data-table">
+        <div class="table-header">
+          <i class="fas fa-list"></i> Detalhes dos RPS
+        </div>
+        <div class="table-content">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>RPS</th>
+                <th>Data</th>
+                <th>Valor</th>
+                <th>Equipamento</th>
+                <th>Série</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="dataTableBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Side Panel -->
+      <div>
+        <!-- Info Panel -->
+        <div class="info-panel">
+          <div class="info-title">
+            <i class="fas fa-info-circle"></i> Informações do Arquivo
+          </div>
+          <div id="fileInfo">
+            <!-- Info items will be populated here -->
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="chart-container">
+          <div class="chart-title">Status dos RPS</div>
+          <canvas id="statusChart" width="300" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification -->
+  <div id="notification" class="notification"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    let currentData = null;
+
+    // Utility functions
+    function showNotification(message, type = 'success') {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = `notification ${type} show`;
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
+    }
+
+    function showLoading(show) {
+      document.getElementById('loading').classList.toggle('show', show);
+      document.getElementById('statsGrid').style.display = show ? 'none' : 'grid';
+      document.getElementById('contentGrid').style.display = show ? 'none' : 'grid';
+    }
+
+    function formatCurrency(centavos) {
+      const valor = parseInt(centavos) / 100;
+      return valor.toLocaleString('pt-BR', { 
+        style: 'currency', 
+        currency: 'BRL' 
+      });
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr || dateStr.length !== 8) return dateStr;
+      const year = dateStr.substring(0, 4);
+      const month = dateStr.substring(4, 6);
+      const day = dateStr.substring(6, 8);
+      return `${day}/${month}/${year}`;
+    }
+
+    // Main functions
+    async function loadFile() {
+      const fileName = document.getElementById('fileName').value.trim();
+      if (!fileName) {
+        showNotification('Por favor, informe o nome do arquivo', 'error');
+        return;
+      }
+
+      showLoading(true);
+
+      try {
+        const response = await fetch(`/api/rps-estacionamento?file=${encodeURIComponent(fileName)}`);
+        if (!response.ok) throw new Error('Arquivo não encontrado');
+
+        const data = await response.json();
+        currentData = data;
+        
+        updateStats();
+        updateTable();
+        updateInfoPanel();
+        updateChart();
+        
+        showNotification(`${data.detalhes.length} RPS carregados com sucesso!`);
+      } catch (error) {
+        showNotification(error.message || 'Erro ao carregar arquivo', 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function detectFileType() {
+      const fileName = document.getElementById('fileName').value.trim();
+      if (!fileName) {
+        showNotification('Por favor, informe o nome do arquivo', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/rps-detect?file=${encodeURIComponent(fileName)}`);
+        if (!response.ok) throw new Error('Erro ao detectar tipo');
+
+        const data = await response.json();
+        showNotification(`Tipo detectado: ${data.tipoDetectado} (${data.totalLinhas} linhas)`);
+      } catch (error) {
+        showNotification(error.message || 'Erro ao detectar tipo', 'error');
+      }
+    }
+
+    function updateStats() {
+      if (!currentData) return;
+
+      document.getElementById('totalRPS').textContent = currentData.estatisticas.totalRPS;
+      document.getElementById('valorTotal').textContent = currentData.estatisticas.valorTotalFormatado;
+      document.getElementById('equipamentos').textContent = currentData.estatisticas.equipamentosUnicos;
+      
+      if (currentData.resumo.periodo) {
+        document.getElementById('periodo').textContent = 
+          `${currentData.resumo.periodo.inicio} - ${currentData.resumo.periodo.fim}`;
+      }
+    }
+
+    function updateTable() {
+      if (!currentData) return;
+
+      const tbody = document.getElementById('dataTableBody');
+      tbody.innerHTML = currentData.detalhes.map(rps => `
+        <tr>
+          <td>${rps.NumeroRPS}</td>
+          <td>${formatDate(rps.DataEmissao)}</td>
+          <td>${formatCurrency(rps.ValorServicos)}</td>
+          <td>${rps.TipoEquipamento}</td>
+          <td>${rps.NumeroSerie}</td>
+          <td>
+            <span style="color: ${rps.StatusRPS === '1' ? 'var(--success)' : 'var(--danger)'}">
+              ${rps.StatusRPS === '1' ? 'Normal' : 'Cancelado'}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function updateInfoPanel() {
+      if (!currentData) return;
+
+      const info = document.getElementById('fileInfo');
+      info.innerHTML = `
+        <div class="info-item">
+          <span>CNPJ:</span>
+          <span>${currentData.cabecalho?.CNPJ || '-'}</span>
+        </div>
+        <div class="info-item">
+          <span>Inscrição Municipal:</span>
+          <span>${currentData.cabecalho?.InscricaoMunicipal || '-'}</span>
+        </div>
+        <div class="info-item">
+          <span>Número do Lote:</span>
+          <span>${currentData.cabecalho?.NumeroLote || '-'}</span>
+        </div>
+        <div class="info-item">
+          <span>Séries Únicas:</span>
+          <span>${currentData.estatisticas.seriesUnicas}</span>
+        </div>
+        <div class="info-item">
+          <span>Datas Únicas:</span>
+          <span>${currentData.estatisticas.datasUnicas}</span>
+        </div>
+        <div class="info-item">
+          <span>Validação:</span>
+          <span style="color: ${currentData.validacao.valido ? 'var(--success)' : 'var(--danger)'}">
+            ${currentData.validacao.valido ? 'Válido' : 'Erros encontrados'}
+          </span>
+        </div>
+      `;
+    }
+
+    function updateChart() {
+      if (!currentData) return;
+
+      const ctx = document.getElementById('statusChart').getContext('2d');
+      const statusData = currentData.estatisticas.statusDistribuicao;
+
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(statusData),
+          datasets: [{
+            data: Object.values(statusData),
+            backgroundColor: [
+              'var(--success)',
+              'var(--danger)'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+
+    // Auto-fill example filename
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('fileName').value = 'Rpd Exemplo Estacionamento.txt';
+    });
+
+    // Enter key support
+    document.getElementById('fileName').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        loadFile();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "watch": [
+    "server.js",
+    "database/",
+    "layouts/",
+    "public/"
+  ],
+  "ext": "js,json,html,css",
+  "ignore": [
+    "node_modules/",
+    "uploads/",
+    "*.log",
+    "test-server.js"
+  ],
+  "delay": 1000,
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "colours": true,
+  "legacyWatch": false,
+  "verbose": false
+}

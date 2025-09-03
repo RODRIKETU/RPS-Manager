@@ -1,0 +1,26 @@
+{
+  "name": "2025-08",
+  "version": "1.0.0",
+  "description": "O **RPS Manager Pro** é um sistema web moderno e completo para gestão de arquivos RPS (Recibo de Prestação de Serviços) focado em NFSe (Nota Fiscal de Serviço Eletrônica). O sistema oferece funcionalidades avançadas para importação, edição, validação e geração de relatórios de RPS.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "dev:verbose": "nodemon --verbose server.js",
+    "dev:debug": "nodemon --inspect server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "path": "^0.12.7",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

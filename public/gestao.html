@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestão RPS | Sistema Multi-Empresa</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #64748b;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --light: #f8fafc;
+      --dark: #0f172a;
+      --border: #e2e8f0;
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      color: var(--dark);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }
+
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    /* Filters */
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-label {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--secondary);
+    }
+
+    .form-input, .form-select {
+      padding: 12px 16px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-warning { background: var(--warning); color: white; }
+    .btn-secondary { background: var(--secondary); color: white; }
+
+    .btn:hover { transform: translateY(-1px); }
+
+    /* Company Info */
+    .company-info {
+      background: linear-gradient(135deg, var(--light) 0%, white 100%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border);
+    }
+
+    .company-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .company-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .company-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-label {
+      font-size: 0.875rem;
+      color: var(--secondary);
+      margin-bottom: 0.25rem;
+    }
+
+    .detail-value {
+      font-weight: 600;
+    }
+
+    /* Action Bar */
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .bulk-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .selection-info {
+      color: var(--secondary);
+      font-weight: 600;
+    }
+
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .table th,
+    .table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table th {
+      background: var(--light);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .table tbody tr:hover {
+      background: var(--light);
+    }
+
+    .table tbody tr.selected {
+      background: rgba(37, 99, 235, 0.1);
+    }
+
+    /* Checkbox */
+    .checkbox {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    /* Footer Summary */
+    .footer-summary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-top: 2rem;
+      position: sticky;
+      bottom: 20px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+    }
+
+    .summary-item {
+      text-align: center;
+    }
+
+    .summary-value {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .summary-label {
+      opacity: 0.9;
+    }
+
+    /* Loading */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    .loading.show { display: block; }
+
+    .loading i {
+      font-size: 3rem;
+      color: var(--primary);
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+
+    /* Status Badge */
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .status-normal {
+      background: rgba(22, 163, 74, 0.1);
+      color: var(--success);
+    }
+
+    .status-cancelled {
+      background: rgba(220, 38, 38, 0.1);
+      color: var(--danger);
+    }
+
+    /* Notifications */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      transform: translateX(400px);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .notification.success { background: var(--success); }
+    .notification.error { background: var(--danger); }
+    .notification.warning { background: var(--warning); }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .filters {
+        grid-template-columns: 1fr;
+      }
+      
+      .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .bulk-actions {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1><i class="fas fa-cogs"></i> Gestão de RPS</h1>
+      <p>Gerencie RPS por período com edição e exclusão em massa</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="card">
+      <h3><i class="fas fa-filter"></i> Filtros</h3>
+      <div class="filters">
+        <div class="form-group">
+          <label class="form-label">Empresa</label>
+          <select id="empresaSelect" class="form-select">
+            <option value="">Selecione uma empresa</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data Início</label>
+          <input type="date" id="dataInicio" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data Fim</label>
+          <input type="date" id="dataFim" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Série</label>
+          <select id="serieSelect" class="form-select">
+            <option value="">Todas as séries</option>
+          </select>
+        </div>
+        <div class="form-group" style="display: flex; align-items: end;">
+          <button id="btnFiltrar" class="btn btn-primary" onclick="buscarRPS()">
+            <i class="fas fa-search"></i> Buscar RPS
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Company Info -->
+    <div id="companyInfo" class="company-info" style="display: none;">
+      <div class="company-header">
+        <div class="company-name" id="companyName">Nome da Empresa</div>
+        <div class="company-cnpj" id="companyCnpj">CNPJ</div>
+      </div>
+      <div class="company-details">
+        <div class="detail-item">
+          <div class="detail-label">Inscrição Municipal</div>
+          <div class="detail-value" id="companyIM">-</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Endereço</div>
+          <div class="detail-value" id="companyAddress">-</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Telefone</div>
+          <div class="detail-value" id="companyPhone">-</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">E-mail</div>
+          <div class="detail-value" id="companyEmail">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <i class="fas fa-spinner"></i>
+      <h3>Carregando RPS...</h3>
+      <p>Aguarde enquanto buscamos os dados</p>
+    </div>
+
+    <!-- RPS Table -->
+    <div id="rpsContainer" style="display: none;">
+      <!-- Action Bar -->
+      <div class="action-bar">
+        <div class="selection-info">
+          <span id="selectionCount">0</span> RPS selecionados
+        </div>
+        <div class="bulk-actions">
+          <button class="btn btn-warning" onclick="editarEmMassa()" id="btnEditarMassa" disabled>
+            <i class="fas fa-edit"></i> Editar Selecionados
+          </button>
+          <button class="btn btn-danger" onclick="excluirEmMassa()" id="btnExcluirMassa" disabled>
+            <i class="fas fa-trash"></i> Excluir Selecionados
+          </button>
+          <button class="btn btn-success" onclick="exportarPeriodo()">
+            <i class="fas fa-download"></i> Exportar Período
+          </button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>
+                <input type="checkbox" id="selectAll" class="checkbox" onchange="toggleSelectAll()">
+              </th>
+              <th>RPS</th>
+              <th>Série</th>
+              <th>Data Emissão</th>
+              <th>Valor Serviços</th>
+              <th>Valor ISS</th>
+              <th>Equipamento</th>
+              <th>Série Equip.</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="rpsTableBody">
+            <!-- RPS serão carregados aqui -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Footer Summary -->
+    <div id="footerSummary" class="footer-summary" style="display: none;">
+      <div class="summary-grid">
+        <div class="summary-item">
+          <div class="summary-value" id="totalQuantidade">0</div>
+          <div class="summary-label">Total de RPS</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value" id="totalValorServicos">R$ 0,00</div>
+          <div class="summary-label">Valor Total Serviços</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value" id="totalValorISS">R$ 0,00</div>
+          <div class="summary-label">Valor Total ISS</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value" id="periodoDatas">-</div>
+          <div class="summary-label">Período Selecionado</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification -->
+  <div id="notification" class="notification"></div>
+
+  <script>
+    // Variáveis globais
+    let empresas = [];
+    let rpsData = [];
+    let selectedRPS = new Set();
+    let currentTotals = { quantidade: 0, valorServicos: 0, valorISS: 0 };
+
+    // Inicialização
+    document.addEventListener('DOMContentLoaded', function() {
+      carregarEmpresas();
+      setupEventListeners();
+      
+      // Definir data padrão (mês atual)
+      const hoje = new Date();
+      const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+      
+      document.getElementById('dataInicio').value = primeiroDia.toISOString().split('T')[0];
+      document.getElementById('dataFim').value = ultimoDia.toISOString().split('T')[0];
+    });
+
+    // ==================== FUNÇÕES DE EMPRESAS ====================
+    async function carregarEmpresas() {
+      try {
+        const response = await fetch('/api/empresas');
+        empresas = await response.json();
+        
+        const select = document.getElementById('empresaSelect');
+        select.innerHTML = '<option value="">Selecione uma empresa</option>' +
+          empresas.map(empresa => 
+            `<option value="${empresa.id}">${empresa.razao_social} (${formatarCNPJ(empresa.cnpj)})</option>`
+          ).join('');
+      } catch (error) {
+        showNotification('Erro ao carregar empresas', 'error');
+      }
+    }
+
+    // ==================== FUNÇÕES DE RPS ====================
+    async function buscarRPS() {
+      const empresaId = document.getElementById('empresaSelect').value;
+      const dataInicio = document.getElementById('dataInicio').value;
+      const dataFim = document.getElementById('dataFim').value;
+
+      if (!empresaId || !dataInicio || !dataFim) {
+        showNotification('Selecione empresa e período', 'warning');
+        return;
+      }
+
+      // Mostrar loading
+      document.getElementById('loading').classList.add('show');
+      document.getElementById('rpsContainer').style.display = 'none';
+      document.getElementById('footerSummary').style.display = 'none';
+
+      try {
+        const response = await fetch(`/api/rps?empresaId=${empresaId}&dataInicio=${dataInicio}&dataFim=${dataFim}`);
+        const data = await response.json();
+
+        rpsData = data.rps;
+        currentTotals = data.totais;
+
+        // Atualizar informações da empresa
+        mostrarInfoEmpresa(empresaId);
+        
+        // Atualizar série select
+        atualizarSerieSelect();
+        
+        // Mostrar tabela
+        atualizarTabelaRPS();
+        atualizarRodape();
+        
+        document.getElementById('loading').classList.remove('show');
+        document.getElementById('rpsContainer').style.display = 'block';
+        document.getElementById('footerSummary').style.display = 'block';
+
+        showNotification(`${data.rps.length} RPS carregados`, 'success');
+      } catch (error) {
+        document.getElementById('loading').classList.remove('show');
+        showNotification('Erro ao buscar RPS', 'error');
+      }
+    }
+
+    function mostrarInfoEmpresa(empresaId) {
+      const empresa = empresas.find(e => e.id == empresaId);
+      if (empresa) {
+        document.getElementById('companyName').textContent = empresa.razao_social;
+        document.getElementById('companyCnpj').textContent = formatarCNPJ(empresa.cnpj);
+        document.getElementById('companyIM').textContent = empresa.inscricao_municipal || '-';
+        document.getElementById('companyAddress').textContent = empresa.endereco || '-';
+        document.getElementById('companyPhone').textContent = empresa.telefone || '-';
+        document.getElementById('companyEmail').textContent = empresa.email || '-';
+        
+        document.getElementById('companyInfo').style.display = 'block';
+      }
+    }
+
+    function atualizarSerieSelect() {
+      const series = [...new Set(rpsData.map(rps => rps.serie_rps).filter(Boolean))].sort();
+      const select = document.getElementById('serieSelect');
+      
+      select.innerHTML = '<option value="">Todas as séries</option>' +
+        series.map(serie => `<option value="${serie}">${serie}</option>`).join('');
+    }
+
+    function atualizarTabelaRPS() {
+      const serieFilter = document.getElementById('serieSelect').value;
+      const rpsFiltered = serieFilter ? 
+        rpsData.filter(rps => rps.serie_rps === serieFilter) : 
+        rpsData;
+
+      const tbody = document.getElementById('rpsTableBody');
+      tbody.innerHTML = rpsFiltered.map(rps => `
+        <tr id="row-${rps.id}" ${selectedRPS.has(rps.id) ? 'class="selected"' : ''}>
+          <td>
+            <input type="checkbox" class="checkbox rps-checkbox" 
+                   value="${rps.id}" onchange="toggleSelectRPS(${rps.id})"
+                   ${selectedRPS.has(rps.id) ? 'checked' : ''}>
+          </td>
+          <td>${rps.numero_rps}</td>
+          <td>${rps.serie_rps || '-'}</td>
+          <td>${formatarData(rps.data_emissao)}</td>
+          <td>R$ ${parseFloat(rps.valor_servicos || 0).toFixed(2)}</td>
+          <td>R$ ${parseFloat(rps.valor_iss || 0).toFixed(2)}</td>
+          <td>${rps.tipo_equipamento || '-'}</td>
+          <td>${rps.numero_serie || '-'}</td>
+          <td>
+            <span class="status-badge ${rps.status === 'normal' ? 'status-normal' : 'status-cancelled'}">
+              ${rps.status === 'normal' ? 'Normal' : 'Cancelado'}
+            </span>
+          </td>
+          <td>
+            <button class="btn btn-secondary" onclick="editarRPS(${rps.id})">
+              <i class="fas fa-edit"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      atualizarContadorSelecao();
+    }
+
+    // ==================== FUNÇÕES DE SELEÇÃO ====================
+    function toggleSelectAll() {
+      const selectAll = document.getElementById('selectAll');
+      const checkboxes = document.querySelectorAll('.rps-checkbox');
+      
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+        const rpsId = parseInt(checkbox.value);
+        
+        if (selectAll.checked) {
+          selectedRPS.add(rpsId);
+          document.getElementById(`row-${rpsId}`).classList.add('selected');
+        } else {
+          selectedRPS.delete(rpsId);
+          document.getElementById(`row-${rpsId}`).classList.remove('selected');
+        }
+      });
+      
+      atualizarContadorSelecao();
+    }
+
+    function toggleSelectRPS(rpsId) {
+      const checkbox = document.querySelector(`input[value="${rpsId}"]`);
+      const row = document.getElementById(`row-${rpsId}`);
+      
+      if (checkbox.checked) {
+        selectedRPS.add(rpsId);
+        row.classList.add('selected');
+      } else {
+        selectedRPS.delete(rpsId);
+        row.classList.remove('selected');
+      }
+      
+      // Atualizar select all
+      const totalCheckboxes = document.querySelectorAll('.rps-checkbox').length;
+      const checkedCheckboxes = document.querySelectorAll('.rps-checkbox:checked').length;
+      
+      document.getElementById('selectAll').indeterminate = checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes;
+      document.getElementById('selectAll').checked = checkedCheckboxes === totalCheckboxes && totalCheckboxes > 0;
+      
+      atualizarContadorSelecao();
+    }
+
+    function atualizarContadorSelecao() {
+      const count = selectedRPS.size;
+      document.getElementById('selectionCount').textContent = count;
+      
+      document.getElementById('btnEditarMassa').disabled = count === 0;
+      document.getElementById('btnExcluirMassa').disabled = count === 0;
+    }
+
+    // ==================== FUNÇÕES DE EDIÇÃO/EXCLUSÃO ====================
+    function editarRPS(id) {
+      // Implementar modal de edição individual
+      showNotification('Funcionalidade em desenvolvimento', 'warning');
+    }
+
+    function editarEmMassa() {
+      if (selectedRPS.size === 0) return;
+      
+      // Implementar modal de edição em massa
+      showNotification('Funcionalidade em desenvolvimento', 'warning');
+    }
+
+    async function excluirEmMassa() {
+      if (selectedRPS.size === 0) return;
+      
+      if (!confirm(`Deseja realmente excluir ${selectedRPS.size} RPS selecionados?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/rps/massa', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: Array.from(selectedRPS) })
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          showNotification(result.mensagem, 'success');
+          selectedRPS.clear();
+          buscarRPS(); // Recarregar dados
+        } else {
+          showNotification(result.erro, 'error');
+        }
+      } catch (error) {
+        showNotification('Erro ao excluir RPS', 'error');
+      }
+    }
+
+    function exportarPeriodo() {
+      showNotification('Funcionalidade em desenvolvimento', 'warning');
+    }
+
+    // ==================== FUNÇÕES DE ATUALIZAÇÃO ====================
+    function atualizarRodape() {
+      const dataInicio = document.getElementById('dataInicio').value;
+      const dataFim = document.getElementById('dataFim').value;
+      
+      document.getElementById('totalQuantidade').textContent = currentTotals.quantidade;
+      document.getElementById('totalValorServicos').textContent = 
+        parseFloat(currentTotals.valorTotal || 0).toLocaleString('pt-BR', {
+          style: 'currency', currency: 'BRL'
+        });
+      document.getElementById('totalValorISS').textContent = 
+        parseFloat(currentTotals.valorISS || 0).toLocaleString('pt-BR', {
+          style: 'currency', currency: 'BRL'
+        });
+      document.getElementById('periodoDatas').textContent = 
+        `${formatarData(dataInicio)} - ${formatarData(dataFim)}`;
+    }
+
+    // ==================== SETUP E UTILITÁRIOS ====================
+    function setupEventListeners() {
+      document.getElementById('serieSelect').addEventListener('change', atualizarTabelaRPS);
+    }
+
+    function formatarCNPJ(cnpj) {
+      if (!cnpj) return '';
+      return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+
+    function formatarData(data) {
+      if (!data) return '-';
+      return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
+    }
+
+    function showNotification(message, type = 'success') {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = `notification ${type} show`;
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 4000);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,3591 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPS Manager Pro | Sistema de Gestão Multi-Empresa</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #64748b;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --info: #0891b2;
+      --light: #f8fafc;
+      --dark: #0f172a;
+      --border: #e2e8f0;
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      color: var(--dark);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    /* Navigation */
+    .nav-tabs {
+      display: flex;
+      background: white;
+      border-radius: 12px;
+      padding: 8px;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow);
+      gap: 4px;
+    }
+
+    .nav-tab {
+      flex: 1;
+      padding: 16px 24px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .nav-tab:hover {
+      background: var(--light);
+    }
+
+    .nav-tab.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Tab Content */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Forms */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-label {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--secondary);
+    }
+
+    .form-input {
+      padding: 12px 16px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .form-input.required {
+      border-left: 4px solid var(--danger);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: var(--secondary);
+      color: white;
+    }
+
+    /* Input com botão */
+    .input-with-button {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .input-with-button .form-input {
+      flex: 1;
+    }
+
+    .btn-search-cnpj {
+      padding: 12px 16px;
+      background: var(--info);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+      height: 48px;
+      font-size: 16px;
+    }
+
+    .btn-search-cnpj:hover {
+      background: #0e7490;
+      transform: translateY(-1px);
+    }
+
+    .btn-search-cnpj:disabled {
+      background: var(--secondary);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-search-cnpj.loading {
+      background: var(--warning);
+    }
+
+    .btn-search-cnpj.loading i {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Notificações CNPJ */
+    .notificacao-cnpj {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 20px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 400px;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .notificacao-success {
+      background: var(--success);
+    }
+
+    .notificacao-error {
+      background: var(--danger);
+    }
+
+    .notificacao-info {
+      background: var(--info);
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .table th,
+    .table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table th {
+      background: var(--light);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+
+    .table tbody tr:hover {
+      background: var(--light);
+    }
+
+    /* File Drop Zone */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 3rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 1.5rem;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: var(--primary);
+      background: rgba(37, 99, 235, 0.05);
+    }
+
+    .drop-zone.drag-over {
+      transform: scale(1.02);
+    }
+
+    .drop-zone i {
+      font-size: 3rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+    }
+
+    /* Import Options */
+    .import-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .option-card {
+      background: var(--light);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .option-card:hover {
+      border-color: var(--primary);
+    }
+
+    .option-card.selected {
+      border-color: var(--primary);
+      background: rgba(37, 99, 235, 0.1);
+    }
+
+    /* Status Badge */
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .status-success {
+      background: rgba(22, 163, 74, 0.1);
+      color: var(--success);
+    }
+
+    .status-error {
+      background: rgba(220, 38, 38, 0.1);
+      color: var(--danger);
+    }
+
+    .status-warning {
+      background: rgba(217, 119, 6, 0.1);
+      color: var(--warning);
+    }
+
+    /* Loading */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .loading.show {
+      display: block;
+    }
+
+    .loading i {
+      font-size: 2rem;
+      color: var(--primary);
+      animation: spin 1s linear infinite;
+    }
+
+    /* Notifications */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      transform: translateX(400px);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    /* Estilos específicos para layouts */
+    .layout-field-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: var(--bg-secondary);
+    }
+
+    .layout-field-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .layout-field-number {
+      background: var(--primary);
+      color: white;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .layout-field-config {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    .layout-config-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .layout-config-row label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .configuracao-secao {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .configuracao-secao h4 {
+      margin: 0 0 15px 0;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-adicionar-campo {
+      background: var(--success);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-adicionar-campo:hover {
+      background: var(--success-dark);
+    }
+
+    .campo-visualizacao {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: var(--bg-secondary);
+    }
+
+    .campo-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .campo-detalhes {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .teste-linha {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: var(--bg-secondary);
+    }
+
+    .campos-extraidos {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .campo-resultado {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+
+    .campo-valido {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+
+    .campo-invalido {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+
+    .erro-campo {
+      font-weight: bold;
+      font-style: italic;
+    }
+
+    .badge-estacionamento { background: #17a2b8; }
+    .badge-servicos { background: #28a745; }
+    .badge-consultoria { background: #ffc107; color: #212529; }
+    .badge-outros { background: #6c757d; }
+
+    .badge-texto { background: #007bff; }
+    .badge-numero { background: #28a745; }
+    .badge-data { background: #ffc107; color: #212529; }
+    .badge-valor { background: #dc3545; }
+
+    .layout-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .layout-tab {
+      padding: 10px 20px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .layout-tab.active {
+      border-bottom-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .layout-tab:hover {
+      background: var(--bg-secondary);
+    }
+
+    .modal-large {
+      max-width: 90vw;
+      width: 1200px;
+    }
+
+    @media (max-width: 768px) {
+      .layout-field-config {
+        grid-template-columns: 1fr;
+      }
+      
+      .modal-large {
+        max-width: 95vw;
+        width: 95vw;
+      }
+      
+      .layout-field-header {
+        flex-wrap: wrap;
+      }
+    }
+
+    /* Gestão RPS Styles */
+    .gestao-header {
+      display: flex;
+      gap: 10px;
+    }
+
+    .gestao-filters {
+      margin-bottom: 20px;
+    }
+
+    .stats-grid {
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      color: white;
+    }
+
+    .stat-card.info {
+      background: linear-gradient(135deg, var(--info) 0%, #0ea5e9 100%);
+    }
+
+    .stat-card.success {
+      background: linear-gradient(135deg, var(--success) 0%, #22c55e 100%);
+    }
+
+    .stat-card.warning {
+      background: linear-gradient(135deg, var(--warning) 0%, #f59e0b 100%);
+    }
+
+    .stat-card.primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .mass-actions {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: var(--light);
+      border-radius: 8px;
+    }
+
+    .mass-actions-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .mass-actions-label {
+      font-weight: 600;
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: white;
+    }
+
+    .btn-info {
+      background: var(--info);
+      color: white;
+    }
+
+    .select-all-container {
+      margin-left: auto;
+    }
+
+    .rps-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .rps-table thead {
+      background: var(--primary);
+      color: white;
+    }
+
+    .rps-table th,
+    .rps-table td {
+      padding: 12px;
+      text-align: left;
+    }
+
+    .rps-table th {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .rps-table th:hover {
+      background: var(--primary-dark);
+    }
+
+    .rps-table tbody tr:hover {
+      background: var(--light);
+    }
+
+    .rps-table tbody tr:nth-child(even) {
+      background: rgba(248, 250, 252, 0.5);
+    }
+
+    .rps-table tbody tr:nth-child(even):hover {
+      background: var(--light);
+    }
+
+    .rps-table .text-right {
+      text-align: right;
+    }
+
+    .rps-table .text-center {
+      text-align: center;
+    }
+
+    .rps-status {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .rps-status.processado {
+      background: rgba(22, 163, 74, 0.1);
+      color: var(--success);
+    }
+
+    .rps-status.pendente {
+      background: rgba(217, 119, 6, 0.1);
+      color: var(--warning);
+    }
+
+    .rps-status.erro {
+      background: rgba(220, 38, 38, 0.1);
+      color: var(--danger);
+    }
+
+    .pagination-info {
+      color: var(--secondary);
+    }
+
+    .pagination-buttons {
+      display: flex;
+      gap: 5px;
+    }
+
+    .pagination-container {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    .empty-state {
+      padding: 40px;
+      text-align: center;
+      color: var(--secondary);
+    }
+
+    .empty-state i {
+      font-size: 48px;
+      margin-bottom: 10px;
+      opacity: 0.3;
+    }
+
+    .empty-state-title {
+      margin-bottom: 5px;
+    }
+
+    .empty-state-subtitle {
+      font-size: 14px;
+    }
+
+    .notification.success { background: var(--success); }
+    .notification.error { background: var(--danger); }
+    .notification.warning { background: var(--warning); }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .nav-tabs {
+        flex-direction: column;
+      }
+      
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .import-options {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1><i class="fas fa-receipt"></i> RPS Manager Pro</h1>
+      <p>Sistema completo de gestão de RPS multi-empresa com importação automatizada</p>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showTab('empresas')">
+        <i class="fas fa-building"></i> Empresas
+      </button>
+      <button class="nav-tab" onclick="showTab('layouts')">
+        <i class="fas fa-table"></i> Layouts
+      </button>
+      <button class="nav-tab" onclick="showTab('importacao')">
+        <i class="fas fa-upload"></i> Importação
+      </button>
+      <button class="nav-tab" onclick="showTab('gestao')">
+        <i class="fas fa-cogs"></i> Gestão RPS
+      </button>
+      <button class="nav-tab" onclick="showTab('relatorios')">
+        <i class="fas fa-chart-bar"></i> Relatórios
+      </button>
+    </div>
+
+    <!-- Tab: Empresas -->
+    <div id="tab-empresas" class="tab-content active">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-building"></i> Cadastro de Empresas
+          </div>
+          <button class="btn btn-primary" onclick="limparFormularioEmpresa()">
+            <i class="fas fa-plus"></i> Nova Empresa
+          </button>
+        </div>
+
+        <form id="formEmpresa">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">CNPJ *</label>
+              <div class="input-with-button">
+                <input type="text" id="cnpj" class="form-input required" placeholder="00.000.000/0000-00" maxlength="18">
+                <button type="button" class="btn-search-cnpj" onclick="buscarDadosCNPJ()" title="Buscar dados da empresa">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Razão Social *</label>
+              <input type="text" id="razaoSocial" class="form-input required" placeholder="Razão Social da Empresa">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nome Fantasia</label>
+              <input type="text" id="nomeFantasia" class="form-input" placeholder="Nome Fantasia">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Inscrição Municipal</label>
+              <input type="text" id="inscricaoMunicipal" class="form-input" placeholder="Inscrição Municipal">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Telefone</label>
+              <input type="text" id="telefone" class="form-input" placeholder="(00) 0000-0000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">E-mail</label>
+              <input type="email" id="email" class="form-input" placeholder="contato@empresa.com">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Endereço</label>
+            <input type="text" id="endereco" class="form-input" placeholder="Endereço completo">
+          </div>
+          <div style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Salvar Empresa
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-list"></i> Empresas Cadastradas
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>CNPJ</th>
+                <th>Razão Social</th>
+                <th>Nome Fantasia</th>
+                <th>Inscrição Municipal</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="empresasTable">
+              <!-- Empresas serão carregadas aqui -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Layouts -->
+    <div id="tab-layouts" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-table"></i> Gerenciamento de Layouts
+          </div>
+          <div class="gestao-header">
+            <button class="btn btn-primary" onclick="abrirModalNovoLayout()">
+              <i class="fas fa-plus"></i> Novo Layout
+            </button>
+            <button class="btn btn-info" onclick="atualizarListaLayouts()">
+              <i class="fas fa-sync"></i> Atualizar
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <!-- Filtros de Layout -->
+          <div class="row gestao-filters">
+            <div class="col-md-4">
+              <label class="form-label">Buscar Layout:</label>
+              <input type="text" id="filtroBuscaLayout" class="form-input" placeholder="Nome do layout..." onkeyup="filtrarLayouts()">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Tipo:</label>
+              <select id="filtroTipoLayout" class="form-input" onchange="filtrarLayouts()">
+                <option value="">Todos os tipos</option>
+                <option value="estacionamento">Estacionamento</option>
+                <option value="servicos">Serviços</option>
+                <option value="consultoria">Consultoria</option>
+                <option value="outros">Outros</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Status:</label>
+              <select id="filtroStatusLayout" class="form-input" onchange="filtrarLayouts()">
+                <option value="">Todos</option>
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Estatísticas de Layouts -->
+          <div class="row stats-grid">
+            <div class="col-md-3">
+              <div class="stat-card info">
+                <div class="stat-value" id="totalLayouts">0</div>
+                <div class="stat-label">Total Layouts</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card success">
+                <div class="stat-value" id="layoutsAtivos">0</div>
+                <div class="stat-label">Layouts Ativos</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card warning">
+                <div class="stat-value" id="empresasUsandoLayouts">0</div>
+                <div class="stat-label">Empresas Usando</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card primary">
+                <div class="stat-value" id="layoutsSelecionados">0</div>
+                <div class="stat-label">Selecionados</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ações em Massa para Layouts -->
+          <div class="mass-actions">
+            <div class="mass-actions-content">
+              <span class="mass-actions-label">Ações em massa:</span>
+              <button class="btn btn-sm btn-warning" onclick="ativarLayoutsSelecionados()" disabled id="btnAtivarLayouts">
+                <i class="fas fa-check"></i> Ativar Selecionados
+              </button>
+              <button class="btn btn-sm" style="background: var(--secondary); color: white;" onclick="desativarLayoutsSelecionados()" disabled id="btnDesativarLayouts">
+                <i class="fas fa-times"></i> Desativar Selecionados
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="excluirLayoutsSelecionados()" disabled id="btnExcluirLayouts">
+                <i class="fas fa-trash"></i> Excluir Selecionados
+              </button>
+              <label class="select-all-container">
+                <input type="checkbox" id="selecionarTodosLayouts" onchange="selecionarTodosLayouts()"> Selecionar Todos
+              </label>
+            </div>
+          </div>
+
+          <!-- Tabela de Layouts -->
+          <div class="table-container">
+            <table class="rps-table">
+              <thead>
+                <tr>
+                  <th style="width: 40px;">
+                    <input type="checkbox" id="selectAllLayoutsHeader" onchange="selecionarTodosLayouts()">
+                  </th>
+                  <th onclick="ordenarTabelaLayouts('nome')">
+                    Nome <i class="fas fa-sort"></i>
+                  </th>
+                  <th onclick="ordenarTabelaLayouts('tipo')">
+                    Tipo <i class="fas fa-sort"></i>
+                  </th>
+                  <th>Descrição</th>
+                  <th class="text-center">Campos Cabeçalho</th>
+                  <th class="text-center">Campos Detalhe</th>
+                  <th class="text-center">Campos Rodapé</th>
+                  <th class="text-center">Status</th>
+                  <th class="text-center" style="width: 140px;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaLayoutsBody">
+                <tr>
+                  <td colspan="9" class="empty-state">
+                    <i class="fas fa-table"></i>
+                    <div class="empty-state-title">Nenhum layout encontrado</div>
+                    <div class="empty-state-subtitle">Crie um novo layout para começar</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Paginação de Layouts -->
+          <div id="paginacaoLayouts" class="pagination-container">
+            <div class="pagination-info">
+              Mostrando <span id="infoInicioLayouts">0</span> a <span id="infoFimLayouts">0</span> de <span id="infoTotalLayouts">0</span> registros
+            </div>
+            <div class="pagination-buttons" id="botoesPaginacaoLayouts">
+              <!-- Botões de paginação serão gerados dinamicamente -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Importação -->
+    <div id="tab-importacao" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-upload"></i> Importação de Arquivos RPS
+          </div>
+        </div>
+
+        <!-- Opções de Importação -->
+        <div class="import-options">
+          <div class="option-card selected" onclick="toggleOption(this)" data-option="atualizarExistentes">
+            <h4><i class="fas fa-sync"></i> Atualizar Existentes</h4>
+            <p>Atualiza RPS que já existem no banco de dados</p>
+          </div>
+          <div class="option-card" onclick="toggleOption(this)" data-option="ignorarDuplicadas">
+            <h4><i class="fas fa-filter"></i> Ignorar Duplicadas</h4>
+            <p>Ignora arquivos que já foram importados anteriormente</p>
+          </div>
+        </div>
+
+        <!-- Drop Zone -->
+        <div class="drop-zone" id="dropZone">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <h3>Arraste e solte arquivos RPS aqui</h3>
+          <p>ou clique para selecionar arquivos (.txt, .dat, .rps)</p>
+          <input type="file" id="fileInput" multiple accept=".txt,.dat,.rps" style="display: none;">
+        </div>
+
+        <!-- Lista de Arquivos -->
+        <div id="filesList"></div>
+
+        <!-- Loading -->
+        <div class="loading" id="loadingImport">
+          <i class="fas fa-spinner"></i>
+          <h3>Processando arquivos...</h3>
+          <p>Aguarde enquanto importamos os dados</p>
+        </div>
+
+        <!-- Botão de Importação -->
+        <div style="margin-top: 1.5rem;">
+          <button id="btnImportar" class="btn btn-primary" onclick="importarArquivos()" disabled>
+            <i class="fas fa-upload"></i> Importar Arquivos
+          </button>
+        </div>
+
+        <!-- Resultados -->
+        <div id="resultadosImportacao"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Gestão RPS -->
+    <div id="tab-gestao" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-cogs"></i> Gestão de RPS
+          </div>
+          <div class="gestao-header">
+            <button class="btn btn-primary" onclick="abrirModalNovoRps()">
+              <i class="fas fa-plus"></i> Novo RPS
+            </button>
+            <button class="btn btn-info" onclick="atualizarListaRps()">
+              <i class="fas fa-sync"></i> Atualizar
+            </button>
+          </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card-body">
+          <div class="row gestao-filters">
+            <div class="col-md-3">
+              <label class="form-label">Empresa:</label>
+              <select id="filtroEmpresa" class="form-input" onchange="filtrarRps()">
+                <option value="">Todas as empresas</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Data Início:</label>
+              <input type="date" id="filtroDataInicio" class="form-input" onchange="filtrarRps()">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Data Fim:</label>
+              <input type="date" id="filtroDataFim" class="form-input" onchange="filtrarRps()">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Status:</label>
+              <select id="filtroStatus" class="form-input" onchange="filtrarRps()">
+                <option value="">Todos</option>
+                <option value="processado">Processado</option>
+                <option value="pendente">Pendente</option>
+                <option value="erro">Erro</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Buscar:</label>
+              <input type="text" id="filtroBusca" class="form-input" placeholder="Número RPS, Tomador..." onkeyup="filtrarRps()">
+            </div>
+          </div>
+
+          <!-- Estatísticas -->
+          <div class="row stats-grid">
+            <div class="col-md-3">
+              <div class="stat-card info">
+                <div class="stat-value" id="totalRps">0</div>
+                <div class="stat-label">Total de RPS</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card success">
+                <div class="stat-value" id="valorTotal">R$ 0,00</div>
+                <div class="stat-label">Valor Total</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card warning">
+                <div class="stat-value" id="valorISS">R$ 0,00</div>
+                <div class="stat-label">Valor ISS</div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="stat-card primary">
+                <div class="stat-value" id="rpsSelecionados">0</div>
+                <div class="stat-label">Selecionados</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ações em Massa -->
+          <div class="mass-actions">
+            <div class="mass-actions-content">
+              <span class="mass-actions-label">Ações em massa:</span>
+              <button class="btn btn-sm btn-warning" onclick="abrirModalEdicaoMassa()" disabled id="btnEditarMassa">
+                <i class="fas fa-edit"></i> Editar Selecionados
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="excluirRpsSelecionados()" disabled id="btnExcluirMassa">
+                <i class="fas fa-trash"></i> Excluir Selecionados
+              </button>
+              <button class="btn btn-sm btn-info" onclick="exportarRpsSelecionados()" disabled id="btnExportarMassa">
+                <i class="fas fa-download"></i> Exportar Selecionados
+              </button>
+              <label class="select-all-container">
+                <input type="checkbox" id="selecionarTodos" onchange="selecionarTodosRps()"> Selecionar Todos
+              </label>
+            </div>
+          </div>
+
+          <!-- Tabela de RPS -->
+          <div class="table-container">
+            <table class="rps-table">
+              <thead>
+                <tr>
+                  <th style="width: 40px;">
+                    <input type="checkbox" id="selectAllHeader" onchange="selecionarTodosRps()">
+                  </th>
+                  <th onclick="ordenarTabela('numero')">
+                    Nº RPS <i class="fas fa-sort"></i>
+                  </th>
+                  <th onclick="ordenarTabela('data_emissao')">
+                    Data <i class="fas fa-sort"></i>
+                  </th>
+                  <th>Tomador</th>
+                  <th>Descrição</th>
+                  <th class="text-right" onclick="ordenarTabela('valor_servicos')">
+                    Valor <i class="fas fa-sort"></i>
+                  </th>
+                  <th class="text-right">ISS</th>
+                  <th class="text-center">Status</th>
+                  <th class="text-center" style="width: 120px;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaRpsBody">
+                <tr>
+                  <td colspan="9" class="empty-state">
+                    <i class="fas fa-file-alt"></i>
+                    <div class="empty-state-title">Nenhum RPS encontrado</div>
+                    <div class="empty-state-subtitle">Selecione uma empresa e período para visualizar os RPS</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Paginação -->
+          <div id="paginacaoRps" class="pagination-container">
+            <div class="pagination-info">
+              Mostrando <span id="infoInicio">0</span> a <span id="infoFim">0</span> de <span id="infoTotal">0</span> registros
+            </div>
+            <div class="pagination-buttons" id="botoesPaginacao">
+              <!-- Botões de paginação serão gerados dinamicamente -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Relatórios -->
+    <div id="tab-relatorios" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fas fa-chart-bar"></i> Relatórios
+          </div>
+        </div>
+        <p>Funcionalidade em desenvolvimento...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modais para Gestão de RPS -->
+  
+  <!-- Modal Novo RPS -->
+  <div id="modalNovoRps" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <h3>Novo RPS</h3>
+        <button class="modal-close" onclick="fecharModal('modalNovoRps')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formNovoRps">
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label">Empresa:</label>
+              <select id="novoRpsEmpresa" class="form-input required">
+                <option value="">Selecione uma empresa</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Número RPS:</label>
+              <input type="number" id="novoRpsNumero" class="form-input required" placeholder="Ex: 123">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Data Emissão:</label>
+              <input type="date" id="novoRpsData" class="form-input required">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label">Nome do Tomador:</label>
+              <input type="text" id="novoRpsTomador" class="form-input required" placeholder="Nome da empresa/pessoa">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">CNPJ/CPF do Tomador:</label>
+              <input type="text" id="novoRpsDocumento" class="form-input" placeholder="XX.XXX.XXX/XXXX-XX">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12">
+              <label class="form-label">Descrição do Serviço:</label>
+              <textarea id="novoRpsDescricao" class="form-input required" rows="3" placeholder="Descrição detalhada do serviço prestado"></textarea>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-3">
+              <label class="form-label">Valor dos Serviços:</label>
+              <input type="number" id="novoRpsValor" class="form-input required" step="0.01" placeholder="0,00">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Alíquota ISS (%):</label>
+              <input type="number" id="novoRpsAliquota" class="form-input" step="0.01" placeholder="2,00">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Valor ISS:</label>
+              <input type="number" id="novoRpsISS" class="form-input" step="0.01" placeholder="0,00" readonly>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Valor Líquido:</label>
+              <input type="number" id="novoRpsLiquido" class="form-input" step="0.01" placeholder="0,00" readonly>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="fecharModal('modalNovoRps')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarNovoRps()">Salvar RPS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Edição em Massa -->
+  <div id="modalEdicaoMassa" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Editar RPS Selecionados</h3>
+        <button class="modal-close" onclick="fecharModal('modalEdicaoMassa')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 20px; color: var(--secondary);">
+          <i class="fas fa-info-circle"></i> 
+          As alterações serão aplicadas aos <span id="totalSelecionadosEdicao">0</span> RPS selecionados.
+        </p>
+        
+        <form id="formEdicaoMassa">
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label">
+                <input type="checkbox" id="editarStatus"> Alterar Status:
+              </label>
+              <select id="novoStatusMassa" class="form-input" disabled>
+                <option value="processado">Processado</option>
+                <option value="pendente">Pendente</option>
+                <option value="erro">Erro</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">
+                <input type="checkbox" id="editarAliquota"> Alterar Alíquota ISS (%):
+              </label>
+              <input type="number" id="novaAliquotaMassa" class="form-input" step="0.01" disabled>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12">
+              <label class="form-label">
+                <input type="checkbox" id="editarObservacao"> Adicionar Observação:
+              </label>
+              <textarea id="novaObservacaoMassa" class="form-input" rows="3" placeholder="Observação a ser adicionada aos RPS selecionados" disabled></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="fecharModal('modalEdicaoMassa')">Cancelar</button>
+        <button class="btn btn-primary" onclick="aplicarEdicaoMassa()">Aplicar Alterações</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Visualizar RPS -->
+  <div id="modalVisualizarRps" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <h3>Detalhes do RPS</h3>
+        <button class="modal-close" onclick="fecharModal('modalVisualizarRps')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="detalhesRps">
+          <!-- Conteúdo será preenchido dinamicamente -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="fecharModal('modalVisualizarRps')">Fechar</button>
+        <button class="btn btn-primary" onclick="editarRpsAtual()">Editar RPS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modais para Gerenciamento de Layouts -->
+  
+  <!-- Modal Novo Layout -->
+  <div id="modalNovoLayout" class="modal">
+    <div class="modal-content" style="max-width: 1000px;">
+      <div class="modal-header">
+        <h3>Novo Layout de Importação</h3>
+        <button class="modal-close" onclick="fecharModal('modalNovoLayout')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formNovoLayout">
+          <!-- Informações Básicas -->
+          <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header">
+              <h4>Informações Básicas</h4>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <label class="form-label">Nome do Layout:</label>
+                  <input type="text" id="layoutNome" class="form-input required" placeholder="Ex: Layout Estacionamento v1">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Tipo:</label>
+                  <select id="layoutTipo" class="form-input required">
+                    <option value="">Selecione o tipo</option>
+                    <option value="estacionamento">Estacionamento</option>
+                    <option value="servicos">Serviços</option>
+                    <option value="consultoria">Consultoria</option>
+                    <option value="outros">Outros</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Status:</label>
+                  <select id="layoutStatus" class="form-input">
+                    <option value="ativo">Ativo</option>
+                    <option value="inativo">Inativo</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">Versão:</label>
+                  <input type="text" id="layoutVersao" class="form-input" placeholder="1.0" value="1.0">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-12">
+                  <label class="form-label">Descrição:</label>
+                  <textarea id="layoutDescricao" class="form-input" rows="2" placeholder="Descrição do layout e suas características"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuração do Cabeçalho -->
+          <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header">
+              <h4>Configuração do Cabeçalho (Primeira Linha)</h4>
+              <button type="button" class="btn btn-sm btn-primary" onclick="adicionarCampoCabecalho()">
+                <i class="fas fa-plus"></i> Adicionar Campo
+              </button>
+            </div>
+            <div class="card-body">
+              <div id="camposCabecalho">
+                <!-- Campos serão adicionados dinamicamente -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuração dos Detalhes -->
+          <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header">
+              <h4>Configuração dos Detalhes (Linhas de RPS)</h4>
+              <button type="button" class="btn btn-sm btn-primary" onclick="adicionarCampoDetalhe()">
+                <i class="fas fa-plus"></i> Adicionar Campo
+              </button>
+            </div>
+            <div class="card-body">
+              <div id="camposDetalhe">
+                <!-- Campos serão adicionados dinamicamente -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuração do Rodapé -->
+          <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header">
+              <h4>Configuração do Rodapé (Totalizadores)</h4>
+              <button type="button" class="btn btn-sm btn-primary" onclick="adicionarCampoRodape()">
+                <i class="fas fa-plus"></i> Adicionar Campo
+              </button>
+            </div>
+            <div class="card-body">
+              <div id="camposRodape">
+                <!-- Campos serão adicionados dinamicamente -->
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="fecharModal('modalNovoLayout')">Cancelar</button>
+        <button class="btn btn-info" onclick="testarLayout()">Testar Layout</button>
+        <button class="btn btn-primary" onclick="salvarNovoLayout()">Salvar Layout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Visualizar Layout -->
+  <div id="modalVisualizarLayout" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+      <div class="modal-header">
+        <h3>Detalhes do Layout</h3>
+        <button class="modal-close" onclick="fecharModal('modalVisualizarLayout')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="detalhesLayout">
+          <!-- Conteúdo será preenchido dinamicamente -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="fecharModal('modalVisualizarLayout')">Fechar</button>
+        <button class="btn btn-primary" onclick="editarLayoutAtual()">Editar Layout</button>
+        <button class="btn btn-success" onclick="duplicarLayoutAtual()">Duplicar Layout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Teste de Layout -->
+  <div id="modalTesteLayout" class="modal">
+    <div class="modal-content" style="max-width: 1200px;">
+      <div class="modal-header">
+        <h3>Teste do Layout</h3>
+        <button class="modal-close" onclick="fecharModal('modalTesteLayout')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h4>Arquivo de Teste</h4>
+            <textarea id="arquivoTeste" class="form-input" rows="15" placeholder="Cole aqui algumas linhas do arquivo para testar o layout..."></textarea>
+            <button class="btn btn-primary" onclick="executarTesteLayout()" style="margin-top: 10px;">
+              <i class="fas fa-play"></i> Executar Teste
+            </button>
+          </div>
+          <div class="col-md-6">
+            <h4>Resultado do Teste</h4>
+            <div id="resultadoTeste" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); padding: 10px; border-radius: 5px; background: var(--light);">
+              <p style="color: var(--secondary); text-align: center;">Execute o teste para ver os resultados</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="fecharModal('modalTesteLayout')">Fechar</button>
+        <button class="btn btn-success" onclick="salvarEUsarLayout()">Salvar e Usar Layout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification -->
+  <div id="notification" class="notification"></div>
+
+  <script>
+    // Variáveis globais
+    let empresas = [];
+    let arquivosSelecionados = [];
+    let opcoes = {
+      atualizarExistentes: true,
+      ignorarDuplicadas: false
+    };
+
+    // Variáveis para gestão de RPS
+    let rpsData = [];
+    let rpsAtual = null;
+    let paginaAtual = 1;
+    let itensPorPagina = 20;
+    let rpsSelecionados = new Set();
+    let ordenacaoAtual = { campo: 'data_emissao', direcao: 'desc' };
+
+    // Funções de Gestão de RPS
+
+    async function atualizarListaRps() {
+      const empresaId = document.getElementById('filtroEmpresa').value;
+      const dataInicio = document.getElementById('filtroDataInicio').value;
+      const dataFim = document.getElementById('filtroDataFim').value;
+
+      if (!empresaId || !dataInicio || !dataFim) {
+        mostrarNotificacao('Selecione empresa e período para buscar RPS', 'warning');
+        return;
+      }
+
+      try {
+        mostrarLoading('tabelaRpsBody');
+        
+        const response = await fetch(`/api/rps?empresaId=${empresaId}&dataInicio=${dataInicio}&dataFim=${dataFim}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          rpsData = data.rps || [];
+          atualizarEstatisticas(data.totais);
+          filtrarRps();
+          mostrarNotificacao('Lista de RPS atualizada', 'success');
+        } else {
+          throw new Error(data.erro || 'Erro ao buscar RPS');
+        }
+      } catch (error) {
+        console.error('Erro ao buscar RPS:', error);
+        mostrarNotificacao('Erro ao buscar RPS: ' + error.message, 'error');
+        rpsData = [];
+        renderizarTabelaRps([]);
+      }
+    }
+
+    function filtrarRps() {
+      const filtroStatus = document.getElementById('filtroStatus').value;
+      const filtroBusca = document.getElementById('filtroBusca').value.toLowerCase();
+
+      let rpsFiltrados = rpsData.filter(rps => {
+        const matchStatus = !filtroStatus || rps.status === filtroStatus;
+        const matchBusca = !filtroBusca || 
+          rps.numero.toString().includes(filtroBusca) ||
+          rps.tomador_nome?.toLowerCase().includes(filtroBusca) ||
+          rps.descricao?.toLowerCase().includes(filtroBusca);
+        
+        return matchStatus && matchBusca;
+      });
+
+      // Aplicar ordenação
+      rpsFiltrados.sort((a, b) => {
+        const { campo, direcao } = ordenacaoAtual;
+        let valorA = a[campo];
+        let valorB = b[campo];
+
+        if (campo === 'valor_servicos' || campo === 'valor_iss') {
+          valorA = parseFloat(valorA) || 0;
+          valorB = parseFloat(valorB) || 0;
+        }
+
+        if (valorA < valorB) return direcao === 'asc' ? -1 : 1;
+        if (valorA > valorB) return direcao === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      renderizarTabelaRps(rpsFiltrados);
+      atualizarPaginacao(rpsFiltrados.length);
+    }
+
+    function renderizarTabelaRps(dados) {
+      const tbody = document.getElementById('tabelaRpsBody');
+      
+      if (dados.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="empty-state">
+              <i class="fas fa-file-alt"></i>
+              <div class="empty-state-title">Nenhum RPS encontrado</div>
+              <div class="empty-state-subtitle">Ajuste os filtros para ver mais resultados</div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const inicio = (paginaAtual - 1) * itensPorPagina;
+      const fim = Math.min(inicio + itensPorPagina, dados.length);
+      const dadosPagina = dados.slice(inicio, fim);
+
+      tbody.innerHTML = dadosPagina.map(rps => `
+        <tr>
+          <td>
+            <input type="checkbox" 
+                   ${rpsSelecionados.has(rps.id) ? 'checked' : ''} 
+                   onchange="toggleSelecionarRps(${rps.id})">
+          </td>
+          <td>${rps.numero}</td>
+          <td>${formatarData(rps.data_emissao)}</td>
+          <td>${rps.tomador_nome || '-'}</td>
+          <td title="${rps.descricao || ''}">${truncarTexto(rps.descricao, 30)}</td>
+          <td class="text-right">R$ ${formatarValor(rps.valor_servicos)}</td>
+          <td class="text-right">R$ ${formatarValor(rps.valor_iss)}</td>
+          <td class="text-center">
+            <span class="rps-status ${rps.status || 'pendente'}">${getStatusLabel(rps.status)}</span>
+          </td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-info" onclick="visualizarRps(${rps.id})" title="Visualizar">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="btn btn-sm btn-warning" onclick="editarRps(${rps.id})" title="Editar">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="excluirRps(${rps.id})" title="Excluir">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      // Atualizar informações de paginação
+      document.getElementById('infoInicio').textContent = inicio + 1;
+      document.getElementById('infoFim').textContent = fim;
+      document.getElementById('infoTotal').textContent = dados.length;
+    }
+
+    function atualizarEstatisticas(totais) {
+      document.getElementById('totalRps').textContent = totais?.quantidade || 0;
+      document.getElementById('valorTotal').textContent = 'R$ ' + (totais?.valorTotal || '0,00');
+      document.getElementById('valorISS').textContent = 'R$ ' + (totais?.valorISS || '0,00');
+      atualizarContadorSelecionados();
+    }
+
+    function toggleSelecionarRps(id) {
+      if (rpsSelecionados.has(id)) {
+        rpsSelecionados.delete(id);
+      } else {
+        rpsSelecionados.add(id);
+      }
+      atualizarContadorSelecionados();
+      atualizarBotoesAcoesMassa();
+    }
+
+    function selecionarTodosRps() {
+      const checkboxTodos = document.getElementById('selecionarTodos');
+      const checkboxes = document.querySelectorAll('#tabelaRpsBody input[type="checkbox"]');
+      
+      if (checkboxTodos.checked) {
+        rpsData.forEach(rps => rpsSelecionados.add(rps.id));
+      } else {
+        rpsSelecionados.clear();
+      }
+      
+      checkboxes.forEach(cb => cb.checked = checkboxTodos.checked);
+      atualizarContadorSelecionados();
+      atualizarBotoesAcoesMassa();
+    }
+
+    function atualizarContadorSelecionados() {
+      document.getElementById('rpsSelecionados').textContent = rpsSelecionados.size;
+    }
+
+    function atualizarBotoesAcoesMassa() {
+      const temSelecao = rpsSelecionados.size > 0;
+      document.getElementById('btnEditarMassa').disabled = !temSelecao;
+      document.getElementById('btnExcluirMassa').disabled = !temSelecao;
+      document.getElementById('btnExportarMassa').disabled = !temSelecao;
+    }
+
+    function ordenarTabela(campo) {
+      if (ordenacaoAtual.campo === campo) {
+        ordenacaoAtual.direcao = ordenacaoAtual.direcao === 'asc' ? 'desc' : 'asc';
+      } else {
+        ordenacaoAtual.campo = campo;
+        ordenacaoAtual.direcao = 'asc';
+      }
+      filtrarRps();
+    }
+
+    function atualizarPaginacao(totalItens) {
+      const totalPaginas = Math.ceil(totalItens / itensPorPagina);
+      const container = document.getElementById('botoesPaginacao');
+      
+      let html = '';
+      
+      if (totalPaginas > 1) {
+        // Botão anterior
+        html += `<button class="btn btn-sm ${paginaAtual === 1 ? 'btn-secondary' : 'btn-primary'}" 
+                        ${paginaAtual === 1 ? 'disabled' : ''} 
+                        onclick="irParaPagina(${paginaAtual - 1})">
+                   <i class="fas fa-chevron-left"></i>
+                 </button>`;
+        
+        // Números das páginas
+        const inicio = Math.max(1, paginaAtual - 2);
+        const fim = Math.min(totalPaginas, paginaAtual + 2);
+        
+        for (let i = inicio; i <= fim; i++) {
+          html += `<button class="btn btn-sm ${i === paginaAtual ? 'btn-primary' : 'btn-secondary'}" 
+                          onclick="irParaPagina(${i})">${i}</button>`;
+        }
+        
+        // Botão próximo
+        html += `<button class="btn btn-sm ${paginaAtual === totalPaginas ? 'btn-secondary' : 'btn-primary'}" 
+                        ${paginaAtual === totalPaginas ? 'disabled' : ''} 
+                        onclick="irParaPagina(${paginaAtual + 1})">
+                   <i class="fas fa-chevron-right"></i>
+                 </button>`;
+      }
+      
+      container.innerHTML = html;
+    }
+
+    function irParaPagina(pagina) {
+      paginaAtual = pagina;
+      filtrarRps();
+    }
+
+    // Funções de Modal
+    function abrirModalNovoRps() {
+      carregarEmpresasSelect('novoRpsEmpresa');
+      document.getElementById('novoRpsData').value = new Date().toISOString().split('T')[0];
+      abrirModal('modalNovoRps');
+    }
+
+    function abrirModalEdicaoMassa() {
+      document.getElementById('totalSelecionadosEdicao').textContent = rpsSelecionados.size;
+      abrirModal('modalEdicaoMassa');
+    }
+
+    async function visualizarRps(id) {
+      try {
+        const response = await fetch(`/api/rps/${id}`);
+        const rps = await response.json();
+        
+        if (response.ok) {
+          rpsAtual = rps;
+          renderizarDetalhesRps(rps);
+          abrirModal('modalVisualizarRps');
+        } else {
+          mostrarNotificacao('Erro ao carregar RPS: ' + rps.erro, 'error');
+        }
+      } catch (error) {
+        mostrarNotificacao('Erro ao carregar RPS: ' + error.message, 'error');
+      }
+    }
+
+    function renderizarDetalhesRps(rps) {
+      const container = document.getElementById('detalhesRps');
+      container.innerHTML = `
+        <div class="row">
+          <div class="col-md-6">
+            <h4>Informações Básicas</h4>
+            <p><strong>Número:</strong> ${rps.numero}</p>
+            <p><strong>Data de Emissão:</strong> ${formatarData(rps.data_emissao)}</p>
+            <p><strong>Status:</strong> <span class="rps-status ${rps.status}">${getStatusLabel(rps.status)}</span></p>
+          </div>
+          <div class="col-md-6">
+            <h4>Valores</h4>
+            <p><strong>Valor dos Serviços:</strong> R$ ${formatarValor(rps.valor_servicos)}</p>
+            <p><strong>Valor ISS:</strong> R$ ${formatarValor(rps.valor_iss)}</p>
+            <p><strong>Valor Líquido:</strong> R$ ${formatarValor(rps.valor_liquido)}</p>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-12">
+            <h4>Tomador</h4>
+            <p><strong>Nome:</strong> ${rps.tomador_nome || '-'}</p>
+            <p><strong>Documento:</strong> ${rps.tomador_documento || '-'}</p>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-12">
+            <h4>Descrição do Serviço</h4>
+            <p>${rps.descricao || '-'}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Funções auxiliares
+    function formatarData(data) {
+      if (!data) return '-';
+      return new Date(data).toLocaleDateString('pt-BR');
+    }
+
+    function formatarValor(valor) {
+      if (!valor) return '0,00';
+      return parseFloat(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    }
+
+    function truncarTexto(texto, tamanho) {
+      if (!texto) return '-';
+      return texto.length > tamanho ? texto.substring(0, tamanho) + '...' : texto;
+    }
+
+    function getStatusLabel(status) {
+      const labels = {
+        'processado': 'Processado',
+        'pendente': 'Pendente',
+        'erro': 'Erro'
+      };
+      return labels[status] || 'Pendente';
+    }
+
+    async function carregarEmpresasSelect(selectId) {
+      try {
+        const response = await fetch('/api/empresas');
+        const empresas = await response.json();
+        
+        const select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">Selecione uma empresa</option>';
+        
+        empresas.forEach(empresa => {
+          select.innerHTML += `<option value="${empresa.id}">${empresa.razao_social}</option>`;
+        });
+      } catch (error) {
+        console.error('Erro ao carregar empresas:', error);
+      }
+    }
+
+    function mostrarLoading(containerId) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = `
+        <tr>
+          <td colspan="9" style="padding: 40px; text-align: center;">
+            <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: var(--primary);"></i>
+            <div style="margin-top: 10px;">Carregando...</div>
+          </td>
+        </tr>
+      `;
+    }
+
+    // Funções de CRUD RPS
+    async function salvarNovoRps() {
+      const form = document.getElementById('formNovoRps');
+      const formData = new FormData(form);
+      
+      const dados = {
+        empresa_id: document.getElementById('novoRpsEmpresa').value,
+        numero: document.getElementById('novoRpsNumero').value,
+        data_emissao: document.getElementById('novoRpsData').value,
+        tomador_nome: document.getElementById('novoRpsTomador').value,
+        tomador_documento: document.getElementById('novoRpsDocumento').value,
+        descricao: document.getElementById('novoRpsDescricao').value,
+        valor_servicos: document.getElementById('novoRpsValor').value,
+        aliquota_iss: document.getElementById('novoRpsAliquota').value,
+        valor_iss: document.getElementById('novoRpsISS').value,
+        valor_liquido: document.getElementById('novoRpsLiquido').value,
+        status: 'pendente'
+      };
+
+      if (!dados.empresa_id || !dados.numero || !dados.data_emissao || !dados.tomador_nome || !dados.descricao || !dados.valor_servicos) {
+        mostrarNotificacao('Preencha todos os campos obrigatórios', 'warning');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/rps', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dados)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          mostrarNotificacao('RPS criado com sucesso!', 'success');
+          fecharModal('modalNovoRps');
+          form.reset();
+          atualizarListaRps();
+        } else {
+          mostrarNotificacao('Erro ao criar RPS: ' + result.erro, 'error');
+        }
+      } catch (error) {
+        mostrarNotificacao('Erro ao criar RPS: ' + error.message, 'error');
+      }
+    }
+
+    async function editarRps(id) {
+      try {
+        const response = await fetch(`/api/rps/${id}`);
+        const rps = await response.json();
+        
+        if (response.ok) {
+          // Preencher formulário de edição (reutilizar modal de novo RPS)
+          await carregarEmpresasSelect('novoRpsEmpresa');
+          document.getElementById('novoRpsEmpresa').value = rps.empresa_id;
+          document.getElementById('novoRpsNumero').value = rps.numero;
+          document.getElementById('novoRpsData').value = rps.data_emissao.split('T')[0];
+          document.getElementById('novoRpsTomador').value = rps.tomador_nome || '';
+          document.getElementById('novoRpsDocumento').value = rps.tomador_documento || '';
+          document.getElementById('novoRpsDescricao').value = rps.descricao || '';
+          document.getElementById('novoRpsValor').value = rps.valor_servicos || '';
+          document.getElementById('novoRpsAliquota').value = rps.aliquota_iss || '';
+          document.getElementById('novoRpsISS').value = rps.valor_iss || '';
+          document.getElementById('novoRpsLiquido').value = rps.valor_liquido || '';
+          
+          rpsAtual = rps;
+          abrirModal('modalNovoRps');
+          
+          // Alterar título e botão para modo edição
+          document.querySelector('#modalNovoRps .modal-header h3').textContent = 'Editar RPS';
+          document.querySelector('#modalNovoRps .btn-primary').textContent = 'Atualizar RPS';
+          document.querySelector('#modalNovoRps .btn-primary').onclick = () => atualizarRps(id);
+        } else {
+          mostrarNotificacao('Erro ao carregar RPS: ' + rps.erro, 'error');
+        }
+      } catch (error) {
+        mostrarNotificacao('Erro ao carregar RPS: ' + error.message, 'error');
+      }
+    }
+
+    async function atualizarRps(id) {
+      const dados = {
+        empresa_id: document.getElementById('novoRpsEmpresa').value,
+        numero: document.getElementById('novoRpsNumero').value,
+        data_emissao: document.getElementById('novoRpsData').value,
+        tomador_nome: document.getElementById('novoRpsTomador').value,
+        tomador_documento: document.getElementById('novoRpsDocumento').value,
+        descricao: document.getElementById('novoRpsDescricao').value,
+        valor_servicos: document.getElementById('novoRpsValor').value,
+        aliquota_iss: document.getElementById('novoRpsAliquota').value,
+        valor_iss: document.getElementById('novoRpsISS').value,
+        valor_liquido: document.getElementById('novoRpsLiquido').value
+      };
+
+      try {
+        const response = await fetch(`/api/rps/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dados)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          mostrarNotificacao('RPS atualizado com sucesso!', 'success');
+          fecharModal('modalNovoRps');
+          resetarModalNovoRps();
+          atualizarListaRps();
+        } else {
+          mostrarNotificacao('Erro ao atualizar RPS: ' + result.erro, 'error');
+        }
+      } catch (error) {
+        mostrarNotificacao('Erro ao atualizar RPS: ' + error.message, 'error');
+      }
+    }
+
+    async function excluirRps(id) {
+      if (!confirm('Tem certeza que deseja excluir este RPS?')) return;
+
+      try {
+        const response = await fetch(`/api/rps/${id}`, { method: 'DELETE' });
+        const result = await response.json();
+
+        if (response.ok) {
+          mostrarNotificacao('RPS excluído com sucesso!', 'success');
+          atualizarListaRps();
+        } else {
+          mostrarNotificacao('Erro ao excluir RPS: ' + result.erro, 'error');
+        }
+      } catch (error) {
+        mostrarNotificacao('Erro ao excluir RPS: ' + error.message, 'error');
+      }
+    }
+
+    async function excluirRpsSelecionados() {
+      if (rpsSelecionados.size === 0) return;
+      
+      if (!confirm(`Tem certeza que deseja excluir ${rpsSelecionados.size} RPS selecionados?`)) return;
+
+      try {
+        const response = await fetch('/api/rps/massa', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: Array.from(rpsSelecionados) })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          mostrarNotificacao(`${result.totalExcluidos} RPS excluídos com sucesso!`, 'success');
+          rpsSelecionados.clear();
+          atualizarListaRps();
+        } else {
+          mostrarNotificacao('Erro ao excluir RPS: ' + result.erro, 'error');
+        }
+      } catch (error) {
+        mostrarNotificacao('Erro ao excluir RPS: ' + error.message, 'error');
+      }
+    }
+
+    async function aplicarEdicaoMassa() {
+      if (rpsSelecionados.size === 0) return;
+
+      const dadosAtualizacao = {};
+      
+      if (document.getElementById('editarStatus').checked) {
+        dadosAtualizacao.status = document.getElementById('novoStatusMassa').value;
+      }
+      
+      if (document.getElementById('editarAliquota').checked) {
+        dadosAtualizacao.aliquota_iss = document.getElementById('novaAliquotaMassa').value;
+      }
+      
+      if (document.getElementById('editarObservacao').checked) {
+        dadosAtualizacao.observacao = document.getElementById('novaObservacaoMassa').value;
+      }
+
+      if (Object.keys(dadosAtualizacao).length === 0) {
+        mostrarNotificacao('Selecione pelo menos uma alteração', 'warning');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/rps/massa', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ids: Array.from(rpsSelecionados),
+            dadosAtualizacao
+          })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          mostrarNotificacao(`${result.totalAtualizados} RPS atualizados com sucesso!`, 'success');
+          fecharModal('modalEdicaoMassa');
+          rpsSelecionados.clear();
+          atualizarListaRps();
+        } else {
+          mostrarNotificacao('Erro ao atualizar RPS: ' + result.erro, 'error');
+        }
+      } catch (error) {
+        mostrarNotificacao('Erro ao atualizar RPS: ' + error.message, 'error');
+      }
+    }
+
+    function exportarRpsSelecionados() {
+      if (rpsSelecionados.size === 0) return;
+
+      const rpsParaExportar = rpsData.filter(rps => rpsSelecionados.has(rps.id));
+      
+      const csv = [
+        'Número,Data,Tomador,Descrição,Valor Serviços,Valor ISS,Status',
+        ...rpsParaExportar.map(rps => [
+          rps.numero,
+          formatarData(rps.data_emissao),
+          rps.tomador_nome || '',
+          rps.descricao || '',
+          rps.valor_servicos || '0',
+          rps.valor_iss || '0',
+          getStatusLabel(rps.status)
+        ].join(','))
+      ].join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `rps-exportacao-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+
+      mostrarNotificacao(`${rpsSelecionados.size} RPS exportados com sucesso!`, 'success');
+    }
+
+    function resetarModalNovoRps() {
+      document.querySelector('#modalNovoRps .modal-header h3').textContent = 'Novo RPS';
+      document.querySelector('#modalNovoRps .btn-primary').textContent = 'Salvar RPS';
+      document.querySelector('#modalNovoRps .btn-primary').onclick = salvarNovoRps;
+      rpsAtual = null;
+    }
+
+    function editarRpsAtual() {
+      if (rpsAtual) {
+        fecharModal('modalVisualizarRps');
+        editarRps(rpsAtual.id);
+      }
+    }
+
+    // Event listeners para cálculos automáticos
+    document.addEventListener('DOMContentLoaded', function() {
+      // Configurar cálculo automático no modal de novo RPS
+      const valorInput = document.getElementById('novoRpsValor');
+      const aliquotaInput = document.getElementById('novoRpsAliquota');
+      const issOutput = document.getElementById('novoRpsISS');
+      const liquidoOutput = document.getElementById('novoRpsLiquido');
+
+      function calcularValores() {
+        const valor = parseFloat(valorInput.value) || 0;
+        const aliquota = parseFloat(aliquotaInput.value) || 0;
+        const iss = valor * (aliquota / 100);
+        const liquido = valor - iss;
+
+        issOutput.value = iss.toFixed(2);
+        liquidoOutput.value = liquido.toFixed(2);
+      }
+
+      valorInput?.addEventListener('input', calcularValores);
+      aliquotaInput?.addEventListener('input', calcularValores);
+
+      // Configurar habilitação/desabilitação de campos na edição em massa
+      document.getElementById('editarStatus')?.addEventListener('change', function() {
+        document.getElementById('novoStatusMassa').disabled = !this.checked;
+      });
+
+      document.getElementById('editarAliquota')?.addEventListener('change', function() {
+        document.getElementById('novaAliquotaMassa').disabled = !this.checked;
+      });
+
+      document.getElementById('editarObservacao')?.addEventListener('change', function() {
+        document.getElementById('novaObservacaoMassa').disabled = !this.checked;
+      });
+
+      // Carregar empresas nos filtros
+      carregarEmpresasFiltro();
+    });
+
+    async function carregarEmpresasFiltro() {
+      try {
+        const response = await fetch('/api/empresas');
+        const empresas = await response.json();
+        
+        const select = document.getElementById('filtroEmpresa');
+        select.innerHTML = '<option value="">Todas as empresas</option>';
+        
+        empresas.forEach(empresa => {
+          select.innerHTML += `<option value="${empresa.id}">${empresa.razao_social}</option>`;
+        });
+      } catch (error) {
+        console.error('Erro ao carregar empresas:', error);
+      }
+    }
+
+    // ==================== FUNÇÕES DE GERENCIAMENTO DE LAYOUTS ====================
+
+    // Variáveis globais para layouts
+    let layoutsData = [];
+    let layoutAtual = null;
+    let paginaAtualLayouts = 1;
+    let itensPorPaginaLayouts = 10;
+    let layoutsSelecionados = new Set();
+    let ordenacaoAtualLayouts = { campo: 'nome', direcao: 'asc' };
+
+    // Funções principais de layouts
+    async function atualizarListaLayouts() {
+      try {
+        mostrarLoadingLayouts();
+        
+        const response = await fetch('/api/layouts');
+        const data = await response.json();
+
+        if (response.ok) {
+          layoutsData = data;
+          atualizarEstatisticasLayouts();
+          filtrarLayouts();
+          mostrarNotificacao('Lista de layouts atualizada', 'success');
+        } else {
+          throw new Error(data.erro || 'Erro ao buscar layouts');
+        }
+      } catch (error) {
+        console.error('Erro ao buscar layouts:', error);
+        mostrarNotificacao('Erro ao buscar layouts: ' + error.message, 'error');
+        layoutsData = [];
+        renderizarTabelaLayouts([]);
+      }
+    }
+
+    async function atualizarEstatisticasLayouts() {
+      try {
+        const response = await fetch('/api/layouts/estatisticas');
+        const stats = await response.json();
+        
+        if (response.ok) {
+          document.getElementById('totalLayouts').textContent = stats.total_layouts || 0;
+          document.getElementById('layoutsAtivos').textContent = stats.layouts_ativos || 0;
+          document.getElementById('empresasUsandoLayouts').textContent = stats.empresas_usando_layouts || 0;
+          atualizarContadorSelecionadosLayouts();
+        }
+      } catch (error) {
+        console.error('Erro ao buscar estatísticas de layouts:', error);
+      }
+    }
+
+    function filtrarLayouts() {
+      const filtroTipo = document.getElementById('filtroTipoLayout').value;
+      const filtroStatus = document.getElementById('filtroStatusLayout').value;
+      const filtroBusca = document.getElementById('filtroBuscaLayout').value.toLowerCase();
+
+      let layoutsFiltrados = layoutsData.filter(layout => {
+        const matchTipo = !filtroTipo || layout.tipo === filtroTipo;
+        const matchStatus = !filtroStatus || layout.status === filtroStatus;
+        const matchBusca = !filtroBusca || 
+          layout.nome.toLowerCase().includes(filtroBusca) ||
+          layout.descricao?.toLowerCase().includes(filtroBusca);
+        
+        return matchTipo && matchStatus && matchBusca;
+      });
+
+      // Aplicar ordenação
+      layoutsFiltrados.sort((a, b) => {
+        const { campo, direcao } = ordenacaoAtualLayouts;
+        let valorA = a[campo];
+        let valorB = b[campo];
+
+        if (valorA < valorB) return direcao === 'asc' ? -1 : 1;
+        if (valorA > valorB) return direcao === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      renderizarTabelaLayouts(layoutsFiltrados);
+      atualizarPaginacaoLayouts(layoutsFiltrados.length);
+    }
+
+    function renderizarTabelaLayouts(dados) {
+      const tbody = document.getElementById('tabelaLayoutsBody');
+      
+      if (dados.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="empty-state">
+              <i class="fas fa-table"></i>
+              <div class="empty-state-title">Nenhum layout encontrado</div>
+              <div class="empty-state-subtitle">Crie um novo layout para começar</div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const inicio = (paginaAtualLayouts - 1) * itensPorPaginaLayouts;
+      const fim = Math.min(inicio + itensPorPaginaLayouts, dados.length);
+      const dadosPagina = dados.slice(inicio, fim);
+
+      tbody.innerHTML = dadosPagina.map(layout => `
+        <tr>
+          <td>
+            <input type="checkbox" 
+                   ${layoutsSelecionados.has(layout.id) ? 'checked' : ''} 
+                   onchange="toggleSelecionarLayout(${layout.id})">
+          </td>
+          <td>
+            <strong>${layout.nome}</strong>
+            <br><small style="color: var(--secondary);">v${layout.versao}</small>
+          </td>
+          <td>
+            <span class="badge badge-${layout.tipo}">${getTipoLabel(layout.tipo)}</span>
+          </td>
+          <td title="${layout.descricao || ''}">${truncarTexto(layout.descricao, 40)}</td>
+          <td class="text-center">
+            <span class="badge badge-info">${layout.configuracao_cabecalho?.length || 0}</span>
+          </td>
+          <td class="text-center">
+            <span class="badge badge-primary">${layout.configuracao_detalhe?.length || 0}</span>
+          </td>
+          <td class="text-center">
+            <span class="badge badge-warning">${layout.configuracao_rodape?.length || 0}</span>
+          </td>
+          <td class="text-center">
+            <span class="rps-status ${layout.status}">${getStatusLabel(layout.status)}</span>
+          </td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-info" onclick="visualizarLayout(${layout.id})" title="Visualizar">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="btn btn-sm btn-warning" onclick="editarLayout(${layout.id})" title="Editar">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-success" onclick="duplicarLayout(${layout.id})" title="Duplicar">
+              <i class="fas fa-copy"></i>
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="excluirLayout(${layout.id})" title="Excluir">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      // Atualizar informações de paginação
+      document.getElementById('infoInicioLayouts').textContent = inicio + 1;
+      document.getElementById('infoFimLayouts').textContent = fim;
+      document.getElementById('infoTotalLayouts').textContent = dados.length;
+    }
+
+    function toggleSelecionarLayout(id) {
+      if (layoutsSelecionados.has(id)) {
+        layoutsSelecionados.delete(id);
+      } else {
+        layoutsSelecionados.add(id);
+      }
+      atualizarContadorSelecionadosLayouts();
+      atualizarBotoesAcoesMassaLayouts();
+    }
+
+    function selecionarTodosLayouts() {
+      const checkboxTodos = document.getElementById('selecionarTodosLayouts');
+      const checkboxes = document.querySelectorAll('#tabelaLayoutsBody input[type="checkbox"]');
+      
+      if (checkboxTodos.checked) {
+        layoutsData.forEach(layout => layoutsSelecionados.add(layout.id));
+      } else {
+        layoutsSelecionados.clear();
+      }
+      
+      checkboxes.forEach(cb => cb.checked = checkboxTodos.checked);
+      atualizarContadorSelecionadosLayouts();
+      atualizarBotoesAcoesMassaLayouts();
+    }
+
+    function atualizarContadorSelecionadosLayouts() {
+      document.getElementById('layoutsSelecionados').textContent = layoutsSelecionados.size;
+    }
+
+    function atualizarBotoesAcoesMassaLayouts() {
+      const temSelecao = layoutsSelecionados.size > 0;
+      document.getElementById('btnAtivarLayouts').disabled = !temSelecao;
+      document.getElementById('btnDesativarLayouts').disabled = !temSelecao;
+      document.getElementById('btnExcluirLayouts').disabled = !temSelecao;
+    }
+
+    function ordenarTabelaLayouts(campo) {
+      if (ordenacaoAtualLayouts.campo === campo) {
+        ordenacaoAtualLayouts.direcao = ordenacaoAtualLayouts.direcao === 'asc' ? 'desc' : 'asc';
+      } else {
+        ordenacaoAtualLayouts.campo = campo;
+        ordenacaoAtualLayouts.direcao = 'asc';
+      }
+      filtrarLayouts();
+    }
+
+    function atualizarPaginacaoLayouts(totalItens) {
+      const totalPaginas = Math.ceil(totalItens / itensPorPaginaLayouts);
+      const container = document.getElementById('botoesPaginacaoLayouts');
+      
+      let html = '';
+      
+      if (totalPaginas > 1) {
+        // Botão anterior
+        html += `<button class="btn btn-sm ${paginaAtualLayouts === 1 ? 'btn-secondary' : 'btn-primary'}" 
+                        ${paginaAtualLayouts === 1 ? 'disabled' : ''} 
+                        onclick="irParaPaginaLayouts(${paginaAtualLayouts - 1})">
+                   <i class="fas fa-chevron-left"></i>
+                 </button>`;
+        
+        // Números das páginas
+        const inicio = Math.max(1, paginaAtualLayouts - 2);
+        const fim = Math.min(totalPaginas, paginaAtualLayouts + 2);
+        
+        for (let i = inicio; i <= fim; i++) {
+          html += `<button class="btn btn-sm ${i === paginaAtualLayouts ? 'btn-primary' : 'btn-secondary'}" 
+                          onclick="irParaPaginaLayouts(${i})">${i}</button>`;
+        }
+        
+        // Botão próximo
+        html += `<button class="btn btn-sm ${paginaAtualLayouts === totalPaginas ? 'btn-secondary' : 'btn-primary'}" 
+                        ${paginaAtualLayouts === totalPaginas ? 'disabled' : ''} 
+                        onclick="irParaPaginaLayouts(${paginaAtualLayouts + 1})">
+                   <i class="fas fa-chevron-right"></i>
+                 </button>`;
+      }
+      
+      container.innerHTML = html;
+    }
+
+    function irParaPaginaLayouts(pagina) {
+      paginaAtualLayouts = pagina;
+      filtrarLayouts();
+    }
+
+    function mostrarLoadingLayouts() {
+      const tbody = document.getElementById('tabelaLayoutsBody');
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="9" style="padding: 40px; text-align: center;">
+            <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: var(--primary);"></i>
+            <div style="margin-top: 10px;">Carregando layouts...</div>
+          </td>
+        </tr>
+      `;
+    }
+
+    // Funções auxiliares para layouts
+    function getTipoLabel(tipo) {
+      const labels = {
+        'estacionamento': 'Estacionamento',
+        'servicos': 'Serviços',
+        'consultoria': 'Consultoria',
+        'outros': 'Outros'
+      };
+      return labels[tipo] || tipo;
+    }
+
+    // ==================== FUNÇÕES DE MODAIS DE LAYOUTS ====================
+
+    function abrirModalNovoLayout() {
+      document.getElementById('modalNovoLayout').style.display = 'flex';
+      resetarFormularioLayout();
+    }
+
+    function fecharModalNovoLayout() {
+      document.getElementById('modalNovoLayout').style.display = 'none';
+      resetarFormularioLayout();
+    }
+
+    function resetarFormularioLayout() {
+      document.getElementById('formNovoLayout').reset();
+      document.getElementById('idLayout').value = '';
+      document.getElementById('versaoLayout').value = '1.0';
+      
+      // Resetar configurações
+      resetarConfiguracaoCampos('cabecalho');
+      resetarConfiguracaoCampos('detalhe');
+      resetarConfiguracaoCampos('rodape');
+    }
+
+    function resetarConfiguracaoCampos(secao) {
+      const container = document.getElementById(`configuracao-${secao}`);
+      container.innerHTML = '';
+      
+      // Adicionar um campo inicial
+      adicionarCampoLayout(secao);
+    }
+
+    function adicionarCampoLayout(secao) {
+      const container = document.getElementById(`configuracao-${secao}`);
+      const index = container.children.length;
+      
+      const fieldDiv = document.createElement('div');
+      fieldDiv.className = 'campo-layout';
+      fieldDiv.innerHTML = `
+        <div class="layout-field-item">
+          <div class="layout-field-header">
+            <span class="layout-field-number">${index + 1}</span>
+            <input type="text" placeholder="Nome do campo" class="form-control campo-nome" required>
+            <button type="button" class="btn btn-sm btn-danger" onclick="removerCampoLayout(this)">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+          <div class="layout-field-config">
+            <div class="layout-config-row">
+              <label>Posição inicial:</label>
+              <input type="number" class="form-control campo-posicao" min="1" value="${index === 0 ? 1 : ''}" required>
+            </div>
+            <div class="layout-config-row">
+              <label>Tamanho:</label>
+              <input type="number" class="form-control campo-tamanho" min="1" required>
+            </div>
+            <div class="layout-config-row">
+              <label>Tipo:</label>
+              <select class="form-control campo-tipo" required>
+                <option value="texto">Texto</option>
+                <option value="numero">Número</option>
+                <option value="data">Data</option>
+                <option value="valor">Valor monetário</option>
+              </select>
+            </div>
+            <div class="layout-config-row">
+              <label>Obrigatório:</label>
+              <input type="checkbox" class="campo-obrigatorio">
+            </div>
+          </div>
+        </div>
+      `;
+      
+      container.appendChild(fieldDiv);
+      atualizarNumeracaoCampos(secao);
+    }
+
+    function removerCampoLayout(button) {
+      const fieldDiv = button.closest('.campo-layout');
+      const container = fieldDiv.parentElement;
+      const secao = container.id.replace('configuracao-', '');
+      
+      fieldDiv.remove();
+      atualizarNumeracaoCampos(secao);
+    }
+
+    function atualizarNumeracaoCampos(secao) {
+      const container = document.getElementById(`configuracao-${secao}`);
+      const campos = container.querySelectorAll('.campo-layout');
+      
+      campos.forEach((campo, index) => {
+        const numero = campo.querySelector('.layout-field-number');
+        numero.textContent = index + 1;
+        
+        // Atualizar posição automática se for o primeiro campo
+        if (index === 0) {
+          const posicaoInput = campo.querySelector('.campo-posicao');
+          if (!posicaoInput.value) {
+            posicaoInput.value = 1;
+          }
+        }
+      });
+    }
+
+    async function salvarLayout() {
+      try {
+        const formData = new FormData(document.getElementById('formNovoLayout'));
+        const layoutData = {
+          nome: formData.get('nome'),
+          tipo: formData.get('tipo'),
+          descricao: formData.get('descricao'),
+          versao: formData.get('versao'),
+          configuracao_cabecalho: coletarConfiguracaoCampos('cabecalho'),
+          configuracao_detalhe: coletarConfiguracaoCampos('detalhe'),
+          configuracao_rodape: coletarConfiguracaoCampos('rodape')
+        };
+
+        // Validar configurações
+        if (!validarConfiguracaoLayout(layoutData)) {
+          return;
+        }
+
+        const isEdicao = document.getElementById('idLayout').value;
+        const url = isEdicao ? `/api/layouts/${document.getElementById('idLayout').value}` : '/api/layouts';
+        const method = isEdicao ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(layoutData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          mostrarNotificacao(
+            isEdicao ? 'Layout atualizado com sucesso!' : 'Layout criado com sucesso!', 
+            'success'
+          );
+          fecharModalNovoLayout();
+          atualizarListaLayouts();
+        } else {
+          mostrarNotificacao(result.erro || 'Erro ao salvar layout', 'error');
+        }
+      } catch (error) {
+        console.error('Erro ao salvar layout:', error);
+        mostrarNotificacao('Erro ao salvar layout: ' + error.message, 'error');
+      }
+    }
+
+    function coletarConfiguracaoCampos(secao) {
+      const container = document.getElementById(`configuracao-${secao}`);
+      const campos = container.querySelectorAll('.campo-layout');
+      
+      return Array.from(campos).map(campo => ({
+        nome: campo.querySelector('.campo-nome').value,
+        posicao: parseInt(campo.querySelector('.campo-posicao').value),
+        tamanho: parseInt(campo.querySelector('.campo-tamanho').value),
+        tipo: campo.querySelector('.campo-tipo').value,
+        obrigatorio: campo.querySelector('.campo-obrigatorio').checked
+      }));
+    }
+
+    function validarConfiguracaoLayout(layoutData) {
+      // Validar se pelo menos uma seção tem campos
+      const totalCampos = 
+        layoutData.configuracao_cabecalho.length +
+        layoutData.configuracao_detalhe.length +
+        layoutData.configuracao_rodape.length;
+
+      if (totalCampos === 0) {
+        mostrarNotificacao('O layout deve ter pelo menos um campo configurado', 'error');
+        return false;
+      }
+
+      // Validar sobreposição de campos em cada seção
+      const secoes = ['configuracao_cabecalho', 'configuracao_detalhe', 'configuracao_rodape'];
+      
+      for (const secao of secoes) {
+        const campos = layoutData[secao];
+        for (let i = 0; i < campos.length; i++) {
+          for (let j = i + 1; j < campos.length; j++) {
+            const campo1 = campos[i];
+            const campo2 = campos[j];
+            
+            const fim1 = campo1.posicao + campo1.tamanho - 1;
+            const fim2 = campo2.posicao + campo2.tamanho - 1;
+            
+            if (!(fim1 < campo2.posicao || fim2 < campo1.posicao)) {
+              mostrarNotificacao(
+                `Sobreposição de campos detectada na seção ${secao.replace('configuracao_', '')}: ${campo1.nome} e ${campo2.nome}`, 
+                'error'
+              );
+              return false;
+            }
+          }
+        }
+      }
+
+      return true;
+    }
+
+    async function editarLayout(id) {
+      try {
+        const response = await fetch(`/api/layouts/${id}`);
+        const layout = await response.json();
+
+        if (response.ok) {
+          preencherFormularioLayout(layout);
+          document.getElementById('modalNovoLayout').style.display = 'flex';
+        } else {
+          mostrarNotificacao('Erro ao carregar layout para edição', 'error');
+        }
+      } catch (error) {
+        console.error('Erro ao carregar layout:', error);
+        mostrarNotificacao('Erro ao carregar layout', 'error');
+      }
+    }
+
+    function preencherFormularioLayout(layout) {
+      document.getElementById('idLayout').value = layout.id;
+      document.getElementById('nomeLayout').value = layout.nome;
+      document.getElementById('tipoLayout').value = layout.tipo;
+      document.getElementById('descricaoLayout').value = layout.descricao || '';
+      document.getElementById('versaoLayout').value = layout.versao;
+
+      // Preencher configurações
+      preencherConfiguracaoCampos('cabecalho', layout.configuracao_cabecalho);
+      preencherConfiguracaoCampos('detalhe', layout.configuracao_detalhe);
+      preencherConfiguracaoCampos('rodape', layout.configuracao_rodape);
+    }
+
+    function preencherConfiguracaoCampos(secao, campos) {
+      const container = document.getElementById(`configuracao-${secao}`);
+      container.innerHTML = '';
+
+      if (campos && campos.length > 0) {
+        campos.forEach(campo => {
+          adicionarCampoLayout(secao);
+          const ultimoCampo = container.lastElementChild;
+          
+          ultimoCampo.querySelector('.campo-nome').value = campo.nome;
+          ultimoCampo.querySelector('.campo-posicao').value = campo.posicao;
+          ultimoCampo.querySelector('.campo-tamanho').value = campo.tamanho;
+          ultimoCampo.querySelector('.campo-tipo').value = campo.tipo;
+          ultimoCampo.querySelector('.campo-obrigatorio').checked = campo.obrigatorio;
+        });
+      } else {
+        adicionarCampoLayout(secao);
+      }
+    }
+
+    async function visualizarLayout(id) {
+      try {
+        const response = await fetch(`/api/layouts/${id}`);
+        const layout = await response.json();
+
+        if (response.ok) {
+          preencherModalVisualizacao(layout);
+          document.getElementById('modalVisualizarLayout').style.display = 'flex';
+        } else {
+          mostrarNotificacao('Erro ao carregar layout', 'error');
+        }
+      } catch (error) {
+        console.error('Erro ao carregar layout:', error);
+        mostrarNotificacao('Erro ao carregar layout', 'error');
+      }
+    }
+
+    function preencherModalVisualizacao(layout) {
+      document.getElementById('visualizacaoNome').textContent = layout.nome;
+      document.getElementById('visualizacaoTipo').textContent = getTipoLabel(layout.tipo);
+      document.getElementById('visualizacaoVersao').textContent = layout.versao;
+      document.getElementById('visualizacaoDescricao').textContent = layout.descricao || 'Sem descrição';
+      document.getElementById('visualizacaoStatus').textContent = getStatusLabel(layout.status);
+      document.getElementById('visualizacaoStatus').className = `rps-status ${layout.status}`;
+
+      // Renderizar configurações
+      renderizarConfiguracaoVisualizacao('cabecalho', layout.configuracao_cabecalho);
+      renderizarConfiguracaoVisualizacao('detalhe', layout.configuracao_detalhe);
+      renderizarConfiguracaoVisualizacao('rodape', layout.configuracao_rodape);
+    }
+
+    function renderizarConfiguracaoVisualizacao(secao, campos) {
+      const container = document.getElementById(`visualizacao-${secao}`);
+      
+      if (!campos || campos.length === 0) {
+        container.innerHTML = '<p class="text-muted">Nenhum campo configurado</p>';
+        return;
+      }
+
+      container.innerHTML = campos.map((campo, index) => `
+        <div class="campo-visualizacao">
+          <div class="campo-info">
+            <strong>${campo.nome}</strong>
+            <span class="badge badge-${campo.tipo}">${campo.tipo}</span>
+            ${campo.obrigatorio ? '<span class="badge badge-danger">Obrigatório</span>' : ''}
+          </div>
+          <div class="campo-detalhes">
+            Posição: ${campo.posicao} | Tamanho: ${campo.tamanho} | 
+            Fim: ${campo.posicao + campo.tamanho - 1}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function fecharModalVisualizarLayout() {
+      document.getElementById('modalVisualizarLayout').style.display = 'none';
+    }
+
+    // Funções de ações em massa
+    async function ativarLayoutsSelecionados() {
+      await alterarStatusLayouts('ativo');
+    }
+
+    async function desativarLayoutsSelecionados() {
+      await alterarStatusLayouts('inativo');
+    }
+
+    async function alterarStatusLayouts(novoStatus) {
+      if (layoutsSelecionados.size === 0) {
+        mostrarNotificacao('Selecione pelo menos um layout', 'warning');
+        return;
+      }
+
+      try {
+        const ids = Array.from(layoutsSelecionados);
+        const response = await fetch('/api/layouts/status', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids, status: novoStatus })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          mostrarNotificacao(`${ids.length} layout(s) ${novoStatus === 'ativo' ? 'ativado(s)' : 'desativado(s)'} com sucesso`, 'success');
+          layoutsSelecionados.clear();
+          atualizarListaLayouts();
+        } else {
+          mostrarNotificacao(result.erro || 'Erro ao alterar status dos layouts', 'error');
+        }
+      } catch (error) {
+        console.error('Erro ao alterar status:', error);
+        mostrarNotificacao('Erro ao alterar status dos layouts', 'error');
+      }
+    }
+
+    async function excluirLayoutsSelecionados() {
+      if (layoutsSelecionados.size === 0) {
+        mostrarNotificacao('Selecione pelo menos um layout', 'warning');
+        return;
+      }
+
+      if (!confirm(`Deseja realmente excluir ${layoutsSelecionados.size} layout(s)? Esta ação não pode ser desfeita.`)) {
+        return;
+      }
+
+      try {
+        const ids = Array.from(layoutsSelecionados);
+        const response = await fetch('/api/layouts', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          mostrarNotificacao(`${ids.length} layout(s) excluído(s) com sucesso`, 'success');
+          layoutsSelecionados.clear();
+          atualizarListaLayouts();
+        } else {
+          mostrarNotificacao(result.erro || 'Erro ao excluir layouts', 'error');
+        }
+      } catch (error) {
+        console.error('Erro ao excluir layouts:', error);
+        mostrarNotificacao('Erro ao excluir layouts', 'error');
+      }
+    }
+
+    async function excluirLayout(id) {
+      if (!confirm('Deseja realmente excluir este layout? Esta ação não pode ser desfeita.')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/layouts/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          mostrarNotificacao('Layout excluído com sucesso', 'success');
+          atualizarListaLayouts();
+        } else {
+          const result = await response.json();
+          mostrarNotificacao(result.erro || 'Erro ao excluir layout', 'error');
+        }
+      } catch (error) {
+        console.error('Erro ao excluir layout:', error);
+        mostrarNotificacao('Erro ao excluir layout', 'error');
+      }
+    }
+
+    async function duplicarLayout(id) {
+      try {
+        const response = await fetch(`/api/layouts/${id}`);
+        const layout = await response.json();
+
+        if (response.ok) {
+          // Modificar nome para indicar que é uma cópia
+          layout.nome = `${layout.nome} - Cópia`;
+          delete layout.id; // Remover ID para criar novo
+          
+          preencherFormularioLayout(layout);
+          document.getElementById('modalNovoLayout').style.display = 'flex';
+        } else {
+          mostrarNotificacao('Erro ao carregar layout para duplicação', 'error');
+        }
+      } catch (error) {
+        console.error('Erro ao duplicar layout:', error);
+        mostrarNotificacao('Erro ao duplicar layout', 'error');
+      }
+    }
+
+    // ==================== FUNÇÕES DE TESTE DE LAYOUT ====================
+
+    async function testarLayout(id) {
+      try {
+        const response = await fetch(`/api/layouts/${id}`);
+        const layout = await response.json();
+
+        if (response.ok) {
+          layoutAtual = layout;
+          preencherModalTeste(layout);
+          document.getElementById('modalTesteLayout').style.display = 'flex';
+        } else {
+          mostrarNotificacao('Erro ao carregar layout para teste', 'error');
+        }
+      } catch (error) {
+        console.error('Erro ao carregar layout:', error);
+        mostrarNotificacao('Erro ao carregar layout', 'error');
+      }
+    }
+
+    function preencherModalTeste(layout) {
+      document.getElementById('testeLayoutNome').textContent = layout.nome;
+      document.getElementById('textoTeste').value = '';
+      document.getElementById('resultadoTeste').innerHTML = '';
+      
+      // Mostrar configuração do layout
+      const infoLayout = document.getElementById('infoLayoutTeste');
+      let infoHtml = '<h4>Configuração do Layout:</h4>';
+      
+      if (layout.configuracao_cabecalho && layout.configuracao_cabecalho.length > 0) {
+        infoHtml += '<h5>Cabeçalho:</h5>';
+        infoHtml += layout.configuracao_cabecalho.map(campo => 
+          `<span class="badge badge-info">${campo.nome} (${campo.posicao}-${campo.posicao + campo.tamanho - 1})</span>`
+        ).join(' ');
+      }
+      
+      if (layout.configuracao_detalhe && layout.configuracao_detalhe.length > 0) {
+        infoHtml += '<h5>Detalhe:</h5>';
+        infoHtml += layout.configuracao_detalhe.map(campo => 
+          `<span class="badge badge-primary">${campo.nome} (${campo.posicao}-${campo.posicao + campo.tamanho - 1})</span>`
+        ).join(' ');
+      }
+      
+      if (layout.configuracao_rodape && layout.configuracao_rodape.length > 0) {
+        infoHtml += '<h5>Rodapé:</h5>';
+        infoHtml += layout.configuracao_rodape.map(campo => 
+          `<span class="badge badge-warning">${campo.nome} (${campo.posicao}-${campo.posicao + campo.tamanho - 1})</span>`
+        ).join(' ');
+      }
+      
+      infoLayout.innerHTML = infoHtml;
+    }
+
+    function executarTesteLinha() {
+      const textoTeste = document.getElementById('textoTeste').value;
+      if (!textoTeste.trim()) {
+        mostrarNotificacao('Digite um texto para testar', 'warning');
+        return;
+      }
+
+      const linhas = textoTeste.split('\n').filter(linha => linha.trim());
+      if (linhas.length === 0) {
+        mostrarNotificacao('Nenhuma linha válida encontrada', 'warning');
+        return;
+      }
+
+      let resultadoHtml = '<h4>Resultado do Teste:</h4>';
+      
+      linhas.forEach((linha, index) => {
+        resultadoHtml += `<div class="teste-linha">`;
+        resultadoHtml += `<h5>Linha ${index + 1}: "${linha}"</h5>`;
+        
+        // Determinar tipo da linha (cabeçalho, detalhe ou rodapé)
+        const tipoLinha = determinarTipoLinha(linha, index, linhas.length);
+        resultadoHtml += `<p><strong>Tipo identificado:</strong> ${tipoLinha}</p>`;
+        
+        // Extrair campos
+        const configuracao = layoutAtual[`configuracao_${tipoLinha}`];
+        if (configuracao && configuracao.length > 0) {
+          resultadoHtml += `<div class="campos-extraidos">`;
+          configuracao.forEach(campo => {
+            const valor = extrairCampo(linha, campo);
+            const classe = valor.valido ? 'campo-valido' : 'campo-invalido';
+            resultadoHtml += `
+              <div class="campo-resultado ${classe}">
+                <strong>${campo.nome}:</strong> "${valor.valor}"
+                ${!valor.valido ? ` <span class="erro-campo">(${valor.erro})</span>` : ''}
+              </div>
+            `;
+          });
+          resultadoHtml += `</div>`;
+        } else {
+          resultadoHtml += `<p class="text-muted">Nenhuma configuração encontrada para ${tipoLinha}</p>`;
+        }
+        
+        resultadoHtml += `</div>`;
+      });
+      
+      document.getElementById('resultadoTeste').innerHTML = resultadoHtml;
+    }
+
+    function determinarTipoLinha(linha, index, totalLinhas) {
+      // Lógica simples: primeira linha = cabeçalho, última = rodapé, demais = detalhe
+      if (index === 0 && layoutAtual.configuracao_cabecalho && layoutAtual.configuracao_cabecalho.length > 0) {
+        return 'cabecalho';
+      } else if (index === totalLinhas - 1 && layoutAtual.configuracao_rodape && layoutAtual.configuracao_rodape.length > 0) {
+        return 'rodape';
+      } else {
+        return 'detalhe';
+      }
+    }
+
+    function extrairCampo(linha, campo) {
+      try {
+        const inicio = campo.posicao - 1; // Posição é 1-indexed
+        const fim = inicio + campo.tamanho;
+        
+        if (inicio >= linha.length) {
+          return { valor: '', valido: false, erro: 'Posição inicial além do tamanho da linha' };
+        }
+        
+        let valor = linha.substring(inicio, fim).trim();
+        
+        // Validar tipo
+        switch (campo.tipo) {
+          case 'numero':
+            if (valor && isNaN(valor)) {
+              return { valor, valido: false, erro: 'Não é um número válido' };
+            }
+            break;
+          case 'data':
+            if (valor && !isValidDate(valor)) {
+              return { valor, valido: false, erro: 'Não é uma data válida' };
+            }
+            break;
+          case 'valor':
+            if (valor && !isValidCurrency(valor)) {
+              return { valor, valido: false, erro: 'Não é um valor monetário válido' };
+            }
+            break;
+        }
+        
+        // Validar obrigatoriedade
+        if (campo.obrigatorio && !valor) {
+          return { valor, valido: false, erro: 'Campo obrigatório não preenchido' };
+        }
+        
+        return { valor, valido: true };
+      } catch (error) {
+        return { valor: '', valido: false, erro: error.message };
+      }
+    }
+
+    function isValidDate(dateString) {
+      // Aceita formatos: dd/mm/yyyy, yyyy-mm-dd, ddmmyyyy
+      const patterns = [
+        /^\d{2}\/\d{2}\/\d{4}$/,
+        /^\d{4}-\d{2}-\d{2}$/,
+        /^\d{8}$/
+      ];
+      
+      return patterns.some(pattern => pattern.test(dateString));
+    }
+
+    function isValidCurrency(currencyString) {
+      // Aceita formatos: 123.45, 123,45, 12345
+      const pattern = /^\d+([\.,]\d{1,2})?$/;
+      return pattern.test(currencyString);
+    }
+
+    function fecharModalTesteLayout() {
+      document.getElementById('modalTesteLayout').style.display = 'none';
+      layoutAtual = null;
+    }
+
+    // ==================== INTEGRAÇÃO COM NAVEGAÇÃO ====================
+
+    // Modificar função existente showTab para incluir layouts
+    function showTab(tabName) {
+      // Ocultar todas as seções
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+      });
+
+      // Remover classe active de todas as abas
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+      });
+
+      // Mostrar a seção selecionada
+      document.getElementById(tabName).style.display = 'block';
+
+      // Adicionar classe active à aba selecionada
+      document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
+
+      // Carregar dados específicos da aba
+      if (tabName === 'rps') {
+        carregarRPS();
+      } else if (tabName === 'layouts') {
+        atualizarListaLayouts();
+      }
+    }
+
+    // Inicialização
+    document.addEventListener('DOMContentLoaded', function() {
+      carregarEmpresas();
+      setupDropZone();
+      setupFormEmpresa();
+      formatarInputs();
+      
+      // Inicializar layouts se a aba estiver ativa
+      if (document.getElementById('layouts').style.display !== 'none') {
+        atualizarListaLayouts();
+      }
+    });
+
+    // ==================== FUNÇÕES DE NAVEGAÇÃO ====================
+    function showTab(tabName) {
+      // Remover classe active de todas as tabs
+      document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      // Adicionar classe active na tab selecionada
+      event.target.classList.add('active');
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    // ==================== FUNÇÕES DE EMPRESAS ====================
+    async function carregarEmpresas() {
+      try {
+        const response = await fetch('/api/empresas');
+        empresas = await response.json();
+        atualizarTabelaEmpresas();
+      } catch (error) {
+        showNotification('Erro ao carregar empresas', 'error');
+      }
+    }
+
+    function atualizarTabelaEmpresas() {
+      const tbody = document.getElementById('empresasTable');
+      tbody.innerHTML = empresas.map(empresa => `
+        <tr>
+          <td>${formatarCNPJ(empresa.cnpj)}</td>
+          <td>${empresa.razao_social}</td>
+          <td>${empresa.nome_fantasia || '-'}</td>
+          <td>${empresa.inscricao_municipal || '-'}</td>
+          <td>
+            <button class="btn btn-secondary" onclick="editarEmpresa(${empresa.id})">
+              <i class="fas fa-edit"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function setupFormEmpresa() {
+      // Configuração do formulário
+      document.getElementById('formEmpresa').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const dados = {
+          cnpj: document.getElementById('cnpj').value.replace(/\D/g, ''),
+          razaoSocial: document.getElementById('razaoSocial').value,
+          nomeFantasia: document.getElementById('nomeFantasia').value,
+          inscricaoMunicipal: document.getElementById('inscricaoMunicipal').value,
+          endereco: document.getElementById('endereco').value,
+          telefone: document.getElementById('telefone').value,
+          email: document.getElementById('email').value
+        };
+
+        try {
+          const response = await fetch('/api/empresas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+          });
+
+          if (response.ok) {
+            showNotification('Empresa cadastrada com sucesso!', 'success');
+            limparFormularioEmpresa();
+            carregarEmpresas();
+          } else {
+            const error = await response.json();
+            showNotification(error.erro, 'error');
+          }
+        } catch (error) {
+          showNotification('Erro ao salvar empresa', 'error');
+        }
+      });
+
+      // Máscara e busca automática para CNPJ
+      const cnpjInput = document.getElementById('cnpj');
+      cnpjInput.addEventListener('input', function(e) {
+        // Aplica máscara de CNPJ
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length <= 14) {
+          value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, '$1.$2.$3/$4-$5');
+          e.target.value = value;
+        }
+      });
+
+      cnpjInput.addEventListener('blur', function(e) {
+        const cnpj = e.target.value.replace(/\D/g, '');
+        // Se o CNPJ tem 14 dígitos e os campos ainda estão vazios, busca automaticamente
+        if (cnpj.length === 14 && !document.getElementById('razaoSocial').value.trim()) {
+          buscarDadosCNPJ();
+        }
+      });
+
+      // Máscara para telefone
+      const telefoneInput = document.getElementById('telefone');
+      telefoneInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length <= 11) {
+          if (value.length <= 10) {
+            value = value.replace(/^(\d{2})(\d{4})(\d{4}).*/, '($1) $2-$3');
+          } else {
+            value = value.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+          }
+          e.target.value = value;
+        }
+      });
+    }
+
+    function limparFormularioEmpresa() {
+      document.getElementById('formEmpresa').reset();
+    }
+
+    function editarEmpresa(id) {
+      const empresa = empresas.find(e => e.id === id);
+      if (empresa) {
+        document.getElementById('cnpj').value = formatarCNPJ(empresa.cnpj);
+        document.getElementById('razaoSocial').value = empresa.razao_social;
+        document.getElementById('nomeFantasia').value = empresa.nome_fantasia || '';
+        document.getElementById('inscricaoMunicipal').value = empresa.inscricao_municipal || '';
+        document.getElementById('endereco').value = empresa.endereco || '';
+        document.getElementById('telefone').value = empresa.telefone || '';
+        document.getElementById('email').value = empresa.email || '';
+      }
+    }
+
+    // ==================== BUSCA AUTOMÁTICA POR CNPJ ====================
+    
+    async function buscarDadosCNPJ() {
+      const cnpjInput = document.getElementById('cnpj');
+      const btnBusca = document.querySelector('.btn-search-cnpj');
+      const cnpj = cnpjInput.value.replace(/\D/g, ''); // Remove caracteres não numéricos
+      
+      // Validação básica do CNPJ
+      if (cnpj.length !== 14) {
+        mostrarNotificacao('CNPJ deve ter 14 dígitos', 'error');
+        return;
+      }
+      
+      // Validação de CNPJ inválido (todos os dígitos iguais)
+      if (/^(\d)\1{13}$/.test(cnpj)) {
+        mostrarNotificacao('CNPJ inválido', 'error');
+        return;
+      }
+      
+      // Desabilita botão e mostra loading
+      btnBusca.disabled = true;
+      btnBusca.classList.add('loading');
+      btnBusca.innerHTML = '<i class="fas fa-spinner"></i>';
+      
+      // Mostra notificação de busca em andamento
+      mostrarNotificacao('Buscando dados da empresa em múltiplas fontes...', 'info');
+      
+      try {
+        // Busca dados através do nosso servidor (com fallback de múltiplas APIs)
+        const response = await fetch(`/api/cnpj/buscar/${cnpj}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.erro || 'CNPJ não encontrado');
+        }
+        
+        const dados = await response.json();
+        
+        // Preenche os campos automaticamente
+        preencherDadosEmpresa(dados);
+        mostrarNotificacao('✅ Dados da empresa carregados com sucesso!', 'success');
+        
+      } catch (error) {
+        console.error('Erro ao buscar CNPJ:', error);
+        
+        let mensagemErro = 'Erro ao buscar dados do CNPJ.';
+        
+        if (error.message.includes('403')) {
+          mensagemErro = 'Serviço temporariamente indisponível. Tente novamente em alguns minutos.';
+        } else if (error.message.includes('não encontrado')) {
+          mensagemErro = 'CNPJ não encontrado. Verifique se o número está correto.';
+        } else if (error.message.includes('nenhuma fonte')) {
+          mensagemErro = 'Dados não encontrados em nenhuma fonte. Cadastre manualmente.';
+        }
+        
+        mostrarNotificacao(mensagemErro, 'error');
+      } finally {
+        // Reabilita botão
+        btnBusca.disabled = false;
+        btnBusca.classList.remove('loading');
+        btnBusca.innerHTML = '<i class="fas fa-search"></i>';
+      }
+    }
+    
+    function preencherDadosEmpresa(dados) {
+      // Preenche razão social
+      if (dados.razao_social) {
+        document.getElementById('razaoSocial').value = dados.razao_social;
+      }
+      
+      // Preenche nome fantasia
+      if (dados.nome_fantasia && dados.nome_fantasia !== dados.razao_social) {
+        document.getElementById('nomeFantasia').value = dados.nome_fantasia;
+      }
+      
+      // Preenche email
+      if (dados.email) {
+        document.getElementById('email').value = dados.email;
+      }
+      
+      // Preenche telefone
+      if (dados.telefone) {
+        document.getElementById('telefone').value = dados.telefone;
+      }
+      
+      // Preenche endereço
+      if (dados.endereco) {
+        document.getElementById('endereco').value = dados.endereco;
+      }
+    }
+    
+    // Função auxiliar para mostrar notificações
+    function mostrarNotificacao(mensagem, tipo = 'info') {
+      // Remove notificação anterior se existir
+      const notificacaoExistente = document.querySelector('.notificacao-cnpj');
+      if (notificacaoExistente) {
+        notificacaoExistente.remove();
+      }
+      
+      // Cria nova notificação
+      const notificacao = document.createElement('div');
+      notificacao.className = `notificacao-cnpj notificacao-${tipo}`;
+      notificacao.innerHTML = `
+        <i class="fas fa-${tipo === 'success' ? 'check-circle' : tipo === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+        ${mensagem}
+      `;
+      
+      // Adiciona ao body
+      document.body.appendChild(notificacao);
+      
+      // Remove após 4 segundos
+      setTimeout(() => {
+        if (notificacao.parentNode) {
+          notificacao.remove();
+        }
+      }, 4000);
+    }
+
+    // ==================== FUNÇÕES DE IMPORTAÇÃO ====================
+    function setupDropZone() {
+      const dropZone = document.getElementById('dropZone');
+      const fileInput = document.getElementById('fileInput');
+
+      dropZone.addEventListener('click', () => fileInput.click());
+      
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        handleFiles(e.dataTransfer.files);
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        handleFiles(e.target.files);
+      });
+    }
+
+    function handleFiles(files) {
+      arquivosSelecionados = Array.from(files);
+      atualizarListaArquivos();
+      document.getElementById('btnImportar').disabled = arquivosSelecionados.length === 0;
+    }
+
+    function atualizarListaArquivos() {
+      const container = document.getElementById('filesList');
+      container.innerHTML = arquivosSelecionados.map((file, index) => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--light); border-radius: 8px; margin-bottom: 8px;">
+          <div>
+            <strong>${file.name}</strong>
+            <span style="color: var(--secondary); margin-left: 16px;">${(file.size / 1024).toFixed(1)} KB</span>
+          </div>
+          <button class="btn btn-danger" onclick="removerArquivo(${index})">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function removerArquivo(index) {
+      arquivosSelecionados.splice(index, 1);
+      atualizarListaArquivos();
+      document.getElementById('btnImportar').disabled = arquivosSelecionados.length === 0;
+    }
+
+    function toggleOption(element) {
+      element.classList.toggle('selected');
+      const option = element.dataset.option;
+      opcoes[option] = element.classList.contains('selected');
+    }
+
+    async function importarArquivos() {
+      if (arquivosSelecionados.length === 0) return;
+
+      const loading = document.getElementById('loadingImport');
+      loading.classList.add('show');
+
+      const formData = new FormData();
+      arquivosSelecionados.forEach(file => {
+        formData.append('arquivos', file);
+      });
+      
+      formData.append('atualizarExistentes', opcoes.atualizarExistentes);
+      formData.append('ignorarDuplicadas', opcoes.ignorarDuplicadas);
+
+      try {
+        const response = await fetch('/api/importar-rps', {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+        
+        loading.classList.remove('show');
+        mostrarResultadosImportacao(result.resultados);
+        
+        // Verificar se alguma empresa foi cadastrada automaticamente
+        const empresasCadastradas = result.resultados.filter(r => r.empresaCadastradaAutomaticamente);
+        if (empresasCadastradas.length > 0) {
+          const nomes = empresasCadastradas.map(r => r.empresa).join(', ');
+          mostrarNotificacao(`${empresasCadastradas.length} empresa(s) cadastrada(s) automaticamente: ${nomes}`, 'info');
+        }
+        
+        // Limpar seleção
+        arquivosSelecionados = [];
+        atualizarListaArquivos();
+        document.getElementById('btnImportar').disabled = true;
+        
+      } catch (error) {
+        loading.classList.remove('show');
+        showNotification('Erro durante a importação', 'error');
+      }
+    }
+
+    function mostrarResultadosImportacao(resultados) {
+      const container = document.getElementById('resultadosImportacao');
+      container.innerHTML = `
+        <div class="card" style="margin-top: 2rem;">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-clipboard-check"></i> Resultados da Importação
+            </div>
+          </div>
+          ${resultados.map(resultado => `
+            <div style="padding: 16px; border-left: 4px solid ${getStatusColor(resultado.status)}; margin-bottom: 16px; background: var(--light);">
+              <h4>${resultado.arquivo}</h4>
+              <p><strong>Status:</strong> <span class="status-badge status-${resultado.status}">${resultado.status.toUpperCase()}</span></p>
+              ${resultado.empresa ? `<p><strong>Empresa:</strong> ${resultado.empresa}</p>` : ''}
+              ${resultado.empresaCadastradaAutomaticamente ? `<p style="color: var(--info); font-weight: 500;"><i class="fas fa-robot"></i> <strong>Empresa cadastrada automaticamente via API</strong></p>` : ''}
+              ${resultado.rpsImportados ? `<p><strong>RPS Importados:</strong> ${resultado.rpsImportados}</p>` : ''}
+              ${resultado.valorTotal ? `<p><strong>Valor Total:</strong> ${resultado.valorTotal}</p>` : ''}
+              ${resultado.mensagem ? `<p><strong>Mensagem:</strong> ${resultado.mensagem}</p>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function getStatusColor(status) {
+      switch(status) {
+        case 'sucesso': return 'var(--success)';
+        case 'erro': return 'var(--danger)';
+        case 'ignorado': return 'var(--warning)';
+        default: return 'var(--secondary)';
+      }
+    }
+
+    // ==================== FUNÇÕES UTILITÁRIAS ====================
+    function formatarCNPJ(cnpj) {
+      if (!cnpj) return '';
+      return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+
+    function formatarInputs() {
+      // Formatação do CNPJ
+      document.getElementById('cnpj').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        value = value.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+        e.target.value = value;
+      });
+      
+      // Formatação do telefone
+      document.getElementById('telefone').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        value = value.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3');
+        e.target.value = value;
+      });
+    }
+
+    function showNotification(message, type = 'success') {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = `notification ${type} show`;
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 4000);
+    }
+  </script>
+</body>
+</html>
