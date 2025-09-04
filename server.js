@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const db = require('./database/db');
-const layoutEstacionamento = require('./layouts/layout-rps-estacionamento');
+const layoutManager = require('./layouts/layout-manager');
 
 const app = express();
 const PORT = 3000;
@@ -94,6 +94,17 @@ app.get('/api/empresas/cnpj/:cnpj', async (req, res) => {
     }
   } catch (error) {
     console.error('Erro ao buscar empresa:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+// Buscar tipos de registro RPS disponíveis
+app.get('/api/tipos-registro', async (req, res) => {
+  try {
+    const tipos = await db.buscarTiposRegistro();
+    res.json(tipos);
+  } catch (error) {
+    console.error('Erro ao buscar tipos de registro:', error);
     res.status(500).json({ erro: 'Erro interno do servidor' });
   }
 });
@@ -378,17 +389,21 @@ app.post('/api/importar-rps', upload.array('arquivos'), async (req, res) => {
         const conteudo = fs.readFileSync(arquivo.path, 'utf-8');
         const hashArquivo = calcularHashArquivo(conteudo);
         
-        // Processar arquivo (assumindo formato estacionamento por enquanto)
+        // Processar arquivo com layout dinâmico
         console.log(`Processando arquivo: ${arquivo.originalname}`);
-        const dadosProcessados = layoutEstacionamento.processarArquivoEstacionamento(conteudo);
-        console.log(`Dados processados:`, {
+        
+        // Usar o sistema de layouts dinâmicos
+        const dadosProcessados = layoutManager.processarArquivo(conteudo);
+        
+        console.log(`Dados processados com layout ${dadosProcessados.layout}:`, {
           totalDetalhes: dadosProcessados.detalhes?.length || 0,
-          valorTotalResumo: dadosProcessados.resumo?.valorTotal || 0,
-          temEstatisticas: !!dadosProcessados.estatisticas,
-          cnpjCabecalho: dadosProcessados.cabecalho?.CNPJ
+          valorTotalEstatisticas: dadosProcessados.estatisticas?.valorTotal || 0,
+          temCabecalho: !!dadosProcessados.cabecalho,
+          temRodape: !!dadosProcessados.rodape,
+          cnpjCabecalho: dadosProcessados.cabecalho?.cnpj
         });
         
-        if (!dadosProcessados.cabecalho?.CNPJ) {
+        if (!dadosProcessados.cabecalho?.cnpj) {
           resultados.push({
             arquivo: arquivo.originalname,
             status: 'erro',
@@ -400,7 +415,7 @@ app.post('/api/importar-rps', upload.array('arquivos'), async (req, res) => {
         // Verificar se empresa existe ou criar automaticamente
         let resultadoEmpresa;
         try {
-          resultadoEmpresa = await buscarECadastrarEmpresa(dadosProcessados.cabecalho.CNPJ);
+          resultadoEmpresa = await buscarECadastrarEmpresa(dadosProcessados.cabecalho.cnpj);
         } catch (error) {
           resultados.push({
             arquivo: arquivo.originalname,
@@ -424,15 +439,15 @@ app.post('/api/importar-rps', upload.array('arquivos'), async (req, res) => {
         }
 
         // Criar registro do arquivo
-        console.log(`Criando registro do arquivo com valorTotal: ${(dadosProcessados.resumo?.valorTotal || 0) / 100}`);
+        console.log(`Criando registro do arquivo com valorTotal: ${dadosProcessados.estatisticas?.valorTotal || 0}`);
         const novoArquivo = await db.criarArquivo({
           empresaId: empresa.id,
           nomeArquivo: arquivo.originalname,
           hashArquivo: hashArquivo,
           totalRps: dadosProcessados.detalhes.length,
-          valorTotal: (dadosProcessados.resumo?.valorTotal || 0) / 100,
-          dataInicio: dadosProcessados.resumo.periodo?.inicio,
-          dataFim: dadosProcessados.resumo.periodo?.fim
+          valorTotal: dadosProcessados.estatisticas?.valorTotal || 0,
+          dataInicio: dadosProcessados.cabecalho?.dataInicio,
+          dataFim: dadosProcessados.cabecalho?.dataFim
         });
 
         // Importar RPS
@@ -444,20 +459,20 @@ app.post('/api/importar-rps', upload.array('arquivos'), async (req, res) => {
             await db.criarRps({
               arquivoId: novoArquivo.id,
               empresaId: empresa.id,
-              numeroRps: rps.NumeroRPS,
-              serieRps: rps.SerieRPS || '',
-              tipoRps: rps.TipoRPS || '1',
-              dataEmissao: rps.DataEmissao,
-              dataCompetencia: rps.DataCompetencia || rps.DataEmissao,
-              prestadorCnpj: dadosProcessados.cabecalho.CNPJ,
-              prestadorInscricaoMunicipal: dadosProcessados.cabecalho.InscricaoMunicipal,
-              discriminacao: 'Serviços de estacionamento',
-              valorServicos: parseFloat(rps.ValorServicos) / 100,
-              valorIss: parseFloat(rps.ValorISS || 0) / 100,
-              baseCalculo: parseFloat(rps.BaseCalculo || rps.ValorServicos) / 100,
-              aliquota: parseFloat(rps.Aliquota || 0) / 10000,
-              tipoEquipamento: rps.TipoEquipamento,
-              numeroSerie: rps.NumeroSerie
+              numeroRps: rps.numeroRps,
+              serieRps: rps.serieRps || '',
+              tipoRps: rps.tipoRps || '1',
+              dataEmissao: rps.dataEmissao,
+              dataCompetencia: rps.dataCompetencia || rps.dataEmissao,
+              prestadorCnpj: dadosProcessados.cabecalho.cnpj,
+              prestadorInscricaoMunicipal: dadosProcessados.cabecalho.inscricaoMunicipal,
+              discriminacao: rps.discriminacao || 'Serviços diversos',
+              valorServicos: rps.valorServicos || 0,
+              valorIss: rps.valorIss || 0,
+              baseCalculo: rps.baseCalculo || rps.valorServicos || 0,
+              aliquota: rps.aliquota || 0,
+              tipoEquipamento: rps.tipoEquipamento,
+              numeroSerie: rps.numeroSerie
             });
             rpsImportados++;
           } catch (rpsError) {
@@ -679,8 +694,17 @@ app.post('/api/rps', async (req, res) => {
 // Listar layouts
 app.get('/api/layouts', async (req, res) => {
   try {
-    const layouts = await db.listarLayouts();
-    res.json(layouts);
+    // Combina layouts do banco de dados com layouts dinâmicos
+    const layoutsBD = await db.listarLayouts();
+    const layoutsDinamicos = layoutManager.listarLayouts();
+    
+    // Adiciona informação de origem
+    const layoutsCompletos = [
+      ...layoutsBD.map(layout => ({ ...layout, origem: 'banco' })),
+      ...layoutsDinamicos.map(layout => ({ ...layout, origem: 'dinamico' }))
+    ];
+    
+    res.json(layoutsCompletos);
   } catch (error) {
     console.error('Erro ao buscar layouts:', error);
     res.status(500).json({ erro: 'Erro interno do servidor' });
@@ -691,7 +715,17 @@ app.get('/api/layouts', async (req, res) => {
 app.get('/api/layouts/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const layout = await db.buscarLayoutPorId(id);
+    
+    // Primeiro tenta buscar no sistema dinâmico
+    let layout = layoutManager.obterLayout(id);
+    
+    if (layout) {
+      res.json({ ...layout, origem: 'dinamico' });
+      return;
+    }
+    
+    // Se não encontrar, busca no banco de dados
+    layout = await db.buscarLayoutPorId(id);
     
     if (!layout) {
       return res.status(404).json({ erro: 'Layout não encontrado' });
@@ -704,17 +738,56 @@ app.get('/api/layouts/:id', async (req, res) => {
   }
 });
 
+// Buscar tipos de registro de um layout
+app.get('/api/layouts/:id/tipos', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tipos = await db.buscarTiposRegistroPorLayout(id);
+    res.json(tipos);
+  } catch (error) {
+    console.error('Erro ao buscar tipos de registro:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
 // Criar novo layout
 app.post('/api/layouts', async (req, res) => {
   try {
-    const dadosLayout = req.body;
+    const { layout_id, nome, descricao, versao, status, tipos_registro } = req.body;
     
     // Validações básicas
-    if (!dadosLayout.nome || !dadosLayout.tipo) {
-      return res.status(400).json({ erro: 'Campos obrigatórios: nome, tipo' });
+    if (!layout_id || !nome) {
+      return res.status(400).json({ erro: 'Campos obrigatórios: layout_id, nome' });
     }
 
-    const novoLayout = await db.criarLayout(dadosLayout);
+    if (!tipos_registro || tipos_registro.length === 0) {
+      return res.status(400).json({ erro: 'Pelo menos um tipo de registro deve ser definido' });
+    }
+
+    // Criar o layout
+    const novoLayout = await db.criarLayoutNovoSistema({
+      layout_id,
+      nome,
+      descricao,
+      versao: versao || '1.0',
+      status: status || 'ativo'
+    });
+
+    // Criar os tipos de registro
+    for (const tipo of tipos_registro) {
+      if (!tipo.codigo_tipo || !tipo.nome_tipo) {
+        return res.status(400).json({ erro: 'Cada tipo de registro deve ter código e nome' });
+      }
+
+      await db.criarTipoRegistro(novoLayout.id, {
+        codigo_tipo: tipo.codigo_tipo,
+        nome_tipo: tipo.nome_tipo,
+        descricao: tipo.descricao || '',
+        campos: JSON.stringify(tipo.campos || []),
+        obrigatorio: tipo.obrigatorio !== false,
+        ordem: tipo.ordem || 0
+      });
+    }
     
     res.status(201).json({ 
       mensagem: 'Layout criado com sucesso',
@@ -722,7 +795,11 @@ app.post('/api/layouts', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao criar layout:', error);
-    res.status(500).json({ erro: 'Erro interno do servidor' });
+    if (error.message.includes('UNIQUE constraint failed')) {
+      res.status(400).json({ erro: 'ID do layout já existe' });
+    } else {
+      res.status(500).json({ erro: 'Erro interno do servidor' });
+    }
   }
 });
 
@@ -730,12 +807,42 @@ app.post('/api/layouts', async (req, res) => {
 app.put('/api/layouts/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const dadosAtualizacao = req.body;
+    const { layout_id, nome, descricao, versao, status, tipos_registro } = req.body;
     
-    const resultado = await db.atualizarLayout(id, dadosAtualizacao);
+    // Validações básicas
+    if (!layout_id || !nome) {
+      return res.status(400).json({ erro: 'Campos obrigatórios: layout_id, nome' });
+    }
+
+    // Atualizar dados básicos do layout
+    const resultado = await db.atualizarLayoutNovoSistema(id, {
+      layout_id,
+      nome,
+      descricao,
+      versao,
+      status
+    });
     
     if (resultado.changes === 0) {
       return res.status(404).json({ erro: 'Layout não encontrado' });
+    }
+
+    // Se tipos_registro foram fornecidos, atualizar
+    if (tipos_registro && Array.isArray(tipos_registro)) {
+      // Remover tipos existentes
+      await db.excluirTiposRegistroPorLayout(id);
+
+      // Adicionar novos tipos
+      for (const tipo of tipos_registro) {
+        await db.criarTipoRegistro(id, {
+          codigo_tipo: tipo.codigo_tipo,
+          nome_tipo: tipo.nome_tipo,
+          descricao: tipo.descricao || '',
+          campos: JSON.stringify(tipo.campos || []),
+          obrigatorio: tipo.obrigatorio !== false,
+          ordem: tipo.ordem || 0
+        });
+      }
     }
     
     res.json({ mensagem: 'Layout atualizado com sucesso' });
@@ -762,6 +869,24 @@ app.delete('/api/layouts', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao excluir layouts:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+// Excluir layout individual
+app.delete('/api/layouts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const resultado = await db.excluirLayout(id);
+    
+    if (resultado.changes === 0) {
+      return res.status(404).json({ erro: 'Layout não encontrado' });
+    }
+    
+    res.json({ mensagem: 'Layout excluído com sucesso' });
+  } catch (error) {
+    console.error('Erro ao excluir layout:', error);
     res.status(500).json({ erro: 'Erro interno do servidor' });
   }
 });
@@ -802,7 +927,175 @@ app.get('/api/layouts/estatisticas', async (req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+// ==================== APIs PARA LAYOUTS DINÂMICOS ====================
+
+// Criar layout dinâmico
+app.post('/api/layouts/dinamico', async (req, res) => {
+  try {
+    const layout = req.body;
+    
+    // Validar layout
+    const validacao = layoutManager.validarLayout(layout);
+    if (!validacao.valido) {
+      return res.status(400).json({ 
+        erro: 'Layout inválido', 
+        detalhes: validacao.erros 
+      });
+    }
+
+    // Usar o método atualizado que persiste no banco
+    const novoLayout = await layoutManager.adicionarLayout(layout);
+    
+    res.status(201).json({ 
+      mensagem: 'Layout dinâmico criado com sucesso',
+      layout: novoLayout
+    });
+  } catch (error) {
+    console.error('Erro ao criar layout dinâmico:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+// Testar processamento com layout específico
+app.post('/api/layouts/testar', upload.single('arquivo'), async (req, res) => {
+  try {
+    let conteudo;
+    const { layoutId, mostrarDetalhes, validarCampos } = req.body;
+    
+    // Se foi enviado um arquivo, lê o conteúdo
+    if (req.file) {
+      conteudo = req.file.buffer.toString('utf8');
+    } else if (req.body.conteudo) {
+      conteudo = req.body.conteudo;
+    } else {
+      return res.status(400).json({ erro: 'Arquivo ou conteúdo é obrigatório' });
+    }
+
+    if (!layoutId) {
+      return res.status(400).json({ erro: 'Layout ID é obrigatório' });
+    }
+
+    // Busca o layout no banco
+    const layout = await db.buscarLayoutPorLayoutId(layoutId);
+    if (!layout) {
+      return res.status(404).json({ erro: 'Layout não encontrado' });
+    }
+
+    // Processa o arquivo com o layout específico
+    const resultado = layoutManager.processarArquivo(conteudo, layoutId);
+    
+    // Calcula estatísticas do teste
+    const linhas = conteudo.split('\n').filter(linha => linha.trim());
+    const registrosProcessados = resultado.registros ? resultado.registros.length : 0;
+    const registrosComErro = resultado.erros ? resultado.erros.length : 0;
+    
+    const resposta = {
+      mensagem: 'Teste executado com sucesso',
+      layout: {
+        id: layout.layout_id,
+        nome: layout.nome,
+        versao: layout.versao
+      },
+      arquivo: {
+        nome: req.file ? req.file.originalname : 'Conteúdo direto',
+        tamanho: conteudo.length,
+        linhas: linhas.length
+      },
+      registros: {
+        total: registrosProcessados,
+        validos: registrosProcessados - registrosComErro,
+        erros: registrosComErro
+      }
+    };
+
+    // Adiciona detalhes se solicitado
+    if (mostrarDetalhes === 'true') {
+      resposta.detalhes = {
+        estruturaLayout: layout.estrutura_completa || layout.estrutura,
+        formatacao: layout.formatacao,
+        processamento: resultado
+      };
+    }
+
+    // Adiciona validação de campos se solicitado
+    if (validarCampos === 'true' && resultado.registros) {
+      const validacao = resultado.registros.map(registro => {
+        const errosCampos = [];
+        Object.entries(registro).forEach(([campo, valor]) => {
+          if (!valor || valor.toString().trim() === '') {
+            errosCampos.push(`Campo ${campo} vazio`);
+          }
+        });
+        return {
+          registro: registro,
+          erros: errosCampos
+        };
+      });
+      resposta.validacao = validacao;
+    }
+    
+    res.json(resposta);
+  } catch (error) {
+    console.error('Erro ao testar layout:', error);
+    res.status(500).json({ 
+      erro: error.message,
+      detalhes: 'Erro durante o processamento do teste'
+    });
+  }
+});
+
+// Detectar layout automaticamente
+app.post('/api/layouts/detectar', async (req, res) => {
+  try {
+    const { conteudo } = req.body;
+    
+    if (!conteudo) {
+      return res.status(400).json({ erro: 'Conteúdo do arquivo é obrigatório' });
+    }
+
+    const layout = layoutManager.detectarLayout(conteudo);
+    
+    res.json({
+      mensagem: 'Layout detectado com sucesso',
+      layout: layout
+    });
+  } catch (error) {
+    console.error('Erro ao detectar layout:', error);
+    res.status(400).json({ erro: error.message });
+  }
+});
+
+// Obter informações do sistema de layouts
+app.get('/api/layouts/sistema/info', (req, res) => {
+  try {
+    const layouts = layoutManager.listarLayouts();
+    const defaultLayout = layoutManager.defaultLayout;
+    
+    res.json({
+      totalLayouts: layouts.length,
+      layoutPadrao: defaultLayout?.id || null,
+      layouts: layouts.map(l => ({
+        id: l.id,
+        nome: l.nome,
+        tipo: l.tipo,
+        descricao: l.descricao
+      }))
+    });
+  } catch (error) {
+    console.error('Erro ao obter info do sistema:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
   console.log(`Também disponível em http://0.0.0.0:${PORT}`);
+  
+  // Inicializar o sistema de layouts dinâmicos
+  try {
+    await layoutManager.initialize(db);
+    console.log('Sistema de layouts dinâmicos inicializado com sucesso');
+  } catch (error) {
+    console.error('Erro ao inicializar sistema de layouts:', error);
+  }
 });

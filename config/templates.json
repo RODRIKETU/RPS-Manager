@@ -1,0 +1,458 @@
+{
+  "tipos_registro_rps": {
+    "10": {
+      "nome": "Cabeçalho do Arquivo",
+      "descricao": "Linha de cabeçalho do arquivo (Obrigatório)",
+      "obrigatorio": true,
+      "campos_padrao": [
+        {
+          "nome": "tipo_registro",
+          "descricao": "Tipo do registro (sempre 10)",
+          "posicao_inicial": 1,
+          "tamanho": 2,
+          "tipo": "numerico",
+          "obrigatorio": true,
+          "valor_fixo": "10"
+        },
+        {
+          "nome": "codigo_municipio",
+          "descricao": "Código do município",
+          "posicao_inicial": 3,
+          "tamanho": 7,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "cnpj_prestador",
+          "descricao": "CNPJ do prestador",
+          "posicao_inicial": 10,
+          "tamanho": 14,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "inscricao_municipal",
+          "descricao": "Inscrição municipal",
+          "posicao_inicial": 24,
+          "tamanho": 15,
+          "tipo": "alfanumerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "data_inicio",
+          "descricao": "Data de início do período",
+          "posicao_inicial": 39,
+          "tamanho": 8,
+          "tipo": "data",
+          "formato": "AAAAMMDD",
+          "obrigatorio": true
+        },
+        {
+          "nome": "data_fim",
+          "descricao": "Data de fim do período",
+          "posicao_inicial": 47,
+          "tamanho": 8,
+          "tipo": "data",
+          "formato": "AAAAMMDD",
+          "obrigatorio": true
+        }
+      ]
+    },
+    "20": {
+      "nome": "Detalhes do RPS",
+      "descricao": "Detalhes de cada RPS (Opcional)",
+      "obrigatorio": false,
+      "campos_padrao": [
+        {
+          "nome": "tipo_registro",
+          "descricao": "Tipo do registro (sempre 20)",
+          "posicao_inicial": 1,
+          "tamanho": 2,
+          "tipo": "numerico",
+          "obrigatorio": true,
+          "valor_fixo": "20"
+        },
+        {
+          "nome": "numero_rps",
+          "descricao": "Número do RPS",
+          "posicao_inicial": 3,
+          "tamanho": 12,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "serie_rps",
+          "descricao": "Série do RPS",
+          "posicao_inicial": 15,
+          "tamanho": 5,
+          "tipo": "alfanumerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "tipo_rps",
+          "descricao": "Tipo do RPS",
+          "posicao_inicial": 20,
+          "tamanho": 1,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "data_emissao",
+          "descricao": "Data de emissão",
+          "posicao_inicial": 21,
+          "tamanho": 8,
+          "tipo": "data",
+          "formato": "AAAAMMDD",
+          "obrigatorio": true
+        },
+        {
+          "nome": "situacao_rps",
+          "descricao": "Situação do RPS",
+          "posicao_inicial": 29,
+          "tamanho": 1,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "valor_servicos",
+          "descricao": "Valor dos serviços",
+          "posicao_inicial": 30,
+          "tamanho": 15,
+          "tipo": "monetario",
+          "decimais": 2,
+          "obrigatorio": true
+        },
+        {
+          "nome": "valor_deducoes",
+          "descricao": "Valor das deduções",
+          "posicao_inicial": 45,
+          "tamanho": 15,
+          "tipo": "monetario",
+          "decimais": 2,
+          "obrigatorio": false
+        },
+        {
+          "nome": "codigo_servico",
+          "descricao": "Código do serviço",
+          "posicao_inicial": 60,
+          "tamanho": 5,
+          "tipo": "alfanumerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "aliquota_iss",
+          "descricao": "Alíquota do ISS",
+          "posicao_inicial": 65,
+          "tamanho": 4,
+          "tipo": "numerico",
+          "decimais": 2,
+          "obrigatorio": true
+        }
+      ]
+    },
+    "21": {
+      "nome": "Intermediário do Serviço",
+      "descricao": "Detalhes do intermediário do serviço (Opcional)",
+      "obrigatorio": false,
+      "campos_padrao": [
+        {
+          "nome": "tipo_registro",
+          "descricao": "Tipo do registro (sempre 21)",
+          "posicao_inicial": 1,
+          "tamanho": 2,
+          "tipo": "numerico",
+          "obrigatorio": true,
+          "valor_fixo": "21"
+        },
+        {
+          "nome": "numero_rps",
+          "descricao": "Número do RPS relacionado",
+          "posicao_inicial": 3,
+          "tamanho": 12,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "tipo_documento_intermediario",
+          "descricao": "Tipo do documento do intermediário",
+          "posicao_inicial": 15,
+          "tamanho": 1,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "documento_intermediario",
+          "descricao": "CNPJ/CPF do intermediário",
+          "posicao_inicial": 16,
+          "tamanho": 14,
+          "tipo": "alfanumerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "razao_social_intermediario",
+          "descricao": "Razão social do intermediário",
+          "posicao_inicial": 30,
+          "tamanho": 115,
+          "tipo": "alfanumerico",
+          "obrigatorio": true
+        }
+      ]
+    },
+    "30": {
+      "nome": "RPS-C (Cupons)",
+      "descricao": "Detalhes do RPS-C - Cupons (Opcional)",
+      "obrigatorio": false,
+      "campos_padrao": [
+        {
+          "nome": "tipo_registro",
+          "descricao": "Tipo do registro (sempre 30)",
+          "posicao_inicial": 1,
+          "tamanho": 2,
+          "tipo": "numerico",
+          "obrigatorio": true,
+          "valor_fixo": "30"
+        },
+        {
+          "nome": "numero_rps",
+          "descricao": "Número do RPS",
+          "posicao_inicial": 3,
+          "tamanho": 12,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "data_emissao",
+          "descricao": "Data de emissão do cupom",
+          "posicao_inicial": 15,
+          "tamanho": 8,
+          "tipo": "data",
+          "formato": "AAAAMMDD",
+          "obrigatorio": true
+        },
+        {
+          "nome": "numero_cupom",
+          "descricao": "Número do cupom fiscal",
+          "posicao_inicial": 23,
+          "tamanho": 12,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "valor_total_cupom",
+          "descricao": "Valor total do cupom",
+          "posicao_inicial": 35,
+          "tamanho": 15,
+          "tipo": "monetario",
+          "decimais": 2,
+          "obrigatorio": true
+        }
+      ]
+    },
+    "40": {
+      "nome": "Notas Fiscais Convencionais",
+      "descricao": "Detalhes de notas fiscais convencionais recebidas (Opcional)",
+      "obrigatorio": false,
+      "campos_padrao": [
+        {
+          "nome": "tipo_registro",
+          "descricao": "Tipo do registro (sempre 40)",
+          "posicao_inicial": 1,
+          "tamanho": 2,
+          "tipo": "numerico",
+          "obrigatorio": true,
+          "valor_fixo": "40"
+        },
+        {
+          "nome": "numero_nota",
+          "descricao": "Número da nota fiscal",
+          "posicao_inicial": 3,
+          "tamanho": 12,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "serie_nota",
+          "descricao": "Série da nota fiscal",
+          "posicao_inicial": 15,
+          "tamanho": 5,
+          "tipo": "alfanumerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "data_emissao",
+          "descricao": "Data de emissão da nota",
+          "posicao_inicial": 20,
+          "tamanho": 8,
+          "tipo": "data",
+          "formato": "AAAAMMDD",
+          "obrigatorio": true
+        },
+        {
+          "nome": "cnpj_emissor",
+          "descricao": "CNPJ do emissor",
+          "posicao_inicial": 28,
+          "tamanho": 14,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "valor_total_nota",
+          "descricao": "Valor total da nota",
+          "posicao_inicial": 42,
+          "tamanho": 15,
+          "tipo": "monetario",
+          "decimais": 2,
+          "obrigatorio": true
+        },
+        {
+          "nome": "valor_iss",
+          "descricao": "Valor do ISS",
+          "posicao_inicial": 57,
+          "tamanho": 15,
+          "tipo": "monetario",
+          "decimais": 2,
+          "obrigatorio": false
+        }
+      ]
+    },
+    "50": {
+      "nome": "Materiais Incorporados",
+      "descricao": "Declaração de materiais incorporados a uma obra (Opcional)",
+      "obrigatorio": false,
+      "campos_padrao": [
+        {
+          "nome": "tipo_registro",
+          "descricao": "Tipo do registro (sempre 50)",
+          "posicao_inicial": 1,
+          "tamanho": 2,
+          "tipo": "numerico",
+          "obrigatorio": true,
+          "valor_fixo": "50"
+        },
+        {
+          "nome": "numero_rps",
+          "descricao": "Número do RPS relacionado",
+          "posicao_inicial": 3,
+          "tamanho": 12,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "codigo_obra",
+          "descricao": "Código da obra",
+          "posicao_inicial": 15,
+          "tamanho": 15,
+          "tipo": "alfanumerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "cep_obra",
+          "descricao": "CEP da obra",
+          "posicao_inicial": 30,
+          "tamanho": 8,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "descricao_material",
+          "descricao": "Descrição do material",
+          "posicao_inicial": 38,
+          "tamanho": 100,
+          "tipo": "alfanumerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "valor_material",
+          "descricao": "Valor do material incorporado",
+          "posicao_inicial": 138,
+          "tamanho": 15,
+          "tipo": "monetario",
+          "decimais": 2,
+          "obrigatorio": true
+        }
+      ]
+    },
+    "90": {
+      "nome": "Rodapé do Arquivo",
+      "descricao": "Linha de rodapé do arquivo com totais (Obrigatório)",
+      "obrigatorio": true,
+      "campos_padrao": [
+        {
+          "nome": "tipo_registro",
+          "descricao": "Tipo do registro (sempre 90)",
+          "posicao_inicial": 1,
+          "tamanho": 2,
+          "tipo": "numerico",
+          "obrigatorio": true,
+          "valor_fixo": "90"
+        },
+        {
+          "nome": "total_linhas",
+          "descricao": "Total de linhas do arquivo",
+          "posicao_inicial": 3,
+          "tamanho": 8,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "total_rps",
+          "descricao": "Total de RPS informados",
+          "posicao_inicial": 11,
+          "tamanho": 8,
+          "tipo": "numerico",
+          "obrigatorio": true
+        },
+        {
+          "nome": "valor_total_servicos",
+          "descricao": "Valor total dos serviços",
+          "posicao_inicial": 19,
+          "tamanho": 15,
+          "tipo": "monetario",
+          "decimais": 2,
+          "obrigatorio": true
+        },
+        {
+          "nome": "valor_total_deducoes",
+          "descricao": "Valor total das deduções",
+          "posicao_inicial": 34,
+          "tamanho": 15,
+          "tipo": "monetario",
+          "decimais": 2,
+          "obrigatorio": false
+        },
+        {
+          "nome": "valor_total_iss",
+          "descricao": "Valor total do ISS",
+          "posicao_inicial": 49,
+          "tamanho": 15,
+          "tipo": "monetario",
+          "decimais": 2,
+          "obrigatorio": true
+        }
+      ]
+    }
+  },
+  "tipos_dados": {
+    "numerico": {
+      "descricao": "Campo numérico",
+      "preenchimento": "zeros_esquerda",
+      "caracteres_permitidos": "0-9"
+    },
+    "alfanumerico": {
+      "descricao": "Campo alfanumérico",
+      "preenchimento": "espacos_direita",
+      "caracteres_permitidos": "A-Z, 0-9, espaços"
+    },
+    "data": {
+      "descricao": "Campo de data",
+      "formato_padrao": "AAAAMMDD",
+      "preenchimento": "zeros_esquerda"
+    },
+    "monetario": {
+      "descricao": "Campo monetário",
+      "preenchimento": "zeros_esquerda",
+      "decimais": 2,
+      "separador": "nenhum"
+    }
+  }
+}

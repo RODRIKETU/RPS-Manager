@@ -140,20 +140,35 @@ class Database {
       )
     `);
 
-    // Tabela de layouts
+    // Tabela de layouts de registros
     this.db.run(`
       CREATE TABLE IF NOT EXISTS layouts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        layout_id TEXT UNIQUE NOT NULL, -- ID único do layout (ex: 'layout_empresa_01')
         nome TEXT NOT NULL,
-        tipo TEXT NOT NULL,
         descricao TEXT,
         versao TEXT DEFAULT '1.0',
         status TEXT DEFAULT 'ativo',
-        configuracao_cabecalho TEXT, -- JSON com configuração dos campos do cabeçalho
-        configuracao_detalhe TEXT,   -- JSON com configuração dos campos de detalhe
-        configuracao_rodape TEXT,    -- JSON com configuração dos campos do rodapé
+        origem TEXT DEFAULT 'banco', -- 'banco' ou 'dinamico'
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Tabela de tipos de registro
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS tipos_registro (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        layout_id INTEGER NOT NULL,
+        codigo_tipo TEXT NOT NULL, -- '01', '02', '03', etc.
+        nome_tipo TEXT NOT NULL, -- 'Cabeçalho', 'Detalhe', 'Rodapé', etc.
+        descricao TEXT,
+        campos TEXT NOT NULL, -- JSON com a estrutura dos campos
+        obrigatorio BOOLEAN DEFAULT 1,
+        ordem INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (layout_id) REFERENCES layouts (id),
+        UNIQUE(layout_id, codigo_tipo)
       )
     `);
 
@@ -164,6 +179,39 @@ class Database {
       // Ignora erro se a coluna já existir
       if (err && !err.message.includes('duplicate column name')) {
         console.error('Erro ao adicionar coluna layout_id:', err);
+      }
+    });
+
+    // Adicionar novas colunas na tabela layouts se não existirem
+    this.db.run(`
+      ALTER TABLE layouts ADD COLUMN layout_id TEXT
+    `, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error('Erro ao adicionar coluna layout_id:', err);
+      }
+    });
+
+    this.db.run(`
+      ALTER TABLE layouts ADD COLUMN origem TEXT DEFAULT 'banco'
+    `, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error('Erro ao adicionar coluna origem:', err);
+      }
+    });
+
+    this.db.run(`
+      ALTER TABLE layouts ADD COLUMN estrutura_completa TEXT
+    `, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error('Erro ao adicionar coluna estrutura_completa:', err);
+      }
+    });
+
+    this.db.run(`
+      ALTER TABLE layouts ADD COLUMN formatacao TEXT
+    `, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error('Erro ao adicionar coluna formatacao:', err);
       }
     });
 
@@ -410,21 +458,52 @@ class Database {
   async criarLayout(layout) {
     return new Promise((resolve, reject) => {
       const sql = `
-        INSERT INTO layouts (nome, tipo, descricao, versao, status, configuracao_cabecalho, configuracao_detalhe, configuracao_rodape)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO layouts (layout_id, nome, tipo, descricao, versao, status, origem, estrutura_completa, formatacao, configuracao_cabecalho, configuracao_detalhe, configuracao_rodape)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       this.db.run(sql, [
+        layout.id || layout.layout_id,
         layout.nome,
         layout.tipo,
         layout.descricao,
         layout.versao || '1.0',
         layout.status || 'ativo',
+        layout.origem || 'banco',
+        JSON.stringify(layout.estrutura || layout.estrutura_completa || {}),
+        JSON.stringify(layout.formatacao || {}),
         JSON.stringify(layout.configuracao_cabecalho || []),
         JSON.stringify(layout.configuracao_detalhe || []),
         JSON.stringify(layout.configuracao_rodape || [])
       ], function(err) {
         if (err) reject(err);
         else resolve({ id: this.lastID, ...layout });
+      });
+    });
+  }
+
+  async criarLayoutDinamico(layout) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        INSERT INTO layouts (layout_id, nome, tipo, descricao, versao, status, origem, estrutura_completa, formatacao)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      this.db.run(sql, [
+        layout.id,
+        layout.nome,
+        layout.tipo || 'servicos',
+        layout.descricao || '',
+        layout.versao || '1.0',
+        'ativo',
+        'dinamico',
+        JSON.stringify(layout.estrutura || {}),
+        JSON.stringify(layout.formatacao || {})
+      ], function(err) {
+        if (err) reject(err);
+        else resolve({ 
+          id: this.lastID, 
+          database_id: this.lastID,
+          ...layout 
+        });
       });
     });
   }
@@ -445,6 +524,8 @@ class Database {
           // Parse das configurações JSON
           const layouts = rows.map(layout => ({
             ...layout,
+            estrutura_completa: JSON.parse(layout.estrutura_completa || '{}'),
+            formatacao: JSON.parse(layout.formatacao || '{}'),
             configuracao_cabecalho: JSON.parse(layout.configuracao_cabecalho || '[]'),
             configuracao_detalhe: JSON.parse(layout.configuracao_detalhe || '[]'),
             configuracao_rodape: JSON.parse(layout.configuracao_rodape || '[]')
@@ -471,6 +552,38 @@ class Database {
           // Parse das configurações JSON
           const layout = {
             ...row,
+            estrutura_completa: JSON.parse(row.estrutura_completa || '{}'),
+            formatacao: JSON.parse(row.formatacao || '{}'),
+            configuracao_cabecalho: JSON.parse(row.configuracao_cabecalho || '[]'),
+            configuracao_detalhe: JSON.parse(row.configuracao_detalhe || '[]'),
+            configuracao_rodape: JSON.parse(row.configuracao_rodape || '[]')
+          };
+          resolve(layout);
+        } else {
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  async buscarLayoutPorLayoutId(layoutId) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT l.*, 
+               COUNT(e.id) as empresas_usando
+        FROM layouts l
+        LEFT JOIN empresas e ON l.id = e.layout_id AND e.ativo = 1
+        WHERE l.layout_id = ?
+        GROUP BY l.id
+      `;
+      this.db.get(sql, [layoutId], (err, row) => {
+        if (err) reject(err);
+        else if (row) {
+          // Parse das configurações JSON
+          const layout = {
+            ...row,
+            estrutura_completa: JSON.parse(row.estrutura_completa || '{}'),
+            formatacao: JSON.parse(row.formatacao || '{}'),
             configuracao_cabecalho: JSON.parse(row.configuracao_cabecalho || '[]'),
             configuracao_detalhe: JSON.parse(row.configuracao_detalhe || '[]'),
             configuracao_rodape: JSON.parse(row.configuracao_rodape || '[]')
@@ -520,6 +633,16 @@ class Database {
     });
   }
 
+  async excluirLayout(id) {
+    return new Promise((resolve, reject) => {
+      const sql = `DELETE FROM layouts WHERE id = ? OR layout_id = ?`;
+      this.db.run(sql, [id, id], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+  }
+
   async atualizarStatusLayouts(ids, status) {
     return new Promise((resolve, reject) => {
       const placeholders = ids.map(() => '?').join(',');
@@ -548,11 +671,123 @@ class Database {
     });
   }
 
+  // ==================== NOVOS MÉTODOS PARA TIPOS DE REGISTRO ====================
+
+  async criarLayoutNovoSistema(layout) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        INSERT INTO layouts (layout_id, nome, descricao, versao, status, origem)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      this.db.run(sql, [
+        layout.layout_id,
+        layout.nome,
+        layout.descricao,
+        layout.versao || '1.0',
+        layout.status || 'ativo',
+        layout.origem || 'banco'
+      ], function(err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID, ...layout });
+      });
+    });
+  }
+
+  async criarTipoRegistro(layoutId, tipo) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        INSERT INTO tipos_registro (layout_id, codigo_tipo, nome_tipo, descricao, campos, obrigatorio, ordem)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `;
+      this.db.run(sql, [
+        layoutId,
+        tipo.codigo_tipo,
+        tipo.nome_tipo,
+        tipo.descricao,
+        tipo.campos,
+        tipo.obrigatorio ? 1 : 0,
+        tipo.ordem || 0
+      ], function(err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID, ...tipo });
+      });
+    });
+  }
+
+  async buscarTiposRegistroPorLayout(layoutId) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT * FROM tipos_registro 
+        WHERE layout_id = ? 
+        ORDER BY ordem, codigo_tipo
+      `;
+      this.db.all(sql, [layoutId], (err, rows) => {
+        if (err) reject(err);
+        else {
+          // Parse dos campos JSON
+          const tipos = rows.map(row => ({
+            ...row,
+            campos: JSON.parse(row.campos || '[]'),
+            obrigatorio: row.obrigatorio === 1
+          }));
+          resolve(tipos);
+        }
+      });
+    });
+  }
+
+  async atualizarLayoutNovoSistema(id, layout) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        UPDATE layouts 
+        SET layout_id = ?, nome = ?, descricao = ?, versao = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `;
+      this.db.run(sql, [
+        layout.layout_id,
+        layout.nome,
+        layout.descricao,
+        layout.versao,
+        layout.status,
+        id
+      ], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+  }
+
+  async excluirTiposRegistroPorLayout(layoutId) {
+    return new Promise((resolve, reject) => {
+      const sql = `DELETE FROM tipos_registro WHERE layout_id = ?`;
+      this.db.run(sql, [layoutId], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+  }
+
   // Fechar conexão
   close() {
     if (this.db) {
       this.db.close();
     }
+  }
+
+  // Método para buscar tipos de registro RPS disponíveis
+  async buscarTiposRegistro() {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT tr.*, l.nome as layout_nome 
+        FROM tipos_registro tr
+        JOIN layouts l ON tr.layout_id = l.id
+        ORDER BY tr.ordem ASC
+      `;
+      this.db.all(sql, [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
   }
 }
 
