@@ -172,6 +172,26 @@ class Database {
       )
     `);
 
+    // Tabela de campos condicionais/subcampos
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS campos_condicionais (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo_registro_id INTEGER NOT NULL,
+        campo_pai_ordem INTEGER NOT NULL, -- ordem do campo pai que determina a condição
+        condicao_valor TEXT NOT NULL, -- valor que ativa esta condição (ex: "1", "2", "3")
+        subcampo_letra TEXT, -- letra do subcampo (A, B, C, etc.)
+        nome_subcampo TEXT NOT NULL,
+        posicao_inicial INTEGER NOT NULL,
+        posicao_final INTEGER NOT NULL,
+        tamanho INTEGER NOT NULL,
+        formato TEXT NOT NULL,
+        obrigatorio BOOLEAN DEFAULT 0,
+        descricao TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (tipo_registro_id) REFERENCES tipos_registro (id)
+      )
+    `);
+
     // Adicionar campo layout_id na tabela empresas se não existir
     this.db.run(`
       ALTER TABLE empresas ADD COLUMN layout_id INTEGER REFERENCES layouts(id)
@@ -277,6 +297,16 @@ class Database {
         empresa.email,
         id
       ], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+  }
+
+  async excluirEmpresa(id) {
+    return new Promise((resolve, reject) => {
+      const sql = `DELETE FROM empresas WHERE id = ?`;
+      this.db.run(sql, [id], function(err) {
         if (err) reject(err);
         else resolve({ changes: this.changes });
       });
@@ -761,6 +791,84 @@ class Database {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM tipos_registro WHERE layout_id = ?`;
       this.db.run(sql, [layoutId], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+  }
+
+  // ==================== MÉTODOS PARA CAMPOS CONDICIONAIS ====================
+  
+  async criarCampoCondicional(tipoRegistroId, campoCondicional) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        INSERT INTO campos_condicionais 
+        (tipo_registro_id, campo_pai_ordem, condicao_valor, subcampo_letra, nome_subcampo, 
+         posicao_inicial, posicao_final, tamanho, formato, obrigatorio, descricao)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      this.db.run(sql, [
+        tipoRegistroId,
+        campoCondicional.campo_pai_ordem,
+        campoCondicional.condicao_valor,
+        campoCondicional.subcampo_letra,
+        campoCondicional.nome_subcampo,
+        campoCondicional.posicao_inicial,
+        campoCondicional.posicao_final,
+        campoCondicional.tamanho,
+        campoCondicional.formato,
+        campoCondicional.obrigatorio ? 1 : 0,
+        campoCondicional.descricao
+      ], function(err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID, ...campoCondicional });
+      });
+    });
+  }
+
+  async buscarCamposCondicionaisPorTipo(tipoRegistroId) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT * FROM campos_condicionais 
+        WHERE tipo_registro_id = ? 
+        ORDER BY campo_pai_ordem, condicao_valor
+      `;
+      this.db.all(sql, [tipoRegistroId], (err, rows) => {
+        if (err) reject(err);
+        else {
+          // Agrupar por campo pai e condição
+          const camposAgrupados = {};
+          rows.forEach(row => {
+            const chave = `${row.campo_pai_ordem}_${row.condicao_valor}`;
+            if (!camposAgrupados[chave]) {
+              camposAgrupados[chave] = {
+                campo_pai_ordem: row.campo_pai_ordem,
+                condicao_valor: row.condicao_valor,
+                subcampos: []
+              };
+            }
+            camposAgrupados[chave].subcampos.push({
+              id: row.id,
+              subcampo_letra: row.subcampo_letra,
+              nome_subcampo: row.nome_subcampo,
+              posicao_inicial: row.posicao_inicial,
+              posicao_final: row.posicao_final,
+              tamanho: row.tamanho,
+              formato: row.formato,
+              obrigatorio: row.obrigatorio === 1,
+              descricao: row.descricao
+            });
+          });
+          resolve(Object.values(camposAgrupados));
+        }
+      });
+    });
+  }
+
+  async excluirCamposCondicionaisPorTipo(tipoRegistroId) {
+    return new Promise((resolve, reject) => {
+      const sql = `DELETE FROM campos_condicionais WHERE tipo_registro_id = ?`;
+      this.db.run(sql, [tipoRegistroId], function(err) {
         if (err) reject(err);
         else resolve({ changes: this.changes });
       });

@@ -76,9 +76,14 @@ function atualizarTabelaEmpresas() {
       <td>${empresa.nome_fantasia || '-'}</td>
       <td>${empresa.inscricao_municipal || '-'}</td>
       <td>
-        <button class="btn btn-secondary" onclick="editarEmpresa(${empresa.id})">
-          <i class="fas fa-edit"></i>
-        </button>
+        <div class="btn-group" role="group">
+          <button class="btn btn-sm btn-outline-primary" onclick="editarEmpresa(${empresa.id})" title="Editar">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="excluirEmpresa(${empresa.id})" title="Excluir">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
       </td>
     </tr>
   `).join('');
@@ -88,6 +93,9 @@ function setupFormEmpresa() {
   // Configuração do formulário
   document.getElementById('formEmpresa').addEventListener('submit', async function(e) {
     e.preventDefault();
+    
+    const empresaId = document.getElementById('empresaId').value;
+    const isEdicao = empresaId && empresaId !== '';
     
     const dados = {
       cnpj: document.getElementById('cnpj').value.replace(/\D/g, ''),
@@ -100,14 +108,26 @@ function setupFormEmpresa() {
     };
 
     try {
-      const response = await fetch('/api/empresas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dados)
-      });
+      let response;
+      if (isEdicao) {
+        // Atualizar empresa existente
+        response = await fetch(`/api/empresas/${empresaId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dados)
+        });
+      } else {
+        // Criar nova empresa
+        response = await fetch('/api/empresas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dados)
+        });
+      }
 
       if (response.ok) {
-        showNotification('Empresa cadastrada com sucesso!', 'success');
+        const mensagem = isEdicao ? 'Empresa atualizada com sucesso!' : 'Empresa cadastrada com sucesso!';
+        showNotification(mensagem, 'success');
         limparFormularioEmpresa();
         carregarEmpresas();
       } else {
@@ -155,11 +175,19 @@ function setupFormEmpresa() {
 
 function limparFormularioEmpresa() {
   document.getElementById('formEmpresa').reset();
+  document.getElementById('empresaId').value = '';
+  
+  // Atualizar texto do botão
+  const btnSubmit = document.querySelector('#formEmpresa button[type="submit"]');
+  if (btnSubmit) {
+    btnSubmit.innerHTML = '<i class="fas fa-save"></i> Salvar Empresa';
+  }
 }
 
 function editarEmpresa(id) {
   const empresa = empresas.find(e => e.id === id);
   if (empresa) {
+    document.getElementById('empresaId').value = empresa.id;
     document.getElementById('cnpj').value = formatarCNPJ(empresa.cnpj);
     document.getElementById('razaoSocial').value = empresa.razao_social;
     document.getElementById('nomeFantasia').value = empresa.nome_fantasia || '';
@@ -167,6 +195,56 @@ function editarEmpresa(id) {
     document.getElementById('endereco').value = empresa.endereco || '';
     document.getElementById('telefone').value = empresa.telefone || '';
     document.getElementById('email').value = empresa.email || '';
+    
+    // Atualizar texto do botão
+    const btnSubmit = document.querySelector('#formEmpresa button[type="submit"]');
+    if (btnSubmit) {
+      btnSubmit.innerHTML = '<i class="fas fa-save"></i> Atualizar Empresa';
+    }
+    
+    // Scroll para o formulário
+    document.querySelector('#formEmpresa').scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+async function excluirEmpresa(id) {
+  const empresa = empresas.find(e => e.id === id);
+  if (!empresa) {
+    showNotification('Empresa não encontrada', 'error');
+    return;
+  }
+
+  // Confirmar exclusão
+  const confirmacao = confirm(
+    `Tem certeza que deseja excluir a empresa "${empresa.razao_social}"?\n\n` +
+    'Esta ação não pode ser desfeita e todos os dados relacionados serão perdidos.'
+  );
+
+  if (!confirmacao) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/empresas/${id}`, {
+      method: 'DELETE'
+    });
+
+    if (response.ok) {
+      showNotification('Empresa excluída com sucesso!', 'success');
+      carregarEmpresas();
+      
+      // Se a empresa excluída estava sendo editada, limpar o formulário
+      const empresaIdForm = document.getElementById('empresaId').value;
+      if (empresaIdForm == id) {
+        limparFormularioEmpresa();
+      }
+    } else {
+      const error = await response.json();
+      showNotification(error.erro || 'Erro ao excluir empresa', 'error');
+    }
+  } catch (error) {
+    console.error('Erro ao excluir empresa:', error);
+    showNotification('Erro ao excluir empresa', 'error');
   }
 }
 
@@ -447,7 +525,19 @@ function setupDropZone() {
 function handleFiles(files) {
   arquivosSelecionados = Array.from(files);
   atualizarListaArquivos();
-  document.getElementById('btnImportar').disabled = arquivosSelecionados.length === 0;
+  verificarHabilitarImportacao();
+}
+
+function verificarHabilitarImportacao() {
+  const layoutId = document.getElementById('layoutImportacao').value;
+  const empresaId = document.getElementById('empresaImportacao').value;
+  const cadastrarEmpresas = document.getElementById('cadastrarEmpresas').checked;
+  const temArquivos = arquivosSelecionados.length > 0;
+  
+  // Habilita se tem arquivos, layout selecionado e (empresa selecionada OU cadastro automático marcado)
+  const podeImportar = temArquivos && layoutId && (empresaId || cadastrarEmpresas);
+  
+  document.getElementById('btnImportar').disabled = !podeImportar;
 }
 
 function atualizarListaArquivos() {
@@ -555,17 +645,25 @@ function iniciarImportacao() {
   const empresaId = document.getElementById('empresaImportacao').value;
   const layoutId = document.getElementById('layoutImportacao').value;
   const arquivos = document.getElementById('fileInput').files;
+  const cadastrarEmpresas = document.getElementById('cadastrarEmpresas').checked;
   
-  if (!empresaId || !layoutId || arquivos.length === 0) {
-    showNotification('Por favor, selecione empresa, layout e arquivos para importação.', 'danger');
+  if (!layoutId || arquivos.length === 0) {
+    showNotification('Por favor, selecione layout e arquivos para importação.', 'danger');
+    return;
+  }
+  
+  // Se não tem empresa selecionada e não vai cadastrar automaticamente
+  if (!empresaId && !cadastrarEmpresas) {
+    showNotification('Por favor, selecione uma empresa ou marque a opção de cadastro automático.', 'danger');
     return;
   }
   
   const formData = new FormData();
-  formData.append('empresa_id', empresaId);
+  if (empresaId) formData.append('empresa_id', empresaId);
   formData.append('layout_id', layoutId);
   formData.append('atualizar_existentes', document.getElementById('atualizarExistentes').checked);
   formData.append('ignorar_duplicadas', document.getElementById('ignorarDuplicadas').checked);
+  formData.append('cadastrar_empresas', cadastrarEmpresas);
   
   for (let i = 0; i < arquivos.length; i++) {
     formData.append('arquivos', arquivos[i]);
@@ -577,7 +675,10 @@ function iniciarImportacao() {
   btnImportar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importando...';
   btnImportar.disabled = true;
   
-  fetch('/api/importar', {
+  // Usar a nova rota de importação com cadastro
+  const rota = cadastrarEmpresas ? '/api/importar-rps-com-cadastro' : '/api/importar-rps';
+  
+  fetch(rota, {
     method: 'POST',
     body: formData
   })
@@ -602,14 +703,32 @@ function mostrarResultadoImportacao(data) {
   const container = document.getElementById('resultadoImportacao');
   const conteudo = document.getElementById('resultadoConteudo');
   
+  // Contar estatísticas dos resultados
+  let sucessos = 0, erros = 0, empresasCadastradas = 0, ignorados = 0;
+  
+  if (data.resultados) {
+    data.resultados.forEach(resultado => {
+      if (resultado.status === 'sucesso') {
+        sucessos++;
+        if (resultado.empresaCadastradaAutomaticamente) {
+          empresasCadastradas++;
+        }
+      } else if (resultado.status === 'erro' || resultado.status === 'empresa_nao_cadastrada') {
+        erros++;
+      } else if (resultado.status === 'ignorado') {
+        ignorados++;
+      }
+    });
+  }
+  
   let html = `
-    <div class="row">
+    <div class="row mb-4">
       <div class="col-md-3">
         <div class="text-center">
           <div class="text-success mb-2">
             <i class="fas fa-check-circle fa-2x"></i>
           </div>
-          <h5>${data.sucessos || 0}</h5>
+          <h5>${sucessos}</h5>
           <p class="text-muted mb-0">Sucessos</p>
         </div>
       </div>
@@ -618,7 +737,7 @@ function mostrarResultadoImportacao(data) {
           <div class="text-danger mb-2">
             <i class="fas fa-times-circle fa-2x"></i>
           </div>
-          <h5>${data.erros || 0}</h5>
+          <h5>${erros}</h5>
           <p class="text-muted mb-0">Erros</p>
         </div>
       </div>
@@ -627,36 +746,75 @@ function mostrarResultadoImportacao(data) {
           <div class="text-warning mb-2">
             <i class="fas fa-exclamation-triangle fa-2x"></i>
           </div>
-          <h5>${data.duplicadas || 0}</h5>
-          <p class="text-muted mb-0">Duplicadas</p>
+          <h5>${ignorados}</h5>
+          <p class="text-muted mb-0">Ignorados</p>
         </div>
       </div>
       <div class="col-md-3">
         <div class="text-center">
           <div class="text-info mb-2">
-            <i class="fas fa-file-alt fa-2x"></i>
+            <i class="fas fa-building fa-2x"></i>
           </div>
-          <h5>${data.total || 0}</h5>
-          <p class="text-muted mb-0">Total</p>
+          <h5>${empresasCadastradas}</h5>
+          <p class="text-muted mb-0">Empresas Cadastradas</p>
         </div>
       </div>
     </div>
   `;
   
-  if (data.detalhes && data.detalhes.length > 0) {
+  if (data.resultados && data.resultados.length > 0) {
     html += `
-      <hr>
-      <h6>Detalhes da Importação:</h6>
+      <h6><i class="fas fa-list me-2"></i>Detalhes da Importação:</h6>
       <div class="mt-3">
     `;
     
-    data.detalhes.forEach(detalhe => {
-      const statusClass = detalhe.status === 'sucesso' ? 'success' : 
-                         detalhe.status === 'erro' ? 'danger' : 'warning';
+    data.resultados.forEach(resultado => {
+      let statusClass, statusIcon, statusText;
+      
+      switch (resultado.status) {
+        case 'sucesso':
+          statusClass = 'success';
+          statusIcon = 'fas fa-check-circle';
+          statusText = 'Sucesso';
+          break;
+        case 'erro':
+          statusClass = 'danger';
+          statusIcon = 'fas fa-times-circle';
+          statusText = 'Erro';
+          break;
+        case 'empresa_nao_cadastrada':
+          statusClass = 'warning';
+          statusIcon = 'fas fa-building';
+          statusText = 'Empresa não cadastrada';
+          break;
+        case 'ignorado':
+          statusClass = 'secondary';
+          statusIcon = 'fas fa-eye-slash';
+          statusText = 'Ignorado';
+          break;
+        default:
+          statusClass = 'info';
+          statusIcon = 'fas fa-info-circle';
+          statusText = resultado.status;
+      }
+      
       html += `
-        <div class="alert alert-${statusClass} d-flex justify-content-between align-items-center">
-          <span>${detalhe.arquivo}</span>
-          <span>${detalhe.mensagem}</span>
+        <div class="alert alert-${statusClass} mb-2">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <h6 class="alert-heading mb-1">
+                <i class="${statusIcon} me-2"></i>${resultado.arquivo}
+                <span class="badge bg-${statusClass} ms-2">${statusText}</span>
+              </h6>
+              <p class="mb-1">${resultado.mensagem || 'Processado com sucesso'}</p>
+              
+              ${resultado.empresa ? `<small class="text-muted">Empresa: ${resultado.empresa}</small><br>` : ''}
+              ${resultado.empresaCadastradaAutomaticamente ? '<small class="text-success"><i class="fas fa-star me-1"></i>Empresa cadastrada automaticamente</small><br>' : ''}
+              ${resultado.rpsImportados ? `<small class="text-muted">RPS importados: ${resultado.rpsImportados}</small><br>` : ''}
+              ${resultado.rpsAtualizados ? `<small class="text-muted">RPS atualizados: ${resultado.rpsAtualizados}</small><br>` : ''}
+              ${resultado.valorTotal ? `<small class="text-muted">Valor total: ${resultado.valorTotal}</small>` : ''}
+            </div>
+          </div>
         </div>
       `;
     });
@@ -670,7 +828,7 @@ function mostrarResultadoImportacao(data) {
   // Scroll para o resultado
   container.scrollIntoView({ behavior: 'smooth' });
   
-  showNotification(`Importação concluída! ${data.sucessos || 0} registros processados com sucesso.`, 'success');
+  showNotification(`Importação concluída! ${sucessos} arquivo(s) processado(s) com sucesso.`, sucessos > 0 ? 'success' : 'warning');
 }
 
 // ==================== FUNÇÕES DE LAYOUT ====================
@@ -815,11 +973,17 @@ function carregarDadosLayout(layout) {
 
 async function carregarTiposRegistro(layoutId) {
   try {
+    console.log('🔍 Carregando tipos para layout ID:', layoutId);
     const response = await fetch(`/api/layouts/${layoutId}/tipos`);
     if (response.ok) {
       const tipos = await response.json();
+      console.log('✅ Tipos carregados:', tipos.length);
+      console.log('📋 Dados dos tipos:', tipos);
       tiposRegistroConfig = tipos;
+      console.log('🎯 tiposRegistroConfig atualizado:', tiposRegistroConfig.length);
       renderizarTiposRegistro();
+    } else {
+      console.error('❌ Erro na resposta:', response.status, response.statusText);
     }
   } catch (error) {
     console.error('Erro ao carregar tipos de registro:', error);
@@ -849,16 +1013,21 @@ function carregarCamposPadrao(tipoId, codigoTipo) {
   if (camposPadrao && camposPadrao.length > 0) {
     const tipo = tiposRegistroConfig.find(t => t.id === tipoId);
     if (tipo) {
-      tipo.campos = camposPadrao.map((campo, index) => ({
-        id: Date.now() + index,
-        nome: campo.nome,
-        posicao: campo.posicao_inicial,
-        tamanho: campo.tamanho,
-        tipo: campo.tipo,
-        descricao: campo.descricao,
-        obrigatorio: campo.obrigatorio || false,
-        valor_fixo: campo.valor_fixo || ''
-      }));
+      tipo.campos = {};
+      
+      camposPadrao.forEach((campo, index) => {
+        const ordem = (index + 1).toString();
+        tipo.campos[ordem] = {
+          id: Date.now() + index,
+          nome: campo.nome,
+          posicao: campo.posicao_inicial,
+          tamanho: campo.tamanho,
+          tipo: campo.tipo,
+          descricao: campo.descricao,
+          obrigatorio: campo.obrigatorio || false,
+          valor_fixo: campo.valor_fixo || ''
+        };
+      });
       
       renderizarTiposRegistro();
       mostrarNotificacao(`Campos padrão carregados para o tipo ${codigoTipo}`, 'success');
@@ -933,9 +1102,19 @@ function obterCamposRPSPadrao(codigoTipo) {
 }
 
 function renderizarTiposRegistro() {
+  console.log('🎨 Renderizando tipos...');
   const container = document.getElementById('tiposRegistro');
+  console.log('📦 Container encontrado:', !!container);
+  
+  if (!container) {
+    console.error('❌ Elemento tiposRegistro não encontrado!');
+    return;
+  }
+  
+  console.log('📊 Quantidade de tipos:', tiposRegistroConfig.length);
   
   if (tiposRegistroConfig.length === 0) {
+    console.log('ℹ️ Nenhum tipo para renderizar');
     container.innerHTML = `
       <div class="text-center text-muted py-3">
         <i class="fas fa-plus-circle fa-2x mb-2"></i>
@@ -947,11 +1126,14 @@ function renderizarTiposRegistro() {
   }
   
   let html = '';
-  tiposRegistroConfig.forEach(tipo => {
+  tiposRegistroConfig.forEach((tipo, index) => {
+    console.log(`🔧 Gerando HTML para tipo ${index + 1}:`, tipo.codigo_tipo, tipo.nome_tipo);
     html += gerarHTMLTipoRegistro(tipo);
   });
   
+  console.log('📝 HTML gerado, tamanho:', html.length);
   container.innerHTML = html;
+  console.log('✅ Tipos renderizados no DOM');
 }
 
 function gerarHTMLTipoRegistro(tipo) {
@@ -1015,14 +1197,16 @@ function gerarHTMLTipoRegistro(tipo) {
 }
 
 function renderizarCamposTipo(tipo) {
-  if (!tipo.campos || tipo.campos.length === 0) {
+  if (!tipo.campos || typeof tipo.campos !== 'object' || Object.keys(tipo.campos).length === 0) {
     return '<div class="text-center text-muted py-2"><small>Nenhum campo configurado</small></div>';
   }
   
   // Cabeçalho das colunas
   const cabecalho = `
     <div class="row g-2 mb-2 fw-bold text-muted small bg-light p-2 rounded">
-      <div class="col-md-1 text-center">Ordem</div>
+      <div class="col-md-1 text-center">
+        <i class="fas fa-sort-numeric-down me-1"></i>Ordem
+      </div>
       <div class="col-md-2">Campo</div>
       <div class="col-md-1 text-center">Inicial</div>
       <div class="col-md-1 text-center">Final</div>
@@ -1034,7 +1218,16 @@ function renderizarCamposTipo(tipo) {
     </div>
   `;
   
-  return cabecalho + tipo.campos.map((campo, index) => gerarHTMLCampoRegistro(tipo.id, campo, index + 1)).join('');
+  // Converter objeto de campos para array ordenado pela chave (ordem)
+  const camposOrdenados = Object.entries(tipo.campos)
+    .sort(([a], [b]) => parseInt(a) - parseInt(b))
+    .map(([ordem, campo]) => ({
+      ...campo,
+      id: campo.id || `${tipo.id}_${ordem}`,
+      ordem: parseInt(ordem)
+    }));
+  
+  return cabecalho + camposOrdenados.map((campo) => gerarHTMLCampoRegistro(tipo.id, campo, campo.ordem)).join('');
 }
 
 function gerarHTMLCampoRegistro(tipoId, campo, ordem) {
@@ -1042,12 +1235,20 @@ function gerarHTMLCampoRegistro(tipoId, campo, ordem) {
   const posicaoInicial = parseInt(campo.posicao) || 1;
   const tamanho = parseInt(campo.tamanho) || 1;
   const posicaoFinal = posicaoInicial + tamanho - 1;
+  const temSubcampos = campo.subcampos && campo.subcampos.length > 0;
   
   return `
     <div class="row g-2 mb-2 campo-registro border p-2 rounded align-items-center" data-campo-id="${campo.id}">
       <!-- Ordem -->
       <div class="col-md-1 text-center">
-        <span class="badge bg-secondary">${ordem}</span>
+        <div class="input-group input-group-sm" style="max-width: 70px; margin: 0 auto;">
+          <input type="number" class="form-control form-control-sm text-center fw-bold" value="${ordem}" 
+                 onchange="atualizarOrdemCampo(${tipoId}, ${campo.id}, parseInt(this.value))"
+                 placeholder="Ord" min="1" max="999" 
+                 title="Número de ordem do campo - clique para editar"
+                 style="border-color: #007bff; color: #007bff;">
+        </div>
+        ${temSubcampos ? '<i class="fas fa-sitemap text-info d-block mt-1" title="Campo com subcampos condicionais" style="font-size: 10px;"></i>' : ''}
       </div>
       
       <!-- Campo -->
@@ -1056,6 +1257,7 @@ function gerarHTMLCampoRegistro(tipoId, campo, ordem) {
                onchange="atualizarCampoRegistro(${tipoId}, ${campo.id}, 'nome', this.value)"
                placeholder="Nome do campo">
         ${valorFixoInfo}
+        ${temSubcampos ? '<small class="text-info">Campo condicional</small>' : ''}
       </div>
       
       <!-- Inicial -->
@@ -1099,19 +1301,30 @@ function gerarHTMLCampoRegistro(tipoId, campo, ordem) {
       </div>
       
       <!-- Conteúdo (descrição completa) -->
-      <div class="col-md-3">
+      <div class="col-md-2">
         <textarea class="form-control form-control-sm" rows="2" 
                   onchange="atualizarCampoRegistro(${tipoId}, ${campo.id}, 'descricao', this.value)"
                   placeholder="Descrição completa do campo...">${campo.descricao || ''}</textarea>
       </div>
       
       <!-- Ações -->
-      <div class="col-md-1 text-center">
-        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerCampoRegistro(${tipoId}, ${campo.id})"
-                ${campo.valor_fixo ? 'title="Campo padrão - pode ser removido se necessário"' : 'title="Remover campo"'}>
-          <i class="fas fa-trash"></i>
-        </button>
+      <div class="col-md-2 text-center">
+        <div class="btn-group" role="group">
+          <button type="button" class="btn btn-sm btn-outline-info" onclick="gerenciarSubcampos(${tipoId}, ${campo.id}, ${ordem})"
+                  title="Gerenciar subcampos condicionais">
+            <i class="fas fa-sitemap"></i>
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerCampoRegistro(${tipoId}, ${campo.id})"
+                  ${campo.valor_fixo ? 'title="Campo padrão - pode ser removido se necessário"' : 'title="Remover campo"'}>
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
       </div>
+    </div>
+    
+    <!-- Subcampos condicionais (se existirem) -->
+    <div id="subcampos-${campo.id}" class="subcampos-container ms-4" style="display: none;">
+      ${temSubcampos ? gerarHTMLSubcampos(campo.subcampos) : ''}
     </div>
   `;
 }
@@ -1159,16 +1372,20 @@ function removerTipoRegistro(tipoId) {
 function adicionarCampoRegistro(tipoId) {
   const tipo = tiposRegistroConfig.find(t => t.id === tipoId);
   if (tipo) {
-    if (!tipo.campos) tipo.campos = [];
+    if (!tipo.campos) tipo.campos = {};
     
     // Calcular próxima posição baseada no último campo
     let proximaPosicao = 1;
-    if (tipo.campos.length > 0) {
+    const camposArray = Object.values(tipo.campos);
+    if (camposArray.length > 0) {
       // Ordenar campos por posição para encontrar o último
-      const camposOrdenados = tipo.campos.sort((a, b) => (a.posicao || 0) - (b.posicao || 0));
+      const camposOrdenados = camposArray.sort((a, b) => (a.posicao || 0) - (b.posicao || 0));
       const ultimoCampo = camposOrdenados[camposOrdenados.length - 1];
       proximaPosicao = (parseInt(ultimoCampo.posicao) || 1) + (parseInt(ultimoCampo.tamanho) || 1);
     }
+    
+    // Encontrar próximo número de ordem
+    const proximaOrdem = Object.keys(tipo.campos).length + 1;
     
     const novoCampo = {
       id: Date.now(),
@@ -1180,7 +1397,7 @@ function adicionarCampoRegistro(tipoId) {
       obrigatorio: false
     };
     
-    tipo.campos.push(novoCampo);
+    tipo.campos[proximaOrdem.toString()] = novoCampo;
     renderizarTiposRegistro();
     
     // Foco no campo nome do novo campo adicionado
@@ -1193,14 +1410,65 @@ function adicionarCampoRegistro(tipoId) {
 
 function atualizarCampoRegistro(tipoId, campoId, propriedade, valor) {
   const tipo = tiposRegistroConfig.find(t => t.id === tipoId);
-  if (tipo) {
-    const campo = tipo.campos.find(c => c.id === campoId);
-    if (campo) {
-      campo[propriedade] = valor;
-      // Re-renderizar para atualizar cálculos automáticos
-      renderizarTiposRegistro();
+  if (tipo && tipo.campos) {
+    // Encontrar o campo na estrutura de objeto (chave = ordem)
+    for (const [ordem, campo] of Object.entries(tipo.campos)) {
+      if (campo.id === campoId) {
+        campo[propriedade] = valor;
+        // Re-renderizar para atualizar cálculos automáticos
+        renderizarTiposRegistro();
+        break;
+      }
     }
   }
+}
+
+function atualizarOrdemCampo(tipoId, campoId, novaOrdem) {
+  const tipo = tiposRegistroConfig.find(t => t.id === tipoId);
+  if (!tipo || !tipo.campos) {
+    return;
+  }
+
+  // Encontrar o campo atual
+  let campoAtual = null;
+  let chaveAtual = null;
+  
+  for (const [chave, campo] of Object.entries(tipo.campos)) {
+    if (campo.id === campoId) {
+      campoAtual = campo;
+      chaveAtual = chave;
+      break;
+    }
+  }
+
+  if (!campoAtual || !chaveAtual) {
+    return;
+  }
+
+  // Verificar se a nova ordem já existe
+  if (tipo.campos[novaOrdem.toString()]) {
+    // Se a ordem já existe, trocar as posições
+    const campoExistente = tipo.campos[novaOrdem.toString()];
+    
+    // Remover ambos os campos
+    delete tipo.campos[chaveAtual];
+    delete tipo.campos[novaOrdem.toString()];
+    
+    // Recolocar com ordens trocadas
+    tipo.campos[novaOrdem.toString()] = campoAtual;
+    tipo.campos[chaveAtual] = campoExistente;
+    
+    mostrarNotificacao(`Campos trocaram de posição: ordem ${chaveAtual} ↔ ordem ${novaOrdem}`, 'info');
+  } else {
+    // Se a ordem não existe, apenas mover o campo
+    delete tipo.campos[chaveAtual];
+    tipo.campos[novaOrdem.toString()] = campoAtual;
+    
+    mostrarNotificacao(`Campo movido para ordem ${novaOrdem}`, 'sucesso');
+  }
+
+  // Re-renderizar para mostrar as mudanças
+  renderizarTiposRegistro();
 }
 
 function atualizarTamanhoAutomatico(tipoId, campoId) {
@@ -1213,9 +1481,16 @@ function atualizarTamanhoAutomatico(tipoId, campoId) {
 
 function removerCampoRegistro(tipoId, campoId) {
   const tipo = tiposRegistroConfig.find(t => t.id === tipoId);
-  if (tipo) {
-    tipo.campos = tipo.campos.filter(c => c.id !== campoId);
-    renderizarTiposRegistro();
+  if (tipo && tipo.campos) {
+    // Encontrar a chave do campo a ser removido
+    const chaveParaRemover = Object.keys(tipo.campos).find(chave => 
+      tipo.campos[chave].id === campoId
+    );
+    
+    if (chaveParaRemover) {
+      delete tipo.campos[chaveParaRemover];
+      renderizarTiposRegistro();
+    }
   }
 }
 
@@ -2609,7 +2884,9 @@ function mostrarNotificacao(message, type = 'sucesso') {
 }
 
 // ==================== LAYOUTS DINÂMICOS ====================
+// FUNCIONALIDADE DESABILITADA - Usando apenas layouts do banco de dados
 
+/*
 async function carregarLayoutsDinamicos() {
   try {
     const response = await fetch('/api/layouts/sistema/info');
@@ -2631,6 +2908,7 @@ async function carregarLayoutsDinamicos() {
     mostrarNotificacao('Erro ao carregar layouts dinâmicos: ' + error.message, 'erro');
   }
 }
+*/
 
 async function abrirModalTestarLayout() {
   const modal = document.createElement('div');
@@ -2647,7 +2925,6 @@ async function abrirModalTestarLayout() {
             <label class="form-label">Layout (opcional):</label>
             <select id="layoutTeste" class="form-control">
               <option value="">Detectar automaticamente</option>
-              <option value="generico">Layout Genérico</option>
             </select>
           </div>
           <div class="mb-3">
@@ -2671,6 +2948,23 @@ async function abrirModalTestarLayout() {
   document.body.appendChild(modal);
   const bsModal = new bootstrap.Modal(modal);
   bsModal.show();
+  
+  // Carregar layouts reais do banco de dados
+  try {
+    const response = await fetch('/api/layouts');
+    const layouts = await response.json();
+    
+    const selectLayout = document.getElementById('layoutTeste');
+    layouts.forEach(layout => {
+      const option = document.createElement('option');
+      option.value = layout.id;
+      option.textContent = `${layout.nome} (ID: ${layout.id})`;
+      selectLayout.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Erro ao carregar layouts:', error);
+    mostrarNotificacao('Erro ao carregar layouts disponíveis', 'error');
+  }
   
   modal.addEventListener('hidden.bs.modal', () => {
     document.body.removeChild(modal);
@@ -2735,6 +3029,782 @@ async function detectarLayoutAutomatico(conteudo) {
   }
 }
 
+// ==================== FUNÇÕES PARA SUBCAMPOS CONDICIONAIS ====================
+
+function gerarHTMLSubcampos(subcampos) {
+  if (!subcampos || subcampos.length === 0) return '';
+  
+  let html = '<div class="subcampos-list mt-2 p-2 bg-light border rounded">';
+  html += '<h6 class="text-info mb-2"><i class="fas fa-sitemap"></i> Subcampos Condicionais</h6>';
+  
+  // Agrupar subcampos por condição
+  const subcamposPorCondicao = {};
+  subcampos.forEach(subcampo => {
+    if (!subcamposPorCondicao[subcampo.condicao_valor]) {
+      subcamposPorCondicao[subcampo.condicao_valor] = [];
+    }
+    subcamposPorCondicao[subcampo.condicao_valor].push(subcampo);
+  });
+  
+  Object.entries(subcamposPorCondicao).forEach(([condicao, subs]) => {
+    html += `<div class="mb-2">`;
+    html += `<small class="badge bg-secondary">Quando valor = ${condicao}</small>`;
+    subs.forEach(sub => {
+      html += `
+        <div class="row g-2 mt-1 align-items-center border-start border-info ps-2">
+          <div class="col-1">
+            <span class="badge bg-info">${sub.subcampo_letra}</span>
+          </div>
+          <div class="col-3">
+            <small>${sub.nome_subcampo}</small>
+          </div>
+          <div class="col-2">
+            <small>Pos: ${sub.posicao_inicial}-${sub.posicao_final}</small>
+          </div>
+          <div class="col-2">
+            <small>Tam: ${sub.tamanho}</small>
+          </div>
+          <div class="col-2">
+            <small>${sub.formato}</small>
+          </div>
+          <div class="col-2">
+            ${sub.obrigatorio ? '<i class="fas fa-check text-success" title="Obrigatório"></i>' : '<i class="fas fa-minus text-muted" title="Opcional"></i>'}
+          </div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  });
+  
+  html += '</div>';
+  return html;
+}
+
+function gerenciarSubcampos(tipoId, campoId, ordem) {
+  const modalHTML = `
+    <div class="modal fade" id="modalSubcampos" tabindex="-1" aria-labelledby="modalSubcamposLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalSubcamposLabel">
+              <i class="fas fa-sitemap"></i> Gerenciar Subcampos Condicionais - Campo #${ordem}
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i>
+              <strong>Subcampos Condicionais:</strong> Dependendo do valor deste campo, outros subcampos podem ter tamanhos ou obrigatoriedades diferentes.
+            </div>
+            
+            <form id="formSubcampos">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Valor da Condição</label>
+                  <input type="text" id="condicaoValor" class="form-control" placeholder="Ex: 1, 2, 3, 4">
+                  <small class="text-muted">Valor que ativa esta condição</small>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Descrição da Condição</label>
+                  <input type="text" id="condicaoDescricao" class="form-control" placeholder="Ex: CPF, CNPJ, etc.">
+                </div>
+              </div>
+              
+              <h6 class="text-primary mt-4 mb-3">Subcampos para esta condição:</h6>
+              
+              <div class="row mb-2 text-muted">
+                <div class="col-1"><small><strong>Letra</strong></small></div>
+                <div class="col-3"><small><strong>Nome</strong></small></div>
+                <div class="col-2"><small><strong>Inicial</strong></small></div>
+                <div class="col-2"><small><strong>Final</strong></small></div>
+                <div class="col-1"><small><strong>Tamanho</strong></small></div>
+                <div class="col-2"><small><strong>Formato</strong></small></div>
+                <div class="col-1"><small><strong>Obrig.</strong></small></div>
+              </div>
+              
+              <div id="subcamposLista">
+                <!-- Subcampos serão adicionados aqui -->
+              </div>
+              
+              <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="adicionarSubcampo()">
+                <i class="fas fa-plus"></i> Adicionar Subcampo
+              </button>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="salvarSubcampos(${tipoId}, ${campoId})">
+              <i class="fas fa-save"></i> Salvar Subcampos
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Remover modal existente se houver
+  const modalExistente = document.getElementById('modalSubcampos');
+  if (modalExistente) {
+    modalExistente.remove();
+  }
+  
+  // Adicionar novo modal
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  // Mostrar modal
+  const modal = new bootstrap.Modal(document.getElementById('modalSubcampos'));
+  modal.show();
+  
+  // Carregar subcampos existentes se houver
+  carregarSubcamposExistentes(tipoId, campoId);
+}
+
+let subcamposTemporarios = [];
+
+function adicionarSubcampo() {
+  const container = document.getElementById('subcamposLista');
+  const index = subcamposTemporarios.length;
+  
+  const html = `
+    <div class="row g-2 mb-2 subcampo-item border p-2 rounded" data-index="${index}">
+      <div class="col-1">
+        <input type="text" class="form-control form-control-sm text-center" id="letra_${index}" placeholder="A" maxlength="1">
+      </div>
+      <div class="col-3">
+        <input type="text" class="form-control form-control-sm" id="nome_${index}" placeholder="Nome do subcampo">
+      </div>
+      <div class="col-2">
+        <input type="number" class="form-control form-control-sm" id="inicial_${index}" placeholder="Pos" min="1" onchange="calcularFinalSubcampo(${index})">
+      </div>
+      <div class="col-2">
+        <input type="number" class="form-control form-control-sm bg-light" id="final_${index}" readonly>
+      </div>
+      <div class="col-1">
+        <input type="number" class="form-control form-control-sm" id="tamanho_${index}" placeholder="Tam" min="1" onchange="calcularFinalSubcampo(${index})">
+      </div>
+      <div class="col-2">
+        <select class="form-control form-control-sm" id="formato_${index}">
+          <option value="Texto">Texto</option>
+          <option value="Número">Número</option>
+          <option value="Data">Data</option>
+          <option value="Valor">Valor</option>
+        </select>
+      </div>
+      <div class="col-1 text-center">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" id="obrigatorio_${index}">
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger mt-1" onclick="removerSubcampo(${index})">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>
+  `;
+  
+  container.insertAdjacentHTML('beforeend', html);
+  subcamposTemporarios.push({});
+}
+
+function calcularFinalSubcampo(index) {
+  const inicial = parseInt(document.getElementById(`inicial_${index}`).value) || 0;
+  const tamanho = parseInt(document.getElementById(`tamanho_${index}`).value) || 0;
+  const final = inicial + tamanho - 1;
+  
+  if (inicial > 0 && tamanho > 0) {
+    document.getElementById(`final_${index}`).value = final;
+  }
+}
+
+function removerSubcampo(index) {
+  const elemento = document.querySelector(`[data-index="${index}"]`);
+  if (elemento) {
+    elemento.remove();
+  }
+}
+
+function carregarSubcamposExistentes(tipoId, campoId) {
+  // Aqui você carregaria os subcampos existentes do servidor
+  // Por enquanto, vamos deixar vazio para implementação futura
+  console.log(`Carregando subcampos para tipo ${tipoId}, campo ${campoId}`);
+}
+
+function salvarSubcampos(tipoId, campoId) {
+  const condicaoValor = document.getElementById('condicaoValor').value;
+  const condicaoDescricao = document.getElementById('condicaoDescricao').value;
+  
+  if (!condicaoValor) {
+    alert('Por favor, informe o valor da condição');
+    return;
+  }
+  
+  const subcampos = [];
+  const items = document.querySelectorAll('.subcampo-item');
+  
+  items.forEach((item, index) => {
+    const letra = document.getElementById(`letra_${index}`)?.value;
+    const nome = document.getElementById(`nome_${index}`)?.value;
+    const inicial = parseInt(document.getElementById(`inicial_${index}`)?.value);
+    const tamanho = parseInt(document.getElementById(`tamanho_${index}`)?.value);
+    const formato = document.getElementById(`formato_${index}`)?.value;
+    const obrigatorio = document.getElementById(`obrigatorio_${index}`)?.checked;
+    
+    if (letra && nome && inicial && tamanho) {
+      subcampos.push({
+        subcampo_letra: letra.toUpperCase(),
+        nome_subcampo: nome,
+        posicao_inicial: inicial,
+        posicao_final: inicial + tamanho - 1,
+        tamanho: tamanho,
+        formato: formato,
+        obrigatorio: obrigatorio,
+        condicao_valor: condicaoValor,
+        descricao: condicaoDescricao
+      });
+    }
+  });
+  
+  if (subcampos.length === 0) {
+    alert('Adicione pelo menos um subcampo');
+    return;
+  }
+  
+  // Enviar para o servidor
+  fetch('/api/subcampos', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      tipoId: tipoId,
+      campoId: campoId,
+      condicaoValor: condicaoValor,
+      subcampos: subcampos
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.erro) {
+      alert('Erro ao salvar subcampos: ' + data.erro);
+    } else {
+      alert('Subcampos salvos com sucesso!');
+      // Fechar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalSubcampos'));
+      modal.hide();
+      
+      // Atualizar visualização
+      renderizarCamposTipo(tipoId);
+    }
+  })
+  .catch(error => {
+    console.error('Erro:', error);
+    alert('Erro ao salvar subcampos');
+  });
+}
+
+// ==================== IMPORTAÇÃO/EXPORTAÇÃO DE LAYOUTS ====================
+
+async function exportarLayouts() {
+  try {
+    console.log('🚀 Exportando todos os layouts...');
+    
+    // Buscar todos os layouts
+    const response = await fetch('/api/layouts');
+    if (!response.ok) throw new Error('Erro ao buscar layouts');
+    
+    const layouts = await response.json();
+    
+    if (layouts.length === 0) {
+      mostrarNotificacao('Nenhum layout encontrado para exportar', 'warning');
+      return;
+    }
+    
+    // Buscar tipos para cada layout
+    const layoutsCompletos = [];
+    for (const layout of layouts) {
+      const tiposResponse = await fetch(`/api/layouts/${layout.id}/tipos`);
+      if (tiposResponse.ok) {
+        const tipos = await tiposResponse.json();
+        layoutsCompletos.push({
+          ...layout,
+          tipos_registro: tipos
+        });
+      }
+    }
+    
+    // Criar objeto de exportação
+    const dadosExportacao = {
+      versao: '1.0',
+      data_exportacao: new Date().toISOString(),
+      total_layouts: layoutsCompletos.length,
+      layouts: layoutsCompletos
+    };
+    
+    // Download do arquivo
+    downloadJSON(dadosExportacao, `layouts_backup_${formatarDataParaArquivo()}.json`);
+    
+    mostrarNotificacao(`${layoutsCompletos.length} layout(s) exportado(s) com sucesso!`, 'success');
+    
+  } catch (error) {
+    console.error('Erro ao exportar layouts:', error);
+    mostrarNotificacao('Erro ao exportar layouts: ' + error.message, 'erro');
+  }
+}
+
+async function exportarLayoutSelecionado() {
+  try {
+    // Verificar se há um layout sendo editado
+    const layoutId = document.getElementById('layoutIdEdicao')?.value;
+    
+    if (!layoutId) {
+      mostrarNotificacao('Selecione um layout para editar primeiro', 'warning');
+      return;
+    }
+    
+    console.log('🚀 Exportando layout ID:', layoutId);
+    
+    // Buscar dados do layout
+    const layoutResponse = await fetch(`/api/layouts/${layoutId}`);
+    if (!layoutResponse.ok) throw new Error('Layout não encontrado');
+    
+    const layout = await layoutResponse.json();
+    
+    // Buscar tipos do layout
+    const tiposResponse = await fetch(`/api/layouts/${layoutId}/tipos`);
+    const tipos = tiposResponse.ok ? await tiposResponse.json() : [];
+    
+    // Criar objeto de exportação
+    const dadosExportacao = {
+      versao: '1.0',
+      data_exportacao: new Date().toISOString(),
+      total_layouts: 1,
+      layouts: [{
+        ...layout,
+        tipos_registro: tipos
+      }]
+    };
+    
+    // Download do arquivo
+    const nomeArquivo = `layout_${layout.nome.replace(/[^a-zA-Z0-9]/g, '_')}_${formatarDataParaArquivo()}.json`;
+    downloadJSON(dadosExportacao, nomeArquivo);
+    
+    mostrarNotificacao(`Layout "${layout.nome}" exportado com sucesso!`, 'success');
+    
+  } catch (error) {
+    console.error('Erro ao exportar layout:', error);
+    mostrarNotificacao('Erro ao exportar layout: ' + error.message, 'erro');
+  }
+}
+
+function abrirModalExportarLayout() {
+  const modal = new bootstrap.Modal(document.getElementById('modalExportarLayout'));
+  
+  // Limpar estado anterior
+  document.getElementById('layoutParaExportar').value = '';
+  document.getElementById('previewExportacao').style.display = 'none';
+  document.getElementById('btnExecutarExportacao').disabled = true;
+  
+  // Carregar layouts disponíveis
+  carregarLayoutsParaExportacao();
+  
+  modal.show();
+}
+
+function carregarLayoutsParaExportacao() {
+  const select = document.getElementById('layoutParaExportar');
+  
+  // Limpar opções existentes
+  select.innerHTML = '<option value="">Selecione um layout...</option>';
+  
+  if (layouts && layouts.length > 0) {
+    layouts.forEach(layout => {
+      const option = document.createElement('option');
+      option.value = layout.id;
+      option.textContent = layout.nome;
+      select.appendChild(option);
+    });
+  } else {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'Nenhum layout disponível';
+    option.disabled = true;
+    select.appendChild(option);
+  }
+}
+
+function aoSelecionarLayoutExportacao() {
+  const selectLayout = document.getElementById('layoutParaExportar');
+  const layoutId = selectLayout.value;
+  const previewDiv = document.getElementById('previewExportacao');
+  const btnExecutar = document.getElementById('btnExecutarExportacao');
+  
+  if (!layoutId) {
+    previewDiv.style.display = 'none';
+    btnExecutar.disabled = true;
+    return;
+  }
+  
+  const layout = layouts.find(l => l.id == layoutId);
+  if (!layout) {
+    previewDiv.style.display = 'none';
+    btnExecutar.disabled = true;
+    return;
+  }
+  
+  // Mostrar preview do layout
+  const previewContent = document.getElementById('previewContentExportacao');
+  previewContent.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">${layout.nome}</h6>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-2">${layout.descricao || 'Sem descrição'}</p>
+        <div class="row">
+          <div class="col-6">
+            <small class="text-muted">Tipos de registro:</small>
+            <div id="tiposPreview"></div>
+          </div>
+          <div class="col-6">
+            <small class="text-muted">Total de campos:</small>
+            <div id="camposPreview"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Carregar e mostrar tipos de registro
+  carregarTiposParaPreview(layout.id);
+  
+  previewDiv.style.display = 'block';
+  btnExecutar.disabled = false;
+}
+
+async function carregarTiposParaPreview(layoutId) {
+  try {
+    const response = await fetch(`/api/layouts/${layoutId}/tipos`);
+    if (!response.ok) throw new Error('Erro ao carregar tipos');
+    
+    const tipos = await response.json();
+    
+    let totalCampos = 0;
+    const tiposHtml = tipos.map(tipo => {
+      totalCampos += tipo.campos ? tipo.campos.length : 0;
+      return `<span class="badge bg-secondary me-1">${tipo.tipo}</span>`;
+    }).join('');
+    
+    document.getElementById('tiposPreview').innerHTML = tiposHtml || '<span class="text-muted">Nenhum tipo</span>';
+    document.getElementById('camposPreview').innerHTML = `<span class="fw-bold">${totalCampos}</span> campos`;
+    
+  } catch (error) {
+    console.error('Erro ao carregar preview:', error);
+    document.getElementById('tiposPreview').innerHTML = '<span class="text-danger">Erro ao carregar</span>';
+    document.getElementById('camposPreview').innerHTML = '<span class="text-danger">-</span>';
+  }
+}
+
+async function executarExportacaoLayout() {
+  const layoutId = document.getElementById('layoutParaExportar').value;
+  const incluirMetadados = document.getElementById('incluirMetadadosExport').checked;
+  const formatarJson = document.getElementById('formatarJsonExport').checked;
+  
+  if (!layoutId) {
+    mostrarNotificacao('Selecione um layout para exportar', 'erro');
+    return;
+  }
+  
+  try {
+    // Buscar o layout
+    const layout = layouts.find(l => l.id == layoutId);
+    if (!layout) {
+      mostrarNotificacao('Layout não encontrado', 'erro');
+      return;
+    }
+    
+    // Buscar tipos e campos
+    const response = await fetch(`/api/layouts/${layoutId}/tipos`);
+    if (!response.ok) throw new Error('Erro ao carregar dados do layout');
+    
+    const tipos = await response.json();
+    
+    // Preparar dados para exportação
+    let dadosExportacao;
+    
+    if (incluirMetadados) {
+      dadosExportacao = {
+        metadata: {
+          exportado_por: 'RPS Manager',
+          data_exportacao: new Date().toISOString(),
+          versao: '1.0',
+          total_layouts: 1
+        },
+        layouts: [{
+          ...layout,
+          tipos_registro: tipos
+        }]
+      };
+    } else {
+      dadosExportacao = {
+        ...layout,
+        tipos_registro: tipos
+      };
+    }
+    
+    // Gerar nome do arquivo
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+    const nomeArquivo = `layout_${layout.nome.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.json`;
+    
+    // Download do arquivo
+    const jsonString = formatarJson ? JSON.stringify(dadosExportacao, null, 2) : JSON.stringify(dadosExportacao);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nomeArquivo;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    // Fechar modal e mostrar sucesso
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalExportarLayout'));
+    modal.hide();
+    
+    mostrarNotificacao(`Layout "${layout.nome}" exportado com sucesso!`, 'success');
+    
+  } catch (error) {
+    console.error('Erro ao exportar layout:', error);
+    mostrarNotificacao('Erro ao exportar layout: ' + error.message, 'erro');
+  }
+}
+
+function abrirModalImportarLayout() {
+  const modal = new bootstrap.Modal(document.getElementById('modalImportarLayout'));
+  
+  // Limpar estado anterior
+  document.getElementById('arquivoLayoutImport').value = '';
+  document.getElementById('previewImportacao').style.display = 'none';
+  document.getElementById('opcoesImportacao').style.display = 'none';
+  document.getElementById('resultadoImportacao').style.display = 'none';
+  document.getElementById('btnExecutarImportacao').disabled = true;
+  
+  modal.show();
+}
+
+function processarArquivoImportacao(input) {
+  const arquivo = input.files[0];
+  
+  if (!arquivo) {
+    document.getElementById('previewImportacao').style.display = 'none';
+    document.getElementById('opcoesImportacao').style.display = 'none';
+    document.getElementById('btnExecutarImportacao').disabled = true;
+    return;
+  }
+  
+  if (!arquivo.name.toLowerCase().endsWith('.json')) {
+    mostrarNotificacao('Por favor, selecione um arquivo JSON válido', 'erro');
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const dados = JSON.parse(e.target.result);
+      
+      // Validar estrutura do arquivo
+      if (!dados.layouts || !Array.isArray(dados.layouts)) {
+        throw new Error('Arquivo JSON inválido: propriedade "layouts" não encontrada ou não é um array');
+      }
+      
+      // Mostrar preview
+      document.getElementById('infoArquivoImport').innerHTML = `
+        <strong>Arquivo:</strong> ${arquivo.name}<br>
+        <strong>Tamanho:</strong> ${(arquivo.size / 1024).toFixed(2)} KB<br>
+        <strong>Versão:</strong> ${dados.versao || 'N/A'}<br>
+        <strong>Data de Exportação:</strong> ${dados.data_exportacao ? new Date(dados.data_exportacao).toLocaleString() : 'N/A'}
+      `;
+      
+      // Mostrar layouts encontrados
+      let layoutsHtml = `<strong>Layouts encontrados (${dados.layouts.length}):</strong><ul class="mt-2 mb-0">`;
+      dados.layouts.forEach(layout => {
+        const tiposCount = layout.tipos_registro ? layout.tipos_registro.length : 0;
+        layoutsHtml += `<li>${layout.nome || 'Nome não especificado'} (${tiposCount} tipos)</li>`;
+      });
+      layoutsHtml += '</ul>';
+      
+      document.getElementById('layoutsEncontrados').innerHTML = layoutsHtml;
+      
+      // Mostrar seções
+      document.getElementById('previewImportacao').style.display = 'block';
+      document.getElementById('opcoesImportacao').style.display = 'block';
+      document.getElementById('btnExecutarImportacao').disabled = false;
+      
+      // Armazenar dados para importação
+      window.dadosImportacao = dados;
+      
+    } catch (error) {
+      console.error('Erro ao processar arquivo:', error);
+      mostrarNotificacao('Erro ao processar arquivo: ' + error.message, 'erro');
+    }
+  };
+  
+  reader.readAsText(arquivo);
+}
+
+async function executarImportacaoLayout() {
+  try {
+    if (!window.dadosImportacao) {
+      mostrarNotificacao('Nenhum arquivo carregado para importação', 'erro');
+      return;
+    }
+    
+    const substituirDuplicados = document.getElementById('substituirDuplicados').checked;
+    const manterIds = document.getElementById('manterIds').checked;
+    
+    console.log('🚀 Executando importação de layouts...');
+    console.log('Substituir duplicados:', substituirDuplicados);
+    console.log('Manter IDs:', manterIds);
+    
+    let sucessos = 0;
+    let erros = 0;
+    let duplicados = 0;
+    const resultados = [];
+    
+    for (const layoutImport of window.dadosImportacao.layouts) {
+      try {
+        // Preparar dados do layout
+        const layoutData = {
+          nome: layoutImport.nome,
+          tipo: layoutImport.tipo || 'importado',
+          descricao: layoutImport.descricao || 'Layout importado',
+          estrutura_completa: layoutImport.estrutura_completa || {},
+          formatacao: layoutImport.formatacao || {},
+          origem: 'importado',
+          tipos_registro: layoutImport.tipos_registro || []
+        };
+        
+        // Se não manter IDs, remover ID
+        if (!manterIds && layoutData.id) {
+          delete layoutData.id;
+        }
+        
+        // Verificar duplicados se necessário
+        if (substituirDuplicados) {
+          const layoutsExistentes = await fetch('/api/layouts').then(r => r.json());
+          const duplicado = layoutsExistentes.find(l => l.nome === layoutData.nome);
+          
+          if (duplicado) {
+            // Atualizar layout existente
+            const response = await fetch(`/api/layouts/${duplicado.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(layoutData)
+            });
+            
+            if (response.ok) {
+              duplicados++;
+              resultados.push(`✅ ${layoutData.nome} (substituído)`);
+            } else {
+              erros++;
+              resultados.push(`❌ ${layoutData.nome} (erro ao substituir)`);
+            }
+            continue;
+          }
+        }
+        
+        // Criar novo layout
+        const response = await fetch('/api/layouts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(layoutData)
+        });
+        
+        if (response.ok) {
+          sucessos++;
+          resultados.push(`✅ ${layoutData.nome} (criado)`);
+        } else {
+          erros++;
+          resultados.push(`❌ ${layoutData.nome} (erro ao criar)`);
+        }
+        
+      } catch (error) {
+        console.error('Erro ao importar layout:', layoutImport.nome, error);
+        erros++;
+        resultados.push(`❌ ${layoutImport.nome || 'Layout sem nome'} (erro: ${error.message})`);
+      }
+    }
+    
+    // Mostrar resultado
+    const statusHtml = `
+      <div class="row">
+        <div class="col-md-4 text-center">
+          <div class="text-success">
+            <i class="fas fa-check-circle fa-2x"></i>
+            <div><strong>${sucessos}</strong></div>
+            <div>Criados</div>
+          </div>
+        </div>
+        <div class="col-md-4 text-center">
+          <div class="text-warning">
+            <i class="fas fa-sync fa-2x"></i>
+            <div><strong>${duplicados}</strong></div>
+            <div>Substituídos</div>
+          </div>
+        </div>
+        <div class="col-md-4 text-center">
+          <div class="text-danger">
+            <i class="fas fa-times-circle fa-2x"></i>
+            <div><strong>${erros}</strong></div>
+            <div>Erros</div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-3">
+        <details>
+          <summary><strong>Detalhes da importação:</strong></summary>
+          <ul class="mt-2 mb-0">
+            ${resultados.map(r => `<li>${r}</li>`).join('')}
+          </ul>
+        </details>
+      </div>
+    `;
+    
+    document.getElementById('statusImportacao').innerHTML = statusHtml;
+    document.getElementById('resultadoImportacao').style.display = 'block';
+    
+    // Atualizar lista de layouts
+    await atualizarListaLayouts();
+    
+    const mensagem = `Importação concluída: ${sucessos} criados, ${duplicados} substituídos, ${erros} erros`;
+    mostrarNotificacao(mensagem, erros > 0 ? 'warning' : 'success');
+    
+  } catch (error) {
+    console.error('Erro durante importação:', error);
+    mostrarNotificacao('Erro durante importação: ' + error.message, 'erro');
+  }
+}
+
+// Funções auxiliares
+function downloadJSON(dados, nomeArquivo) {
+  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = nomeArquivo;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  URL.revokeObjectURL(url);
+}
+
+function formatarDataParaArquivo() {
+  const agora = new Date();
+  return agora.toISOString().slice(0, 19).replace(/[:-]/g, '').replace('T', '_');
+}
+
 // ==================== INICIALIZAÇÃO ====================
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -2742,6 +3812,21 @@ document.addEventListener('DOMContentLoaded', function() {
   setupDropZone();
   setupFormEmpresa();
   formatarInputs();
+  
+  // Event listeners para verificação de importação
+  const empresaImportacao = document.getElementById('empresaImportacao');
+  const layoutImportacao = document.getElementById('layoutImportacao');
+  const cadastrarEmpresas = document.getElementById('cadastrarEmpresas');
+  
+  if (empresaImportacao) {
+    empresaImportacao.addEventListener('change', verificarHabilitarImportacao);
+  }
+  if (layoutImportacao) {
+    layoutImportacao.addEventListener('change', verificarHabilitarImportacao);
+  }
+  if (cadastrarEmpresas) {
+    cadastrarEmpresas.addEventListener('change', verificarHabilitarImportacao);
+  }
   
   // Inicializar layouts se a aba estiver ativa
   if (document.getElementById('layouts') && document.getElementById('layouts').style.display !== 'none') {

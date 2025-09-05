@@ -109,6 +109,81 @@ app.get('/api/tipos-registro', async (req, res) => {
   }
 });
 
+// ==================== ROTAS PARA SUBCAMPOS CONDICIONAIS ====================
+
+// Criar subcampos condicionais
+app.post('/api/subcampos', async (req, res) => {
+  try {
+    const { tipoId, campoId, condicaoValor, subcampos } = req.body;
+    
+    if (!tipoId || !campoId || !condicaoValor || !subcampos || subcampos.length === 0) {
+      return res.status(400).json({ erro: 'Dados obrigatórios: tipoId, campoId, condicaoValor, subcampos' });
+    }
+    
+    // Primeiro, obter o ID do tipo de registro pelo layout
+    const tipoRegistro = await db.buscarTiposRegistroPorLayout(tipoId);
+    if (!tipoRegistro || tipoRegistro.length === 0) {
+      return res.status(404).json({ erro: 'Tipo de registro não encontrado' });
+    }
+    
+    const tipoRegistroId = tipoRegistro[0].id;
+    
+    // Criar cada subcampo
+    const subcamposCriados = [];
+    for (const subcampo of subcampos) {
+      const subcampoCriado = await db.criarCampoCondicional(tipoRegistroId, {
+        campo_pai_ordem: campoId, // Aqui seria a ordem do campo pai
+        condicao_valor: condicaoValor,
+        subcampo_letra: subcampo.subcampo_letra,
+        nome_subcampo: subcampo.nome_subcampo,
+        posicao_inicial: subcampo.posicao_inicial,
+        posicao_final: subcampo.posicao_final,
+        tamanho: subcampo.tamanho,
+        formato: subcampo.formato,
+        obrigatorio: subcampo.obrigatorio,
+        descricao: subcampo.descricao
+      });
+      subcamposCriados.push(subcampoCriado);
+    }
+    
+    res.status(201).json({ 
+      mensagem: 'Subcampos criados com sucesso',
+      subcampos: subcamposCriados
+    });
+  } catch (error) {
+    console.error('Erro ao criar subcampos:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+// Buscar subcampos condicionais por tipo
+app.get('/api/subcampos/:tipoId', async (req, res) => {
+  try {
+    const { tipoId } = req.params;
+    const subcampos = await db.buscarCamposCondicionaisPorTipo(tipoId);
+    res.json(subcampos);
+  } catch (error) {
+    console.error('Erro ao buscar subcampos:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+// Excluir subcampos condicionais
+app.delete('/api/subcampos/:tipoId', async (req, res) => {
+  try {
+    const { tipoId } = req.params;
+    const resultado = await db.excluirCamposCondicionaisPorTipo(tipoId);
+    
+    res.json({ 
+      mensagem: 'Subcampos excluídos com sucesso',
+      changes: resultado.changes
+    });
+  } catch (error) {
+    console.error('Erro ao excluir subcampos:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
 // Atualizar empresa
 app.put('/api/empresas/:id', async (req, res) => {
   try {
@@ -120,6 +195,21 @@ app.put('/api/empresas/:id', async (req, res) => {
     }
   } catch (error) {
     console.error('Erro ao atualizar empresa:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+// Excluir empresa
+app.delete('/api/empresas/:id', async (req, res) => {
+  try {
+    const resultado = await db.excluirEmpresa(req.params.id);
+    if (resultado.changes > 0) {
+      res.json({ mensagem: 'Empresa excluída com sucesso' });
+    } else {
+      res.status(404).json({ erro: 'Empresa não encontrada' });
+    }
+  } catch (error) {
+    console.error('Erro ao excluir empresa:', error);
     res.status(500).json({ erro: 'Erro interno do servidor' });
   }
 });
@@ -337,12 +427,22 @@ function formatarEndereco(dados) {
 }
 
 // Função auxiliar para buscar e cadastrar empresa automaticamente
-async function buscarECadastrarEmpresa(cnpj) {
+async function buscarECadastrarEmpresa(cnpj, perguntarAoCadastrar = false) {
   try {
     // Primeiro verifica se a empresa já existe no banco
     const empresaExistente = await db.buscarEmpresaPorCnpj(cnpj);
     if (empresaExistente) {
       return { empresa: empresaExistente, cadastradaAutomaticamente: false };
+    }
+
+    // Se perguntarAoCadastrar for true, retorna sem cadastrar
+    if (perguntarAoCadastrar) {
+      return { 
+        empresa: null, 
+        cadastradaAutomaticamente: false, 
+        precisaCadastrar: true,
+        cnpj: cnpj 
+      };
     }
 
     // Se não existe, busca dados externos usando sistema de fallback
@@ -374,6 +474,144 @@ async function buscarECadastrarEmpresa(cnpj) {
     throw error;
   }
 }
+
+// Função para mapear campos do RPS baseado no layout
+function mapearCamposRPS(dadosRPS, layout) {
+  const rpsBase = {
+    numeroRps: dadosRPS.numeroRps || '',
+    serieRps: dadosRPS.serieRps || '',
+    tipoRps: dadosRPS.tipoRps || '1',
+    dataEmissao: dadosRPS.dataEmissao,
+    dataCompetencia: dadosRPS.dataCompetencia || dadosRPS.dataEmissao,
+    naturezaOperacao: dadosRPS.naturezaOperacao || '',
+    regimeEspecialTributacao: dadosRPS.regimeEspecialTributacao || '',
+    optanteSimpleNacional: dadosRPS.optanteSimpleNacional || false,
+    incentivadorCultural: dadosRPS.incentivadorCultural || false,
+    status: 'normal',
+    
+    // Prestador (vem do cabeçalho)
+    prestadorCnpj: dadosRPS.prestadorCnpj || '',
+    prestadorInscricaoMunicipal: dadosRPS.prestadorInscricaoMunicipal || '',
+    
+    // Tomador
+    tomadorCnpj: dadosRPS.tomadorCnpj || '',
+    tomadorCpf: dadosRPS.tomadorCpf || '',
+    tomadorInscricaoMunicipal: dadosRPS.tomadorInscricaoMunicipal || '',
+    tomadorRazaoSocial: dadosRPS.tomadorRazaoSocial || '',
+    tomadorEndereco: dadosRPS.tomadorEndereco || '',
+    tomadorNumero: dadosRPS.tomadorNumero || '',
+    tomadorComplemento: dadosRPS.tomadorComplemento || '',
+    tomadorBairro: dadosRPS.tomadorBairro || '',
+    tomadorCep: dadosRPS.tomadorCep || '',
+    tomadorCidade: dadosRPS.tomadorCidade || '',
+    tomadorUf: dadosRPS.tomadorUf || '',
+    tomadorTelefone: dadosRPS.tomadorTelefone || '',
+    tomadorEmail: dadosRPS.tomadorEmail || '',
+    
+    // Serviços
+    codigoServico: dadosRPS.codigoServico || '',
+    codigoCnae: dadosRPS.codigoCnae || '',
+    codigoTributacaoMunicipio: dadosRPS.codigoTributacaoMunicipio || '',
+    discriminacao: dadosRPS.discriminacao || 'Serviços diversos',
+    codigoMunicipio: dadosRPS.codigoMunicipio || '',
+    
+    // Valores
+    valorServicos: parseFloat(dadosRPS.valorServicos || 0),
+    valorDeducoes: parseFloat(dadosRPS.valorDeducoes || 0),
+    valorPis: parseFloat(dadosRPS.valorPis || 0),
+    valorCofins: parseFloat(dadosRPS.valorCofins || 0),
+    valorInss: parseFloat(dadosRPS.valorInss || 0),
+    valorIr: parseFloat(dadosRPS.valorIr || 0),
+    valorCsll: parseFloat(dadosRPS.valorCsll || 0),
+    valorIss: parseFloat(dadosRPS.valorIss || 0),
+    valorOutrasRetencoes: parseFloat(dadosRPS.valorOutrasRetencoes || 0),
+    baseCalculo: parseFloat(dadosRPS.baseCalculo || dadosRPS.valorServicos || 0),
+    aliquota: parseFloat(dadosRPS.aliquota || 0),
+    valorLiquido: parseFloat(dadosRPS.valorLiquido || 0),
+    valorIssRetido: parseFloat(dadosRPS.valorIssRetido || 0),
+    
+    // Equipamento (para estacionamento)
+    tipoEquipamento: dadosRPS.tipoEquipamento || '',
+    numeroSerie: dadosRPS.numeroSerie || ''
+  };
+
+  return rpsBase;
+}
+
+// Nova rota para verificar CNPJ antes da importação
+app.post('/api/verificar-cnpj', async (req, res) => {
+  try {
+    const { cnpj } = req.body;
+    
+    if (!cnpj) {
+      return res.status(400).json({ erro: 'CNPJ é obrigatório' });
+    }
+
+    const resultado = await buscarECadastrarEmpresa(cnpj, true);
+    
+    if (resultado.precisaCadastrar) {
+      // Buscar dados externos para preview
+      try {
+        const dadosExternos = await buscarCNPJComFallback(cnpj);
+        res.json({
+          precisaCadastrar: true,
+          cnpj: cnpj,
+          dadosEncontrados: dadosExternos || null
+        });
+      } catch (error) {
+        res.json({
+          precisaCadastrar: true,
+          cnpj: cnpj,
+          dadosEncontrados: null,
+          erro: 'CNPJ não encontrado nas bases de dados'
+        });
+      }
+    } else {
+      res.json({
+        precisaCadastrar: false,
+        empresa: resultado.empresa
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao verificar CNPJ:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+// Nova rota para cadastrar empresa confirmada pelo usuário
+app.post('/api/cadastrar-empresa', async (req, res) => {
+  try {
+    const { cnpj, razaoSocial, nomeFantasia, inscricaoMunicipal, endereco, telefone, email } = req.body;
+    
+    if (!cnpj || !razaoSocial) {
+      return res.status(400).json({ erro: 'CNPJ e Razão Social são obrigatórios' });
+    }
+
+    const novaEmpresa = {
+      cnpj: cnpj,
+      razaoSocial: razaoSocial,
+      nomeFantasia: nomeFantasia || '',
+      inscricaoMunicipal: inscricaoMunicipal || '',
+      endereco: endereco || '',
+      telefone: telefone || '',
+      email: email || ''
+    };
+
+    const empresaCadastrada = await db.criarEmpresa(novaEmpresa);
+    
+    res.json({
+      sucesso: true,
+      empresa: empresaCadastrada
+    });
+  } catch (error) {
+    console.error('Erro ao cadastrar empresa:', error);
+    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      res.status(400).json({ erro: 'CNPJ já cadastrado' });
+    } else {
+      res.status(500).json({ erro: 'Erro interno do servidor' });
+    }
+  }
+});
 
 // ==================== ROTAS DE IMPORTAÇÃO ====================
 
@@ -412,15 +650,28 @@ app.post('/api/importar-rps', upload.array('arquivos'), async (req, res) => {
           continue;
         }
 
-        // Verificar se empresa existe ou criar automaticamente
+        // Verificar se empresa existe
         let resultadoEmpresa;
         try {
-          resultadoEmpresa = await buscarECadastrarEmpresa(dadosProcessados.cabecalho.cnpj);
+          resultadoEmpresa = await buscarECadastrarEmpresa(dadosProcessados.cabecalho.cnpj, true);
+          
+          // Se precisa cadastrar, retorna erro pedindo confirmação
+          if (resultadoEmpresa.precisaCadastrar) {
+            const dadosExternos = await buscarCNPJComFallback(dadosProcessados.cabecalho.cnpj).catch(() => null);
+            resultados.push({
+              arquivo: arquivo.originalname,
+              status: 'empresa_nao_cadastrada',
+              cnpj: dadosProcessados.cabecalho.cnpj,
+              dadosEmpresa: dadosExternos,
+              mensagem: `Empresa com CNPJ ${dadosProcessados.cabecalho.cnpj} não está cadastrada. Deseja cadastrar automaticamente?`
+            });
+            continue;
+          }
         } catch (error) {
           resultados.push({
             arquivo: arquivo.originalname,
             status: 'erro',
-            mensagem: `Erro ao buscar/cadastrar empresa: ${error.message}`
+            mensagem: `Erro ao verificar empresa: ${error.message}`
           });
           continue;
         }
@@ -456,23 +707,17 @@ app.post('/api/importar-rps', upload.array('arquivos'), async (req, res) => {
 
         for (const rps of dadosProcessados.detalhes) {
           try {
+            // Mapear campos RPS baseado no layout
+            const rpsCompleto = mapearCamposRPS({
+              ...rps,
+              prestadorCnpj: dadosProcessados.cabecalho.cnpj,
+              prestadorInscricaoMunicipal: dadosProcessados.cabecalho.inscricaoMunicipal
+            }, dadosProcessados.layout);
+
             await db.criarRps({
               arquivoId: novoArquivo.id,
               empresaId: empresa.id,
-              numeroRps: rps.numeroRps,
-              serieRps: rps.serieRps || '',
-              tipoRps: rps.tipoRps || '1',
-              dataEmissao: rps.dataEmissao,
-              dataCompetencia: rps.dataCompetencia || rps.dataEmissao,
-              prestadorCnpj: dadosProcessados.cabecalho.cnpj,
-              prestadorInscricaoMunicipal: dadosProcessados.cabecalho.inscricaoMunicipal,
-              discriminacao: rps.discriminacao || 'Serviços diversos',
-              valorServicos: rps.valorServicos || 0,
-              valorIss: rps.valorIss || 0,
-              baseCalculo: rps.baseCalculo || rps.valorServicos || 0,
-              aliquota: rps.aliquota || 0,
-              tipoEquipamento: rps.tipoEquipamento,
-              numeroSerie: rps.numeroSerie
+              ...rpsCompleto
             });
             rpsImportados++;
           } catch (rpsError) {
@@ -491,6 +736,143 @@ app.post('/api/importar-rps', upload.array('arquivos'), async (req, res) => {
           rpsImportados,
           rpsAtualizados,
           valorTotal: ((dadosProcessados.resumo?.valorTotal || 0) / 100).toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+          })
+        });
+
+      } catch (arquivoError) {
+        console.error(`Erro ao processar arquivo ${arquivo.originalname}:`, arquivoError);
+        resultados.push({
+          arquivo: arquivo.originalname,
+          status: 'erro',
+          mensagem: arquivoError.message
+        });
+      }
+
+      // Limpar arquivo temporário
+      fs.unlinkSync(arquivo.path);
+    }
+
+    res.json({ resultados });
+  } catch (error) {
+    console.error('Erro na importação:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+// Nova rota para importação com cadastro automático de empresa
+app.post('/api/importar-rps-com-cadastro', upload.array('arquivos'), async (req, res) => {
+  try {
+    const { atualizarExistentes, ignorarDuplicadas, cadastrarEmpresas } = req.body;
+    const arquivos = req.files;
+    const resultados = [];
+
+    for (const arquivo of arquivos) {
+      try {
+        const conteudo = fs.readFileSync(arquivo.path, 'utf-8');
+        const hashArquivo = calcularHashArquivo(conteudo);
+        
+        // Processar arquivo com layout dinâmico
+        console.log(`Processando arquivo: ${arquivo.originalname}`);
+        
+        const dadosProcessados = layoutManager.processarArquivo(conteudo);
+        
+        if (!dadosProcessados.cabecalho?.cnpj) {
+          resultados.push({
+            arquivo: arquivo.originalname,
+            status: 'erro',
+            mensagem: 'CNPJ não encontrado no cabeçalho'
+          });
+          continue;
+        }
+
+        // Verificar se empresa existe ou cadastrar automaticamente
+        let resultadoEmpresa;
+        try {
+          resultadoEmpresa = await buscarECadastrarEmpresa(dadosProcessados.cabecalho.cnpj, !cadastrarEmpresas);
+          
+          if (resultadoEmpresa.precisaCadastrar && !cadastrarEmpresas) {
+            resultados.push({
+              arquivo: arquivo.originalname,
+              status: 'empresa_nao_cadastrada',
+              cnpj: dadosProcessados.cabecalho.cnpj,
+              mensagem: `Empresa com CNPJ ${dadosProcessados.cabecalho.cnpj} não está cadastrada`
+            });
+            continue;
+          }
+          
+          if (resultadoEmpresa.precisaCadastrar && cadastrarEmpresas) {
+            // Cadastrar automaticamente
+            resultadoEmpresa = await buscarECadastrarEmpresa(dadosProcessados.cabecalho.cnpj, false);
+          }
+        } catch (error) {
+          resultados.push({
+            arquivo: arquivo.originalname,
+            status: 'erro',
+            mensagem: `Erro ao buscar/cadastrar empresa: ${error.message}`
+          });
+          continue;
+        }
+
+        const empresa = resultadoEmpresa.empresa;
+
+        // Verificar se arquivo já foi importado
+        const arquivoExistente = await db.verificarArquivoExiste(hashArquivo);
+        if (arquivoExistente && ignorarDuplicadas === 'true') {
+          resultados.push({
+            arquivo: arquivo.originalname,
+            status: 'ignorado',
+            mensagem: 'Arquivo já importado anteriormente'
+          });
+          continue;
+        }
+
+        // Criar registro do arquivo
+        const novoArquivo = await db.criarArquivo({
+          empresaId: empresa.id,
+          nomeArquivo: arquivo.originalname,
+          hashArquivo: hashArquivo,
+          totalRps: dadosProcessados.detalhes.length,
+          valorTotal: dadosProcessados.estatisticas?.valorTotal || 0,
+          dataInicio: dadosProcessados.cabecalho?.dataInicio,
+          dataFim: dadosProcessados.cabecalho?.dataFim
+        });
+
+        // Importar RPS
+        let rpsImportados = 0;
+        let rpsAtualizados = 0;
+
+        for (const rps of dadosProcessados.detalhes) {
+          try {
+            // Mapear campos RPS baseado no layout
+            const rpsCompleto = mapearCamposRPS({
+              ...rps,
+              prestadorCnpj: dadosProcessados.cabecalho.cnpj,
+              prestadorInscricaoMunicipal: dadosProcessados.cabecalho.inscricaoMunicipal
+            }, dadosProcessados.layout);
+
+            await db.criarRps({
+              arquivoId: novoArquivo.id,
+              empresaId: empresa.id,
+              ...rpsCompleto
+            });
+            rpsImportados++;
+          } catch (rpsError) {
+            if (rpsError.code === 'SQLITE_CONSTRAINT_UNIQUE' && atualizarExistentes === 'true') {
+              rpsAtualizados++;
+            }
+          }
+        }
+
+        resultados.push({
+          arquivo: arquivo.originalname,
+          status: 'sucesso',
+          empresa: empresa.razao_social,
+          empresaCadastradaAutomaticamente: resultadoEmpresa.cadastradaAutomaticamente,
+          rpsImportados,
+          rpsAtualizados,
+          valorTotal: ((dadosProcessados.estatisticas?.valorTotal || 0) / 100).toLocaleString('pt-BR', {
             style: 'currency',
             currency: 'BRL'
           })
@@ -694,15 +1076,11 @@ app.post('/api/rps', async (req, res) => {
 // Listar layouts
 app.get('/api/layouts', async (req, res) => {
   try {
-    // Combina layouts do banco de dados com layouts dinâmicos
+    // Busca apenas layouts do banco de dados (sem layouts dinâmicos)
     const layoutsBD = await db.listarLayouts();
-    const layoutsDinamicos = layoutManager.listarLayouts();
     
     // Adiciona informação de origem
-    const layoutsCompletos = [
-      ...layoutsBD.map(layout => ({ ...layout, origem: 'banco' })),
-      ...layoutsDinamicos.map(layout => ({ ...layout, origem: 'dinamico' }))
-    ];
+    const layoutsCompletos = layoutsBD.map(layout => ({ ...layout, origem: 'banco' }));
     
     res.json(layoutsCompletos);
   } catch (error) {
@@ -716,16 +1094,8 @@ app.get('/api/layouts/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Primeiro tenta buscar no sistema dinâmico
-    let layout = layoutManager.obterLayout(id);
-    
-    if (layout) {
-      res.json({ ...layout, origem: 'dinamico' });
-      return;
-    }
-    
-    // Se não encontrar, busca no banco de dados
-    layout = await db.buscarLayoutPorId(id);
+    // Buscar diretamente no banco de dados
+    const layout = await db.buscarLayoutPorId(id);
     
     if (!layout) {
       return res.status(404).json({ erro: 'Layout não encontrado' });
@@ -928,8 +1298,10 @@ app.get('/api/layouts/estatisticas', async (req, res) => {
 });
 
 // ==================== APIs PARA LAYOUTS DINÂMICOS ====================
+// FUNCIONALIDADE DESABILITADA - Usando apenas layouts persistidos no banco
 
-// Criar layout dinâmico
+// Criar layout dinâmico (DESABILITADO)
+/*
 app.post('/api/layouts/dinamico', async (req, res) => {
   try {
     const layout = req.body;
@@ -955,6 +1327,7 @@ app.post('/api/layouts/dinamico', async (req, res) => {
     res.status(500).json({ erro: 'Erro interno do servidor' });
   }
 });
+*/
 
 // Testar processamento com layout específico
 app.post('/api/layouts/testar', upload.single('arquivo'), async (req, res) => {

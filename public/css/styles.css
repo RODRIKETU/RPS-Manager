@@ -49,6 +49,42 @@ body {
   max-width: 100%;
 }
 
+/* ==================== MODAL IMPORTAÇÃO EXPANDIDO ==================== */
+
+#modalImportarLayout .modal-dialog {
+  max-width: 95vw !important;
+  height: 95vh !important;
+  margin: 2.5vh auto !important;
+}
+
+#modalImportarLayout .modal-content {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+#modalImportarLayout .modal-body {
+  max-height: calc(95vh - 180px) !important;
+  overflow-y: auto !important;
+  padding: 2rem !important;
+  flex: 1 !important;
+}
+
+#modalImportarLayout #layoutsEncontrados {
+  max-height: 300px !important;
+  overflow-y: auto !important;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+}
+
+#modalImportarLayout #previewImportacao {
+  margin-bottom: 1.5rem;
+}
+
+#modalImportarLayout #resultadoImportacao {
+  margin-top: 1.5rem;
+}
+
 /* Responsividade para modal */
 @media (max-width: 576px) {
   .modal-dialog {
