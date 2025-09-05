@@ -398,8 +398,16 @@ class Database {
     return new Promise((resolve, reject) => {
       const sql = `
         SELECT 
-          r.id, r.numero_rps as numero, r.data_emissao, r.tomador_razao_social as tomador_nome, 
-          r.discriminacao as descricao, r.valor_servicos, r.valor_iss, r.status,
+          r.id, 
+          r.numero_rps, 
+          r.serie_rps,
+          r.data_emissao, 
+          r.tomador_razao_social, 
+          r.discriminacao, 
+          r.valor_servicos, 
+          r.valor_iss, 
+          r.valor_liquido,
+          r.status,
           a.nome_arquivo 
         FROM rps r
         LEFT JOIN arquivos_rps a ON r.arquivo_id = a.id

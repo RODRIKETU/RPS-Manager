@@ -712,16 +712,144 @@
           <p class="page-subtitle">Gerenciamento de Recibos Provisórios de Serviços</p>
         </div>
 
-        <div class="card border-0 shadow-sm">
+        <!-- Filtros -->
+        <div class="card border-0 shadow-sm mb-4">
           <div class="card-header bg-white">
+            <h5 class="card-title mb-0">
+              <i class="fas fa-filter me-2"></i>
+              Filtros de Consulta
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label for="empresaGestao" class="form-label">Empresa</label>
+                <select id="empresaGestao" class="form-control" onchange="carregarRpsEmpresa()">
+                  <option value="">Selecione uma empresa</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label for="dataInicioGestao" class="form-label">Data Inicial</label>
+                <input type="date" id="dataInicioGestao" class="form-control" onchange="carregarRpsEmpresa()">
+              </div>
+              <div class="col-md-3">
+                <label for="dataFimGestao" class="form-label">Data Final</label>
+                <input type="date" id="dataFimGestao" class="form-control" onchange="carregarRpsEmpresa()">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="button" class="btn btn-primary w-100" onclick="carregarRpsEmpresa()">
+                  <i class="fas fa-search me-1"></i> Consultar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grid de RPS -->
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">
               <i class="fas fa-list me-2"></i>
               Lista de RPS
             </h5>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-outline-primary btn-sm" onclick="selecionarTodosRps()">
+                <i class="fas fa-check-square me-1"></i> Selecionar Todos
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="desmarcarTodosRps()">
+                <i class="fas fa-square me-1"></i> Desmarcar Todos
+              </button>
+            </div>
           </div>
-          <div class="card-body">
-            <div class="d-flex justify-content-center">
-              <p class="text-muted">Esta seção estará disponível em breve...</p>
+          <div class="card-body p-0">
+            <!-- Filtros da Tabela -->
+            <div class="p-3 border-bottom bg-light">
+              <div class="row g-2">
+                <div class="col-md-2">
+                  <input type="text" class="form-control form-control-sm" placeholder="Filtrar Número RPS" onkeyup="filtrarTabela('numeroRps', this.value)">
+                </div>
+                <div class="col-md-2">
+                  <input type="text" class="form-control form-control-sm" placeholder="Filtrar Série" onkeyup="filtrarTabela('serieRps', this.value)">
+                </div>
+                <div class="col-md-2">
+                  <input type="date" class="form-control form-control-sm" placeholder="Filtrar Data" onchange="filtrarTabela('dataEmissao', this.value)">
+                </div>
+                <div class="col-md-3">
+                  <input type="text" class="form-control form-control-sm" placeholder="Filtrar Tomador" onkeyup="filtrarTabela('tomadorNome', this.value)">
+                </div>
+                <div class="col-md-2">
+                  <input type="text" class="form-control form-control-sm" placeholder="Filtrar Valor" onkeyup="filtrarTabela('valorServicos', this.value)">
+                </div>
+                <div class="col-md-1">
+                  <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="limparFiltros()" title="Limpar Filtros">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabela -->
+            <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+              <table class="table table-hover table-striped mb-0" id="tabelaRps">
+                <thead class="table-dark sticky-top">
+                  <tr>
+                    <th style="width: 50px;">
+                      <input type="checkbox" id="checkTodos" onchange="toggleTodosRps(this.checked)">
+                    </th>
+                    <th style="width: 100px;">Número</th>
+                    <th style="width: 80px;">Série</th>
+                    <th style="width: 120px;">Data Emissão</th>
+                    <th style="width: 250px;">Tomador</th>
+                    <th style="width: 300px;">Discriminação</th>
+                    <th style="width: 120px;">Valor Serviços</th>
+                    <th style="width: 100px;">ISS</th>
+                    <th style="width: 120px;">Valor Líquido</th>
+                    <th style="width: 100px;">Status</th>
+                    <th style="width: 100px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="corpoTabelaRps">
+                  <tr>
+                    <td colspan="11" class="text-center text-muted py-4">
+                      <i class="fas fa-search fa-2x mb-2"></i>
+                      <br>Selecione uma empresa e período para consultar os RPS
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <!-- Rodapé com Totais -->
+          <div class="card-footer bg-light">
+            <div class="row">
+              <div class="col-md-6">
+                <strong>
+                  <i class="fas fa-list-ol me-1"></i>
+                  Total de registros: <span id="totalRegistros">0</span>
+                </strong>
+              </div>
+              <div class="col-md-6 text-end">
+                <strong>
+                  <i class="fas fa-calculator me-1"></i>
+                  Valor Total: <span id="valorTotalExibido" class="text-success">R$ 0,00</span>
+                </strong>
+              </div>
+            </div>
+            <div class="row mt-2" id="totalSelecionados" style="display: none;">
+              <div class="col-md-6">
+                <span class="text-primary">
+                  <i class="fas fa-check-square me-1"></i>
+                  Selecionados: <span id="quantidadeSelecionados">0</span>
+                </span>
+              </div>
+              <div class="col-md-6 text-end">
+                <span class="text-primary">
+                  <i class="fas fa-money-bill-wave me-1"></i>
+                  Valor Selecionado: <span id="valorSelecionado">R$ 0,00</span>
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -904,12 +1032,32 @@
         const select = document.getElementById('layoutImportacao');
         
         select.innerHTML = '<option value="">Selecione um layout</option>';
+        
+        let layoutPadraoSelecionado = false;
+        
         layouts.forEach(layout => {
           const option = document.createElement('option');
           option.value = layout.id;
           option.textContent = layout.nome;
+          
+          // Selecionar automaticamente o layout padrão (RJ Padrão V1 ou similar)
+          if (!layoutPadraoSelecionado && (
+            layout.nome.toLowerCase().includes('padrão') || 
+            layout.nome.toLowerCase().includes('padrao') ||
+            layout.layout_id === 'layout_rj_padrao_v1'
+          )) {
+            option.selected = true;
+            layoutPadraoSelecionado = true;
+          }
+          
           select.appendChild(option);
         });
+        
+        // Se não encontrou um layout padrão, seleciona o primeiro disponível
+        if (!layoutPadraoSelecionado && layouts.length > 0) {
+          select.selectedIndex = 1; // Pula a opção "Selecione um layout"
+        }
+        
       } catch (error) {
         console.error('Erro ao carregar layouts:', error);
       }
@@ -936,6 +1084,268 @@
       }, 5000);
     }
 
+    // ==================== FUNÇÕES DE GESTÃO DE RPS ====================
+    
+    let rpsData = [];
+    let rpsFiltered = [];
+    
+    // Carrega empresas no select da gestão
+    async function carregarEmpresasGestao() {
+      try {
+        const response = await fetch('/api/empresas');
+        const empresas = await response.json();
+        const select = document.getElementById('empresaGestao');
+        
+        select.innerHTML = '<option value="">Selecione uma empresa</option>';
+        empresas.forEach(empresa => {
+          const option = document.createElement('option');
+          option.value = empresa.id;
+          option.textContent = `${empresa.razao_social} (${formatarCNPJ(empresa.cnpj)})`;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Erro ao carregar empresas:', error);
+        showNotification('Erro ao carregar empresas', 'danger');
+      }
+    }
+
+    // Carrega RPS da empresa selecionada
+    async function carregarRpsEmpresa() {
+      const empresaId = document.getElementById('empresaGestao').value;
+      const dataInicio = document.getElementById('dataInicioGestao').value;
+      const dataFim = document.getElementById('dataFimGestao').value;
+      
+      if (!empresaId) {
+        showNotification('Selecione uma empresa primeiro', 'warning');
+        return;
+      }
+      
+      if (!dataInicio || !dataFim) {
+        showNotification('Selecione o período inicial e final', 'warning');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/rps/empresa/${empresaId}?dataInicio=${dataInicio}&dataFim=${dataFim}`);
+        
+        if (!response.ok) {
+          throw new Error('Erro ao buscar RPS');
+        }
+        
+        const data = await response.json();
+        rpsData = data;
+        rpsFiltered = [...rpsData];
+        
+        exibirRpsTabela();
+        atualizarTotais();
+        
+        showNotification(`${rpsData.length} RPS encontrados`, 'success');
+        
+      } catch (error) {
+        console.error('Erro ao carregar RPS:', error);
+        showNotification('Erro ao carregar RPS da empresa', 'danger');
+        
+        // Limpar tabela em caso de erro
+        const tbody = document.getElementById('corpoTabelaRps');
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="11" class="text-center text-muted py-4">
+              <i class="fas fa-exclamation-triangle fa-2x mb-2 text-warning"></i>
+              <br>Erro ao carregar dados. Tente novamente.
+            </td>
+          </tr>
+        `;
+      }
+    }
+    
+    // Exibe RPS na tabela
+    function exibirRpsTabela() {
+      const tbody = document.getElementById('corpoTabelaRps');
+      
+      if (rpsFiltered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="11" class="text-center text-muted py-4">
+              <i class="fas fa-inbox fa-2x mb-2"></i>
+              <br>Nenhum RPS encontrado para o período selecionado
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      tbody.innerHTML = rpsFiltered.map(rps => `
+        <tr data-rps-id="${rps.id}">
+          <td>
+            <input type="checkbox" class="form-check-input rps-checkbox" 
+                   value="${rps.id}" 
+                   data-valor="${rps.valor_servicos || 0}"
+                   onchange="atualizarSelecao()">
+          </td>
+          <td>${rps.numero_rps || '-'}</td>
+          <td>${rps.serie_rps || '-'}</td>
+          <td>${formatarData(rps.data_emissao)}</td>
+          <td>${rps.tomador_razao_social || '-'}</td>
+          <td class="text-truncate" style="max-width: 300px;" title="${rps.discriminacao || '-'}">
+            ${rps.discriminacao || '-'}
+          </td>
+          <td class="text-end">${formatarMoeda(rps.valor_servicos || 0)}</td>
+          <td class="text-end">${formatarMoeda(rps.valor_iss || 0)}</td>
+          <td class="text-end">${formatarMoeda(rps.valor_liquido || 0)}</td>
+          <td>
+            <span class="badge ${getStatusBadgeClass(rps.status)}">${rps.status || 'Pendente'}</span>
+          </td>
+          <td>
+            <div class="btn-group" role="group">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="visualizarRps(${rps.id})" title="Visualizar">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-warning" onclick="editarRps(${rps.id})" title="Editar">
+                <i class="fas fa-edit"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+    
+    // Funções de seleção
+    function selecionarTodosRps() {
+      const checkboxes = document.querySelectorAll('.rps-checkbox');
+      checkboxes.forEach(cb => cb.checked = true);
+      document.getElementById('checkTodos').checked = true;
+      atualizarSelecao();
+    }
+    
+    function desmarcarTodosRps() {
+      const checkboxes = document.querySelectorAll('.rps-checkbox');
+      checkboxes.forEach(cb => cb.checked = false);
+      document.getElementById('checkTodos').checked = false;
+      atualizarSelecao();
+    }
+    
+    function toggleTodosRps(checked) {
+      const checkboxes = document.querySelectorAll('.rps-checkbox');
+      checkboxes.forEach(cb => cb.checked = checked);
+      atualizarSelecao();
+    }
+    
+    // Atualiza contadores de seleção
+    function atualizarSelecao() {
+      const checkboxes = document.querySelectorAll('.rps-checkbox:checked');
+      const quantidade = checkboxes.length;
+      const valor = Array.from(checkboxes).reduce((total, cb) => {
+        return total + parseFloat(cb.dataset.valor || 0);
+      }, 0);
+      
+      const divSelecionados = document.getElementById('totalSelecionados');
+      if (quantidade > 0) {
+        divSelecionados.style.display = 'block';
+        document.getElementById('quantidadeSelecionados').textContent = quantidade;
+        document.getElementById('valorSelecionado').textContent = formatarMoeda(valor);
+      } else {
+        divSelecionados.style.display = 'none';
+      }
+      
+      // Atualizar checkbox "Todos"
+      const totalCheckboxes = document.querySelectorAll('.rps-checkbox').length;
+      const checkTodos = document.getElementById('checkTodos');
+      if (quantidade === 0) {
+        checkTodos.checked = false;
+        checkTodos.indeterminate = false;
+      } else if (quantidade === totalCheckboxes) {
+        checkTodos.checked = true;
+        checkTodos.indeterminate = false;
+      } else {
+        checkTodos.checked = false;
+        checkTodos.indeterminate = true;
+      }
+    }
+    
+    // Filtros da tabela
+    function filtrarTabela(campo, valor) {
+      if (!valor.trim()) {
+        rpsFiltered = [...rpsData];
+      } else {
+        rpsFiltered = rpsData.filter(rps => {
+          const valorCampo = rps[campo] || '';
+          if (campo === 'valorServicos' || campo === 'valorIss' || campo === 'valorLiquido') {
+            return formatarMoeda(valorCampo).toLowerCase().includes(valor.toLowerCase());
+          }
+          if (campo === 'dataEmissao') {
+            return formatarData(valorCampo) === valor;
+          }
+          return valorCampo.toString().toLowerCase().includes(valor.toLowerCase());
+        });
+      }
+      
+      exibirRpsTabela();
+      atualizarTotais();
+      atualizarSelecao();
+    }
+    
+    function limparFiltros() {
+      // Limpar todos os campos de filtro
+      const filtros = document.querySelectorAll('[onkeyup*="filtrarTabela"], [onchange*="filtrarTabela"]');
+      filtros.forEach(filtro => filtro.value = '');
+      
+      // Resetar dados filtrados
+      rpsFiltered = [...rpsData];
+      exibirRpsTabela();
+      atualizarTotais();
+      atualizarSelecao();
+    }
+    
+    // Atualiza totais no rodapé
+    function atualizarTotais() {
+      const total = rpsFiltered.length;
+      const valorTotal = rpsFiltered.reduce((sum, rps) => sum + (rps.valor_servicos || 0), 0);
+      
+      document.getElementById('totalRegistros').textContent = total;
+      document.getElementById('valorTotalExibido').textContent = formatarMoeda(valorTotal);
+    }
+    
+    // Funções auxiliares
+    function formatarData(data) {
+      if (!data) return '-';
+      try {
+        return new Date(data).toLocaleDateString('pt-BR');
+      } catch {
+        return data;
+      }
+    }
+    
+    function formatarMoeda(valor) {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(valor / 100);
+    }
+    
+    function formatarCNPJ(cnpj) {
+      if (!cnpj) return '';
+      const numeros = cnpj.replace(/\D/g, '');
+      return numeros.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+    
+    function getStatusBadgeClass(status) {
+      switch (status?.toLowerCase()) {
+        case 'emitido': return 'bg-success';
+        case 'cancelado': return 'bg-danger';
+        case 'pendente': return 'bg-warning';
+        default: return 'bg-secondary';
+      }
+    }
+    
+    // Funções de ações (placeholder)
+    function visualizarRps(id) {
+      showNotification('Função de visualização em desenvolvimento', 'info');
+    }
+    
+    function editarRps(id) {
+      showNotification('Função de edição em desenvolvimento', 'info');
+    }
+
     // ==================== INICIALIZAÇÃO ====================
     
     document.addEventListener('DOMContentLoaded', function() {
@@ -947,6 +1357,17 @@
       
       // Setup do upload de arquivos
       setupFileUpload();
+      
+      // Carrega empresas para gestão de RPS
+      carregarEmpresasGestao();
+      
+      // Define datas padrão (último mês)
+      const hoje = new Date();
+      const mesPassado = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+      const ultimoDiaMesPassado = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+      
+      document.getElementById('dataInicioGestao').value = mesPassado.toISOString().split('T')[0];
+      document.getElementById('dataFimGestao').value = ultimoDiaMesPassado.toISOString().split('T')[0];
     });
 
     function setupFileUpload() {

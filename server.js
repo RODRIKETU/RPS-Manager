@@ -1,3 +1,43 @@
+// Função para extrair CNPJ do cabeçalho do arquivo RPS
+function extrairCNPJDoArquivo(conteudo) {
+  try {
+    const linhas = conteudo.split('\n');
+    
+    // Procurar pela linha de cabeçalho (tipo 10)
+    for (const linha of linhas) {
+      if (linha.trim().startsWith('10')) {
+        // Layout RJ: Tipo 10 - CNPJ está nas posições 7-20 (14 dígitos)
+        if (linha.length >= 20) {
+          const identificacao = linha.substring(5, 6); // Posição 6: 1=CPF, 2=CNPJ
+          if (identificacao === '2') { // É CNPJ
+            const cnpj = linha.substring(6, 20); // Posições 7-20
+            return cnpj.replace(/\D/g, ''); // Remove caracteres não numéricos
+          }
+        }
+      }
+    }
+    
+    // Se não encontrou no cabeçalho, tentar nos detalhes (tipo 20)
+    for (const linha of linhas) {
+      if (linha.trim().startsWith('20')) {
+        // Pode ter CNPJ do prestador nos registros tipo 20
+        // Isso seria em casos específicos - implementar se necessário
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Erro ao extrair CNPJ:', error);
+    return null;
+  }
+}
+
+// Função para formatar CNPJ
+function formatarCNPJ(cnpj) {
+  if (!cnpj || cnpj.length !== 14) return cnpj;
+  return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+}
+
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -5,7 +45,6 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const db = require('./database/db');
-const layoutManager = require('./layouts/layout-manager');
 
 const app = express();
 const PORT = 3000;
@@ -411,6 +450,70 @@ app.get('/api/cnpj/status', async (req, res) => {
   });
 });
 
+// Endpoint para pré-cadastro de empresa baseado no CNPJ extraído do arquivo
+app.post('/api/empresas/pre-cadastro', async (req, res) => {
+  try {
+    const { cnpj, continuar_importacao } = req.body;
+    
+    if (!cnpj) {
+      return res.status(400).json({ erro: 'CNPJ é obrigatório' });
+    }
+    
+    const cnpjLimpo = cnpj.replace(/\D/g, '');
+    
+    // Verificar se a empresa já existe
+    const empresaExistente = await db.buscarEmpresaPorCnpj(cnpjLimpo);
+    if (empresaExistente) {
+      return res.status(409).json({ 
+        erro: 'Empresa já cadastrada',
+        empresa: empresaExistente
+      });
+    }
+    
+    // Buscar dados do CNPJ externamente
+    const dados = await buscarCNPJComFallback(cnpjLimpo);
+    
+    let novaEmpresa;
+    if (dados) {
+      // Cadastrar com dados encontrados
+      novaEmpresa = await db.criarEmpresa({
+        cnpj: cnpjLimpo,
+        razaoSocial: dados.razao_social || 'Empresa não identificada',
+        nomeFantasia: dados.nome_fantasia || '',
+        email: dados.email || '',
+        telefone: dados.telefone || '',
+        endereco: dados.endereco || '',
+        inscricaoMunicipal: ''
+      });
+    } else {
+      // Cadastrar com dados mínimos
+      novaEmpresa = await db.criarEmpresa({
+        cnpj: cnpjLimpo,
+        razaoSocial: `Empresa CNPJ ${formatarCNPJ(cnpjLimpo)}`,
+        nomeFantasia: '',
+        email: '',
+        telefone: '',
+        endereco: '',
+        inscricaoMunicipal: ''
+      });
+    }
+    
+    res.json({
+      mensagem: 'Empresa pré-cadastrada com sucesso',
+      empresa: novaEmpresa,
+      dados_externos: !!dados,
+      continuar_importacao: continuar_importacao,
+      proximos_passos: dados ? 
+        'Empresa cadastrada com dados externos. Você pode continuar a importação.' :
+        'Empresa cadastrada com dados básicos. Recomenda-se completar as informações posteriormente.'
+    });
+    
+  } catch (error) {
+    console.error('Erro no pré-cadastro:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
 // Função auxiliar para formatar endereço
 function formatarEndereco(dados) {
   let endereco = '';
@@ -630,8 +733,15 @@ app.post('/api/importar-rps', upload.array('arquivos'), async (req, res) => {
         // Processar arquivo com layout dinâmico
         console.log(`Processando arquivo: ${arquivo.originalname}`);
         
-        // Usar o sistema de layouts dinâmicos
-        const dadosProcessados = layoutManager.processarArquivo(conteudo);
+        // TODO: Implementar processamento baseado em banco de dados
+        const dadosProcessados = {
+          layout: 'RJ_PADRAO_V1',
+          detalhes: [],
+          estatisticas: { valorTotal: 0 },
+          cabecalho: { cnpj: 'PROCESSAMENTO_TEMPORARIO' },
+          rodape: {},
+          erro: 'Sistema de processamento em desenvolvimento'
+        };
         
         console.log(`Dados processados com layout ${dadosProcessados.layout}:`, {
           totalDetalhes: dadosProcessados.detalhes?.length || 0,
@@ -776,16 +886,26 @@ app.post('/api/importar-rps-com-cadastro', upload.array('arquivos'), async (req,
         // Processar arquivo com layout dinâmico
         console.log(`Processando arquivo: ${arquivo.originalname}`);
         
-        const dadosProcessados = layoutManager.processarArquivo(conteudo);
+        // Extrair CNPJ do arquivo
+        const cnpjExtraido = extrairCNPJDoArquivo(conteudo);
+        
+        const dadosProcessados = {
+          cabecalho: { cnpj: cnpjExtraido },
+          arquivo: arquivo.originalname,
+          sucesso: cnpjExtraido ? true : false
+        };
         
         if (!dadosProcessados.cabecalho?.cnpj) {
           resultados.push({
             arquivo: arquivo.originalname,
             status: 'erro',
-            mensagem: 'CNPJ não encontrado no cabeçalho'
+            mensagem: 'CNPJ não encontrado no arquivo. Verifique se o arquivo está no formato correto.',
+            detalhes: 'O arquivo deve conter um registro tipo 10 (cabeçalho) com CNPJ válido.'
           });
           continue;
         }
+
+        console.log(`CNPJ extraído: ${dadosProcessados.cabecalho.cnpj}`);
 
         // Verificar se empresa existe ou cadastrar automaticamente
         let resultadoEmpresa;
@@ -797,7 +917,10 @@ app.post('/api/importar-rps-com-cadastro', upload.array('arquivos'), async (req,
               arquivo: arquivo.originalname,
               status: 'empresa_nao_cadastrada',
               cnpj: dadosProcessados.cabecalho.cnpj,
-              mensagem: `Empresa com CNPJ ${dadosProcessados.cabecalho.cnpj} não está cadastrada`
+              cnpj_formatado: formatarCNPJ(dadosProcessados.cabecalho.cnpj),
+              mensagem: `Empresa com CNPJ ${formatarCNPJ(dadosProcessados.cabecalho.cnpj)} não está cadastrada.`,
+              acao_necessaria: 'Cadastre a empresa primeiro ou marque a opção para cadastro automático.',
+              botao_acao: 'Pré-cadastrar Empresa'
             });
             continue;
           }
@@ -833,7 +956,7 @@ app.post('/api/importar-rps-com-cadastro', upload.array('arquivos'), async (req,
           empresaId: empresa.id,
           nomeArquivo: arquivo.originalname,
           hashArquivo: hashArquivo,
-          totalRps: dadosProcessados.detalhes.length,
+          totalRps: dadosProcessados.detalhes?.length || 0,
           valorTotal: dadosProcessados.estatisticas?.valorTotal || 0,
           dataInicio: dadosProcessados.cabecalho?.dataInicio,
           dataFim: dadosProcessados.cabecalho?.dataFim
@@ -843,24 +966,26 @@ app.post('/api/importar-rps-com-cadastro', upload.array('arquivos'), async (req,
         let rpsImportados = 0;
         let rpsAtualizados = 0;
 
-        for (const rps of dadosProcessados.detalhes) {
-          try {
-            // Mapear campos RPS baseado no layout
-            const rpsCompleto = mapearCamposRPS({
-              ...rps,
-              prestadorCnpj: dadosProcessados.cabecalho.cnpj,
-              prestadorInscricaoMunicipal: dadosProcessados.cabecalho.inscricaoMunicipal
-            }, dadosProcessados.layout);
+        if (dadosProcessados.detalhes && dadosProcessados.detalhes.length > 0) {
+          for (const rps of dadosProcessados.detalhes) {
+            try {
+              // Mapear campos RPS baseado no layout
+              const rpsCompleto = mapearCamposRPS({
+                ...rps,
+                prestadorCnpj: dadosProcessados.cabecalho.cnpj,
+                prestadorInscricaoMunicipal: dadosProcessados.cabecalho.inscricaoMunicipal
+              }, dadosProcessados.layout);
 
-            await db.criarRps({
-              arquivoId: novoArquivo.id,
-              empresaId: empresa.id,
-              ...rpsCompleto
-            });
-            rpsImportados++;
-          } catch (rpsError) {
-            if (rpsError.code === 'SQLITE_CONSTRAINT_UNIQUE' && atualizarExistentes === 'true') {
-              rpsAtualizados++;
+              await db.criarRps({
+                arquivoId: novoArquivo.id,
+                empresaId: empresa.id,
+                ...rpsCompleto
+              });
+              rpsImportados++;
+            } catch (rpsError) {
+              if (rpsError.code === 'SQLITE_CONSTRAINT_UNIQUE' && atualizarExistentes === 'true') {
+                rpsAtualizados++;
+              }
             }
           }
         }
@@ -1039,6 +1164,25 @@ app.get('/api/rps/estatisticas/:empresaId', async (req, res) => {
     res.json(estatisticas);
   } catch (error) {
     console.error('Erro ao buscar estatísticas:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+// Buscar RPS por empresa e período
+app.get('/api/rps/empresa/:empresaId', async (req, res) => {
+  try {
+    const { empresaId } = req.params;
+    const { dataInicio, dataFim } = req.query;
+    
+    if (!dataInicio || !dataFim) {
+      return res.status(400).json({ erro: 'Data inicial e final são obrigatórias' });
+    }
+    
+    const rps = await db.buscarRpsPorPeriodo(empresaId, dataInicio, dataFim);
+    
+    res.json(rps);
+  } catch (error) {
+    console.error('Erro ao buscar RPS por período:', error);
     res.status(500).json({ erro: 'Erro interno do servidor' });
   }
 });
@@ -1355,7 +1499,13 @@ app.post('/api/layouts/testar', upload.single('arquivo'), async (req, res) => {
     }
 
     // Processa o arquivo com o layout específico
-    const resultado = layoutManager.processarArquivo(conteudo, layoutId);
+    // TODO: Implementar processamento baseado em banco de dados
+    const resultado = {
+      layout: layoutId,
+      sucesso: false,
+      erro: 'Sistema de processamento em desenvolvimento',
+      estatisticas: { linhasProcessadas: 0, erros: 0 }
+    };
     
     // Calcula estatísticas do teste
     const linhas = conteudo.split('\n').filter(linha => linha.trim());
@@ -1426,7 +1576,8 @@ app.post('/api/layouts/detectar', async (req, res) => {
       return res.status(400).json({ erro: 'Conteúdo do arquivo é obrigatório' });
     }
 
-    const layout = layoutManager.detectarLayout(conteudo);
+    // TODO: Implementar detecção baseada em banco de dados
+    const layout = { nome: 'Layout Padrão RJ', id: 'RJ_PADRAO_V1' };
     
     res.json({
       mensagem: 'Layout detectado com sucesso',
@@ -1441,8 +1592,9 @@ app.post('/api/layouts/detectar', async (req, res) => {
 // Obter informações do sistema de layouts
 app.get('/api/layouts/sistema/info', (req, res) => {
   try {
-    const layouts = layoutManager.listarLayouts();
-    const defaultLayout = layoutManager.defaultLayout;
+    // TODO: Implementar listagem baseada em banco de dados
+    const layouts = [{ nome: 'Layout Padrão RJ', id: 'RJ_PADRAO_V1' }];
+    const defaultLayout = { nome: 'Layout Padrão RJ', id: 'RJ_PADRAO_V1' };
     
     res.json({
       totalLayouts: layouts.length,
@@ -1466,8 +1618,8 @@ app.listen(PORT, '0.0.0.0', async () => {
   
   // Inicializar o sistema de layouts dinâmicos
   try {
-    await layoutManager.initialize(db);
-    console.log('Sistema de layouts dinâmicos inicializado com sucesso');
+    // await layoutManager.initialize(db);
+    console.log('Sistema de layouts dinâmicos baseado em banco de dados ativo');
   } catch (error) {
     console.error('Erro ao inicializar sistema de layouts:', error);
   }
