@@ -1,43 +1,3 @@
-// Função para extrair CNPJ do cabeçalho do arquivo RPS
-function extrairCNPJDoArquivo(conteudo) {
-  try {
-    const linhas = conteudo.split('\n');
-    
-    // Procurar pela linha de cabeçalho (tipo 10)
-    for (const linha of linhas) {
-      if (linha.trim().startsWith('10')) {
-        // Layout RJ: Tipo 10 - CNPJ está nas posições 7-20 (14 dígitos)
-        if (linha.length >= 20) {
-          const identificacao = linha.substring(5, 6); // Posição 6: 1=CPF, 2=CNPJ
-          if (identificacao === '2') { // É CNPJ
-            const cnpj = linha.substring(6, 20); // Posições 7-20
-            return cnpj.replace(/\D/g, ''); // Remove caracteres não numéricos
-          }
-        }
-      }
-    }
-    
-    // Se não encontrou no cabeçalho, tentar nos detalhes (tipo 20)
-    for (const linha of linhas) {
-      if (linha.trim().startsWith('20')) {
-        // Pode ter CNPJ do prestador nos registros tipo 20
-        // Isso seria em casos específicos - implementar se necessário
-      }
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Erro ao extrair CNPJ:', error);
-    return null;
-  }
-}
-
-// Função para formatar CNPJ
-function formatarCNPJ(cnpj) {
-  if (!cnpj || cnpj.length !== 14) return cnpj;
-  return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-}
-
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -45,6 +5,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const db = require('./database/db');
+const layoutManager = require('./layouts/layout-manager');
 
 const app = express();
 const PORT = 3000;
@@ -73,7 +34,7 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['.txt', '.dat', '.rps'];
+    const allowedTypes = ['.txt', '.dat', '.rps', '.json'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedTypes.includes(ext) || !path.extname(file.originalname)) {
       cb(null, true);
@@ -85,7 +46,9 @@ const upload = multer({
 
 // Função para calcular hash do arquivo
 function calcularHashArquivo(conteudo) {
-  return crypto.createHash('md5').update(conteudo).digest('hex');
+  const hash = crypto.createHash('md5').update(conteudo).digest('hex');
+  console.log(`🔐 Hash calculado: ${hash} (tamanho do conteúdo: ${conteudo.length} chars)`);
+  return hash;
 }
 
 // Rota principal
@@ -148,81 +111,6 @@ app.get('/api/tipos-registro', async (req, res) => {
   }
 });
 
-// ==================== ROTAS PARA SUBCAMPOS CONDICIONAIS ====================
-
-// Criar subcampos condicionais
-app.post('/api/subcampos', async (req, res) => {
-  try {
-    const { tipoId, campoId, condicaoValor, subcampos } = req.body;
-    
-    if (!tipoId || !campoId || !condicaoValor || !subcampos || subcampos.length === 0) {
-      return res.status(400).json({ erro: 'Dados obrigatórios: tipoId, campoId, condicaoValor, subcampos' });
-    }
-    
-    // Primeiro, obter o ID do tipo de registro pelo layout
-    const tipoRegistro = await db.buscarTiposRegistroPorLayout(tipoId);
-    if (!tipoRegistro || tipoRegistro.length === 0) {
-      return res.status(404).json({ erro: 'Tipo de registro não encontrado' });
-    }
-    
-    const tipoRegistroId = tipoRegistro[0].id;
-    
-    // Criar cada subcampo
-    const subcamposCriados = [];
-    for (const subcampo of subcampos) {
-      const subcampoCriado = await db.criarCampoCondicional(tipoRegistroId, {
-        campo_pai_ordem: campoId, // Aqui seria a ordem do campo pai
-        condicao_valor: condicaoValor,
-        subcampo_letra: subcampo.subcampo_letra,
-        nome_subcampo: subcampo.nome_subcampo,
-        posicao_inicial: subcampo.posicao_inicial,
-        posicao_final: subcampo.posicao_final,
-        tamanho: subcampo.tamanho,
-        formato: subcampo.formato,
-        obrigatorio: subcampo.obrigatorio,
-        descricao: subcampo.descricao
-      });
-      subcamposCriados.push(subcampoCriado);
-    }
-    
-    res.status(201).json({ 
-      mensagem: 'Subcampos criados com sucesso',
-      subcampos: subcamposCriados
-    });
-  } catch (error) {
-    console.error('Erro ao criar subcampos:', error);
-    res.status(500).json({ erro: 'Erro interno do servidor' });
-  }
-});
-
-// Buscar subcampos condicionais por tipo
-app.get('/api/subcampos/:tipoId', async (req, res) => {
-  try {
-    const { tipoId } = req.params;
-    const subcampos = await db.buscarCamposCondicionaisPorTipo(tipoId);
-    res.json(subcampos);
-  } catch (error) {
-    console.error('Erro ao buscar subcampos:', error);
-    res.status(500).json({ erro: 'Erro interno do servidor' });
-  }
-});
-
-// Excluir subcampos condicionais
-app.delete('/api/subcampos/:tipoId', async (req, res) => {
-  try {
-    const { tipoId } = req.params;
-    const resultado = await db.excluirCamposCondicionaisPorTipo(tipoId);
-    
-    res.json({ 
-      mensagem: 'Subcampos excluídos com sucesso',
-      changes: resultado.changes
-    });
-  } catch (error) {
-    console.error('Erro ao excluir subcampos:', error);
-    res.status(500).json({ erro: 'Erro interno do servidor' });
-  }
-});
-
 // Atualizar empresa
 app.put('/api/empresas/:id', async (req, res) => {
   try {
@@ -234,6 +122,21 @@ app.put('/api/empresas/:id', async (req, res) => {
     }
   } catch (error) {
     console.error('Erro ao atualizar empresa:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+// Buscar empresa por ID
+app.get('/api/empresas/:id', async (req, res) => {
+  try {
+    const empresa = await db.buscarEmpresaPorId(req.params.id);
+    if (empresa) {
+      res.json(empresa);
+    } else {
+      res.status(404).json({ erro: 'Empresa não encontrada' });
+    }
+  } catch (error) {
+    console.error('Erro ao buscar empresa:', error);
     res.status(500).json({ erro: 'Erro interno do servidor' });
   }
 });
@@ -450,70 +353,6 @@ app.get('/api/cnpj/status', async (req, res) => {
   });
 });
 
-// Endpoint para pré-cadastro de empresa baseado no CNPJ extraído do arquivo
-app.post('/api/empresas/pre-cadastro', async (req, res) => {
-  try {
-    const { cnpj, continuar_importacao } = req.body;
-    
-    if (!cnpj) {
-      return res.status(400).json({ erro: 'CNPJ é obrigatório' });
-    }
-    
-    const cnpjLimpo = cnpj.replace(/\D/g, '');
-    
-    // Verificar se a empresa já existe
-    const empresaExistente = await db.buscarEmpresaPorCnpj(cnpjLimpo);
-    if (empresaExistente) {
-      return res.status(409).json({ 
-        erro: 'Empresa já cadastrada',
-        empresa: empresaExistente
-      });
-    }
-    
-    // Buscar dados do CNPJ externamente
-    const dados = await buscarCNPJComFallback(cnpjLimpo);
-    
-    let novaEmpresa;
-    if (dados) {
-      // Cadastrar com dados encontrados
-      novaEmpresa = await db.criarEmpresa({
-        cnpj: cnpjLimpo,
-        razaoSocial: dados.razao_social || 'Empresa não identificada',
-        nomeFantasia: dados.nome_fantasia || '',
-        email: dados.email || '',
-        telefone: dados.telefone || '',
-        endereco: dados.endereco || '',
-        inscricaoMunicipal: ''
-      });
-    } else {
-      // Cadastrar com dados mínimos
-      novaEmpresa = await db.criarEmpresa({
-        cnpj: cnpjLimpo,
-        razaoSocial: `Empresa CNPJ ${formatarCNPJ(cnpjLimpo)}`,
-        nomeFantasia: '',
-        email: '',
-        telefone: '',
-        endereco: '',
-        inscricaoMunicipal: ''
-      });
-    }
-    
-    res.json({
-      mensagem: 'Empresa pré-cadastrada com sucesso',
-      empresa: novaEmpresa,
-      dados_externos: !!dados,
-      continuar_importacao: continuar_importacao,
-      proximos_passos: dados ? 
-        'Empresa cadastrada com dados externos. Você pode continuar a importação.' :
-        'Empresa cadastrada com dados básicos. Recomenda-se completar as informações posteriormente.'
-    });
-    
-  } catch (error) {
-    console.error('Erro no pré-cadastro:', error);
-    res.status(500).json({ erro: 'Erro interno do servidor' });
-  }
-});
-
 // Função auxiliar para formatar endereço
 function formatarEndereco(dados) {
   let endereco = '';
@@ -530,31 +369,36 @@ function formatarEndereco(dados) {
 }
 
 // Função auxiliar para buscar e cadastrar empresa automaticamente
-async function buscarECadastrarEmpresa(cnpj, perguntarAoCadastrar = false) {
+async function buscarECadastrarEmpresa(cnpj) {
+  console.log(`🏢 Iniciando busca/cadastro da empresa com CNPJ: ${cnpj}`);
+  
   try {
     // Primeiro verifica se a empresa já existe no banco
+    console.log(`🔍 Verificando se empresa já existe no banco...`);
     const empresaExistente = await db.buscarEmpresaPorCnpj(cnpj);
     if (empresaExistente) {
+      console.log(`✅ Empresa encontrada no banco:`, {
+        id: empresaExistente.id,
+        razaoSocial: empresaExistente.razao_social,
+        cnpj: empresaExistente.cnpj
+      });
       return { empresa: empresaExistente, cadastradaAutomaticamente: false };
     }
 
-    // Se perguntarAoCadastrar for true, retorna sem cadastrar
-    if (perguntarAoCadastrar) {
-      return { 
-        empresa: null, 
-        cadastradaAutomaticamente: false, 
-        precisaCadastrar: true,
-        cnpj: cnpj 
-      };
-    }
-
     // Se não existe, busca dados externos usando sistema de fallback
-    console.log(`Buscando dados da empresa CNPJ: ${cnpj}`);
+    console.log(`🌐 Empresa não existe no banco. Buscando dados externos para CNPJ: ${cnpj}`);
     const dadosExternos = await buscarCNPJComFallback(cnpj);
     
     if (!dadosExternos) {
+      console.log(`❌ Dados externos não encontrados para CNPJ: ${cnpj}`);
       throw new Error(`CNPJ ${cnpj} não encontrado em nenhuma fonte disponível`);
     }
+    
+    console.log(`✅ Dados externos encontrados:`, {
+      razaoSocial: dadosExternos.razao_social,
+      nomeFantasia: dadosExternos.nome_fantasia,
+      situacao: dadosExternos.situacao
+    });
     
     // Cadastra a empresa automaticamente
     const novaEmpresa = {
@@ -567,9 +411,15 @@ async function buscarECadastrarEmpresa(cnpj, perguntarAoCadastrar = false) {
       email: dadosExternos.email || ''
     };
 
-    console.log(`Cadastrando empresa automaticamente: ${novaEmpresa.razaoSocial}`);
+    console.log(`💾 Cadastrando empresa automaticamente:`, {
+      cnpj: novaEmpresa.cnpj,
+      razaoSocial: novaEmpresa.razaoSocial,
+      nomeFantasia: novaEmpresa.nomeFantasia
+    });
+    
     const empresaCadastrada = await db.criarEmpresa(novaEmpresa);
     
+    console.log(`✅ Empresa cadastrada com sucesso! ID: ${empresaCadastrada.id}`);
     return { empresa: empresaCadastrada, cadastradaAutomaticamente: true };
 
   } catch (error) {
@@ -578,141 +428,45 @@ async function buscarECadastrarEmpresa(cnpj, perguntarAoCadastrar = false) {
   }
 }
 
-// Função para mapear campos do RPS baseado no layout
-function mapearCamposRPS(dadosRPS, layout) {
-  const rpsBase = {
-    numeroRps: dadosRPS.numeroRps || '',
-    serieRps: dadosRPS.serieRps || '',
-    tipoRps: dadosRPS.tipoRps || '1',
-    dataEmissao: dadosRPS.dataEmissao,
-    dataCompetencia: dadosRPS.dataCompetencia || dadosRPS.dataEmissao,
-    naturezaOperacao: dadosRPS.naturezaOperacao || '',
-    regimeEspecialTributacao: dadosRPS.regimeEspecialTributacao || '',
-    optanteSimpleNacional: dadosRPS.optanteSimpleNacional || false,
-    incentivadorCultural: dadosRPS.incentivadorCultural || false,
-    status: 'normal',
-    
-    // Prestador (vem do cabeçalho)
-    prestadorCnpj: dadosRPS.prestadorCnpj || '',
-    prestadorInscricaoMunicipal: dadosRPS.prestadorInscricaoMunicipal || '',
-    
-    // Tomador
-    tomadorCnpj: dadosRPS.tomadorCnpj || '',
-    tomadorCpf: dadosRPS.tomadorCpf || '',
-    tomadorInscricaoMunicipal: dadosRPS.tomadorInscricaoMunicipal || '',
-    tomadorRazaoSocial: dadosRPS.tomadorRazaoSocial || '',
-    tomadorEndereco: dadosRPS.tomadorEndereco || '',
-    tomadorNumero: dadosRPS.tomadorNumero || '',
-    tomadorComplemento: dadosRPS.tomadorComplemento || '',
-    tomadorBairro: dadosRPS.tomadorBairro || '',
-    tomadorCep: dadosRPS.tomadorCep || '',
-    tomadorCidade: dadosRPS.tomadorCidade || '',
-    tomadorUf: dadosRPS.tomadorUf || '',
-    tomadorTelefone: dadosRPS.tomadorTelefone || '',
-    tomadorEmail: dadosRPS.tomadorEmail || '',
-    
-    // Serviços
-    codigoServico: dadosRPS.codigoServico || '',
-    codigoCnae: dadosRPS.codigoCnae || '',
-    codigoTributacaoMunicipio: dadosRPS.codigoTributacaoMunicipio || '',
-    discriminacao: dadosRPS.discriminacao || 'Serviços diversos',
-    codigoMunicipio: dadosRPS.codigoMunicipio || '',
-    
-    // Valores
-    valorServicos: parseFloat(dadosRPS.valorServicos || 0),
-    valorDeducoes: parseFloat(dadosRPS.valorDeducoes || 0),
-    valorPis: parseFloat(dadosRPS.valorPis || 0),
-    valorCofins: parseFloat(dadosRPS.valorCofins || 0),
-    valorInss: parseFloat(dadosRPS.valorInss || 0),
-    valorIr: parseFloat(dadosRPS.valorIr || 0),
-    valorCsll: parseFloat(dadosRPS.valorCsll || 0),
-    valorIss: parseFloat(dadosRPS.valorIss || 0),
-    valorOutrasRetencoes: parseFloat(dadosRPS.valorOutrasRetencoes || 0),
-    baseCalculo: parseFloat(dadosRPS.baseCalculo || dadosRPS.valorServicos || 0),
-    aliquota: parseFloat(dadosRPS.aliquota || 0),
-    valorLiquido: parseFloat(dadosRPS.valorLiquido || 0),
-    valorIssRetido: parseFloat(dadosRPS.valorIssRetido || 0),
-    
-    // Equipamento (para estacionamento)
-    tipoEquipamento: dadosRPS.tipoEquipamento || '',
-    numeroSerie: dadosRPS.numeroSerie || ''
-  };
+// ==================== ROTAS DE DASHBOARD ====================
 
-  return rpsBase;
-}
-
-// Nova rota para verificar CNPJ antes da importação
-app.post('/api/verificar-cnpj', async (req, res) => {
+// Estatísticas gerais do dashboard
+app.get('/api/dashboard/estatisticas', async (req, res) => {
+  console.log('📊 Requisição de estatísticas da dashboard recebida');
+  
   try {
-    const { cnpj } = req.body;
+    // Buscar estatísticas básicas
+    console.log('📡 Buscando empresas...');
+    const empresas = await db.listarEmpresas();
+    console.log(`✅ Empresas encontradas: ${empresas.length}`);
     
-    if (!cnpj) {
-      return res.status(400).json({ erro: 'CNPJ é obrigatório' });
-    }
-
-    const resultado = await buscarECadastrarEmpresa(cnpj, true);
+    console.log('📡 Buscando layouts...');
+    const layouts = await db.listarLayouts();
+    console.log(`✅ Layouts encontrados: ${layouts.length}`);
     
-    if (resultado.precisaCadastrar) {
-      // Buscar dados externos para preview
-      try {
-        const dadosExternos = await buscarCNPJComFallback(cnpj);
-        res.json({
-          precisaCadastrar: true,
-          cnpj: cnpj,
-          dadosEncontrados: dadosExternos || null
-        });
-      } catch (error) {
-        res.json({
-          precisaCadastrar: true,
-          cnpj: cnpj,
-          dadosEncontrados: null,
-          erro: 'CNPJ não encontrado nas bases de dados'
-        });
-      }
-    } else {
-      res.json({
-        precisaCadastrar: false,
-        empresa: resultado.empresa
-      });
-    }
-  } catch (error) {
-    console.error('Erro ao verificar CNPJ:', error);
-    res.status(500).json({ erro: 'Erro interno do servidor' });
-  }
-});
-
-// Nova rota para cadastrar empresa confirmada pelo usuário
-app.post('/api/cadastrar-empresa', async (req, res) => {
-  try {
-    const { cnpj, razaoSocial, nomeFantasia, inscricaoMunicipal, endereco, telefone, email } = req.body;
+    // Buscar estatísticas de RPS (total geral)
+    console.log('📡 Contando RPS...');
+    const totalRps = await db.contarTotalRps();
+    console.log(`✅ Total RPS: ${totalRps}`);
     
-    if (!cnpj || !razaoSocial) {
-      return res.status(400).json({ erro: 'CNPJ e Razão Social são obrigatórios' });
-    }
-
-    const novaEmpresa = {
-      cnpj: cnpj,
-      razaoSocial: razaoSocial,
-      nomeFantasia: nomeFantasia || '',
-      inscricaoMunicipal: inscricaoMunicipal || '',
-      endereco: endereco || '',
-      telefone: telefone || '',
-      email: email || ''
+    console.log('📡 Contando arquivos...');
+    const totalArquivos = await db.contarTotalArquivos();
+    console.log(`✅ Total arquivos: ${totalArquivos}`);
+    
+    const estatisticas = {
+      totalEmpresas: empresas.length,
+      totalLayouts: layouts.length,
+      totalRPS: totalRps || 0,
+      totalImportacoes: totalArquivos || 0,
+      ultimaAtualizacao: new Date().toISOString()
     };
-
-    const empresaCadastrada = await db.criarEmpresa(novaEmpresa);
     
-    res.json({
-      sucesso: true,
-      empresa: empresaCadastrada
-    });
+    console.log('📊 Estatísticas finais:', estatisticas);
+    res.json(estatisticas);
+    
   } catch (error) {
-    console.error('Erro ao cadastrar empresa:', error);
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      res.status(400).json({ erro: 'CNPJ já cadastrado' });
-    } else {
-      res.status(500).json({ erro: 'Erro interno do servidor' });
-    }
+    console.error('❌ Erro ao buscar estatísticas do dashboard:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor', detalhes: error.message });
   }
 });
 
@@ -720,30 +474,65 @@ app.post('/api/cadastrar-empresa', async (req, res) => {
 
 // Importar arquivos RPS
 app.post('/api/importar-rps', upload.array('arquivos'), async (req, res) => {
+  const inicioProcessamento = Date.now();
+  console.log('\n🔄 ===== INÍCIO DA IMPORTAÇÃO =====');
+  console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
+  console.log(`📁 Arquivos recebidos: ${req.files?.length || 0}`);
+  console.log(`⚙️ Parâmetros:`, {
+    atualizarExistentes: req.body.atualizarExistentes,
+    ignorarDuplicadas: req.body.ignorarDuplicadas,
+    empresa_id: req.body.empresa_id,
+    layout_id: req.body.layout_id
+  });
+
   try {
     const { atualizarExistentes, ignorarDuplicadas } = req.body;
     const arquivos = req.files;
     const resultados = [];
 
-    for (const arquivo of arquivos) {
+    if (!arquivos || arquivos.length === 0) {
+      console.log('❌ Erro: Nenhum arquivo foi enviado');
+      return res.status(400).json({ erro: 'Nenhum arquivo foi enviado' });
+    }
+
+    for (const [index, arquivo] of arquivos.entries()) {
+      console.log(`\n📄 ===== PROCESSANDO ARQUIVO ${index + 1}/${arquivos.length} =====`);
+      console.log(`📝 Nome: ${arquivo.originalname}`);
+      console.log(`📏 Tamanho: ${(arquivo.size / 1024).toFixed(2)} KB`);
+      console.log(`📂 Caminho temporário: ${arquivo.path}`);
+
       try {
         const conteudo = fs.readFileSync(arquivo.path, 'utf-8');
-        const hashArquivo = calcularHashArquivo(conteudo);
+        const linhas = conteudo.split('\n').filter(l => l.trim());
+        console.log(`📊 Total de linhas: ${linhas.length}`);
+        
+        // Não calcular hash - permitir reimportação
+        console.log(`✅ Reimportação permitida - não verificando duplicatas de arquivo`);
+        
+        // Debug: Listar últimos arquivos no banco
+        try {
+          const arquivosExistentes = await new Promise((resolve, reject) => {
+            db.db.all('SELECT id, nome_arquivo, data_criacao FROM arquivos_rps ORDER BY data_criacao DESC LIMIT 3', (err, rows) => {
+              if (err) reject(err);
+              else resolve(rows || []);
+            });
+          });
+          console.log(`📋 Últimos 3 arquivos no banco:`, arquivosExistentes.map(a => ({
+            id: a.id,
+            nome: a.nome_arquivo,
+            data: a.data_criacao
+          })));
+        } catch (debugError) {
+          console.log(`⚠️ Erro ao listar arquivos para debug: ${debugError.message}`);
+        }
         
         // Processar arquivo com layout dinâmico
-        console.log(`Processando arquivo: ${arquivo.originalname}`);
+        console.log(`🔄 Iniciando processamento com layout manager...`);
         
-        // TODO: Implementar processamento baseado em banco de dados
-        const dadosProcessados = {
-          layout: 'RJ_PADRAO_V1',
-          detalhes: [],
-          estatisticas: { valorTotal: 0 },
-          cabecalho: { cnpj: 'PROCESSAMENTO_TEMPORARIO' },
-          rodape: {},
-          erro: 'Sistema de processamento em desenvolvimento'
-        };
+        const dadosProcessados = layoutManager.processarArquivo(conteudo);
         
-        console.log(`Dados processados com layout ${dadosProcessados.layout}:`, {
+        console.log(`✅ Layout detectado: ${dadosProcessados.layout}`);
+        console.log(`📈 Estatísticas do processamento:`, {
           totalDetalhes: dadosProcessados.detalhes?.length || 0,
           valorTotalEstatisticas: dadosProcessados.estatisticas?.valorTotal || 0,
           temCabecalho: !!dadosProcessados.cabecalho,
@@ -752,6 +541,7 @@ app.post('/api/importar-rps', upload.array('arquivos'), async (req, res) => {
         });
         
         if (!dadosProcessados.cabecalho?.cnpj) {
+          console.log('❌ Erro: CNPJ não encontrado no cabeçalho');
           resultados.push({
             arquivo: arquivo.originalname,
             status: 'erro',
@@ -760,176 +550,18 @@ app.post('/api/importar-rps', upload.array('arquivos'), async (req, res) => {
           continue;
         }
 
-        // Verificar se empresa existe
+        // Verificar se empresa existe ou criar automaticamente
+        console.log(`🏢 Buscando empresa com CNPJ: ${dadosProcessados.cabecalho.cnpj}`);
         let resultadoEmpresa;
         try {
-          resultadoEmpresa = await buscarECadastrarEmpresa(dadosProcessados.cabecalho.cnpj, true);
-          
-          // Se precisa cadastrar, retorna erro pedindo confirmação
-          if (resultadoEmpresa.precisaCadastrar) {
-            const dadosExternos = await buscarCNPJComFallback(dadosProcessados.cabecalho.cnpj).catch(() => null);
-            resultados.push({
-              arquivo: arquivo.originalname,
-              status: 'empresa_nao_cadastrada',
-              cnpj: dadosProcessados.cabecalho.cnpj,
-              dadosEmpresa: dadosExternos,
-              mensagem: `Empresa com CNPJ ${dadosProcessados.cabecalho.cnpj} não está cadastrada. Deseja cadastrar automaticamente?`
-            });
-            continue;
-          }
+          resultadoEmpresa = await buscarECadastrarEmpresa(dadosProcessados.cabecalho.cnpj);
+          console.log(`✅ Empresa encontrada/criada:`, {
+            id: resultadoEmpresa.empresa.id,
+            razaoSocial: resultadoEmpresa.empresa.razao_social,
+            cadastradaAutomaticamente: resultadoEmpresa.cadastradaAutomaticamente
+          });
         } catch (error) {
-          resultados.push({
-            arquivo: arquivo.originalname,
-            status: 'erro',
-            mensagem: `Erro ao verificar empresa: ${error.message}`
-          });
-          continue;
-        }
-
-        const empresa = resultadoEmpresa.empresa;
-
-        // Verificar se arquivo já foi importado
-        const arquivoExistente = await db.verificarArquivoExiste(hashArquivo);
-        if (arquivoExistente && ignorarDuplicadas === 'true') {
-          resultados.push({
-            arquivo: arquivo.originalname,
-            status: 'ignorado',
-            mensagem: 'Arquivo já importado anteriormente'
-          });
-          continue;
-        }
-
-        // Criar registro do arquivo
-        console.log(`Criando registro do arquivo com valorTotal: ${dadosProcessados.estatisticas?.valorTotal || 0}`);
-        const novoArquivo = await db.criarArquivo({
-          empresaId: empresa.id,
-          nomeArquivo: arquivo.originalname,
-          hashArquivo: hashArquivo,
-          totalRps: dadosProcessados.detalhes.length,
-          valorTotal: dadosProcessados.estatisticas?.valorTotal || 0,
-          dataInicio: dadosProcessados.cabecalho?.dataInicio,
-          dataFim: dadosProcessados.cabecalho?.dataFim
-        });
-
-        // Importar RPS
-        let rpsImportados = 0;
-        let rpsAtualizados = 0;
-
-        for (const rps of dadosProcessados.detalhes) {
-          try {
-            // Mapear campos RPS baseado no layout
-            const rpsCompleto = mapearCamposRPS({
-              ...rps,
-              prestadorCnpj: dadosProcessados.cabecalho.cnpj,
-              prestadorInscricaoMunicipal: dadosProcessados.cabecalho.inscricaoMunicipal
-            }, dadosProcessados.layout);
-
-            await db.criarRps({
-              arquivoId: novoArquivo.id,
-              empresaId: empresa.id,
-              ...rpsCompleto
-            });
-            rpsImportados++;
-          } catch (rpsError) {
-            if (rpsError.code === 'SQLITE_CONSTRAINT_UNIQUE' && atualizarExistentes === 'true') {
-              // Atualizar RPS existente
-              rpsAtualizados++;
-            }
-          }
-        }
-
-        resultados.push({
-          arquivo: arquivo.originalname,
-          status: 'sucesso',
-          empresa: empresa.razao_social,
-          empresaCadastradaAutomaticamente: resultadoEmpresa.cadastradaAutomaticamente,
-          rpsImportados,
-          rpsAtualizados,
-          valorTotal: ((dadosProcessados.resumo?.valorTotal || 0) / 100).toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-          })
-        });
-
-      } catch (arquivoError) {
-        console.error(`Erro ao processar arquivo ${arquivo.originalname}:`, arquivoError);
-        resultados.push({
-          arquivo: arquivo.originalname,
-          status: 'erro',
-          mensagem: arquivoError.message
-        });
-      }
-
-      // Limpar arquivo temporário
-      fs.unlinkSync(arquivo.path);
-    }
-
-    res.json({ resultados });
-  } catch (error) {
-    console.error('Erro na importação:', error);
-    res.status(500).json({ erro: 'Erro interno do servidor' });
-  }
-});
-
-// Nova rota para importação com cadastro automático de empresa
-app.post('/api/importar-rps-com-cadastro', upload.array('arquivos'), async (req, res) => {
-  try {
-    const { atualizarExistentes, ignorarDuplicadas, cadastrarEmpresas } = req.body;
-    const arquivos = req.files;
-    const resultados = [];
-
-    for (const arquivo of arquivos) {
-      try {
-        const conteudo = fs.readFileSync(arquivo.path, 'utf-8');
-        const hashArquivo = calcularHashArquivo(conteudo);
-        
-        // Processar arquivo com layout dinâmico
-        console.log(`Processando arquivo: ${arquivo.originalname}`);
-        
-        // Extrair CNPJ do arquivo
-        const cnpjExtraido = extrairCNPJDoArquivo(conteudo);
-        
-        const dadosProcessados = {
-          cabecalho: { cnpj: cnpjExtraido },
-          arquivo: arquivo.originalname,
-          sucesso: cnpjExtraido ? true : false
-        };
-        
-        if (!dadosProcessados.cabecalho?.cnpj) {
-          resultados.push({
-            arquivo: arquivo.originalname,
-            status: 'erro',
-            mensagem: 'CNPJ não encontrado no arquivo. Verifique se o arquivo está no formato correto.',
-            detalhes: 'O arquivo deve conter um registro tipo 10 (cabeçalho) com CNPJ válido.'
-          });
-          continue;
-        }
-
-        console.log(`CNPJ extraído: ${dadosProcessados.cabecalho.cnpj}`);
-
-        // Verificar se empresa existe ou cadastrar automaticamente
-        let resultadoEmpresa;
-        try {
-          resultadoEmpresa = await buscarECadastrarEmpresa(dadosProcessados.cabecalho.cnpj, !cadastrarEmpresas);
-          
-          if (resultadoEmpresa.precisaCadastrar && !cadastrarEmpresas) {
-            resultados.push({
-              arquivo: arquivo.originalname,
-              status: 'empresa_nao_cadastrada',
-              cnpj: dadosProcessados.cabecalho.cnpj,
-              cnpj_formatado: formatarCNPJ(dadosProcessados.cabecalho.cnpj),
-              mensagem: `Empresa com CNPJ ${formatarCNPJ(dadosProcessados.cabecalho.cnpj)} não está cadastrada.`,
-              acao_necessaria: 'Cadastre a empresa primeiro ou marque a opção para cadastro automático.',
-              botao_acao: 'Pré-cadastrar Empresa'
-            });
-            continue;
-          }
-          
-          if (resultadoEmpresa.precisaCadastrar && cadastrarEmpresas) {
-            // Cadastrar automaticamente
-            resultadoEmpresa = await buscarECadastrarEmpresa(dadosProcessados.cabecalho.cnpj, false);
-          }
-        } catch (error) {
+          console.log(`❌ Erro ao buscar/cadastrar empresa: ${error.message}`);
           resultados.push({
             arquivo: arquivo.originalname,
             status: 'erro',
@@ -940,55 +572,88 @@ app.post('/api/importar-rps-com-cadastro', upload.array('arquivos'), async (req,
 
         const empresa = resultadoEmpresa.empresa;
 
-        // Verificar se arquivo já foi importado
-        const arquivoExistente = await db.verificarArquivoExiste(hashArquivo);
-        if (arquivoExistente && ignorarDuplicadas === 'true') {
-          resultados.push({
-            arquivo: arquivo.originalname,
-            status: 'ignorado',
-            mensagem: 'Arquivo já importado anteriormente'
+        // Criar registro do arquivo (sem verificação de duplicata)
+        console.log(`💾 Criando registro do arquivo no banco de dados...`);
+        const valorTotal = dadosProcessados.estatisticas?.valorTotal || 0;
+        console.log(`💰 Valor total calculado: R$ ${(valorTotal / 100).toFixed(2)}`);
+        
+        let novoArquivo;
+        try {
+          // Gerar timestamp único para diferenciar importações
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const nomeUnico = `${timestamp}_${arquivo.originalname}`;
+          
+          novoArquivo = await db.criarArquivo({
+            empresaId: empresa.id,
+            nomeArquivo: nomeUnico,
+            hashArquivo: `${Date.now()}_${Math.random()}`, // Hash único por importação
+            totalRps: dadosProcessados.detalhes.length,
+            valorTotal: valorTotal,
+            dataInicio: dadosProcessados.cabecalho?.dataInicio,
+            dataFim: dadosProcessados.cabecalho?.dataFim
           });
-          continue;
+          console.log(`✅ Arquivo criado no banco com ID: ${novoArquivo.id}`);
+        } catch (dbError) {
+          console.log(`❌ Erro ao criar arquivo no banco:`, dbError);
+          throw dbError;
         }
 
-        // Criar registro do arquivo
-        const novoArquivo = await db.criarArquivo({
-          empresaId: empresa.id,
-          nomeArquivo: arquivo.originalname,
-          hashArquivo: hashArquivo,
-          totalRps: dadosProcessados.detalhes?.length || 0,
-          valorTotal: dadosProcessados.estatisticas?.valorTotal || 0,
-          dataInicio: dadosProcessados.cabecalho?.dataInicio,
-          dataFim: dadosProcessados.cabecalho?.dataFim
+        // Importar apenas registros de dados (tipos 20, 30, 40)
+        // Ignorar cabeçalho (10) e rodapé (90)
+        const registrosDados = dadosProcessados.detalhes.filter(rps => {
+          const tipo = rps.tipoRegistro || '20'; // Default para tipo 20 se não especificado
+          return ['20', '30', '40'].includes(tipo);
         });
-
-        // Importar RPS
+        
+        console.log(`🔄 Iniciando importação de ${registrosDados.length} registros de dados (tipos 20, 30, 40)...`);
+        console.log(`📊 Total original: ${dadosProcessados.detalhes.length}, Filtrados para dados: ${registrosDados.length}`);
+        
         let rpsImportados = 0;
         let rpsAtualizados = 0;
+        let rpsComErro = 0;
 
-        if (dadosProcessados.detalhes && dadosProcessados.detalhes.length > 0) {
-          for (const rps of dadosProcessados.detalhes) {
-            try {
-              // Mapear campos RPS baseado no layout
-              const rpsCompleto = mapearCamposRPS({
-                ...rps,
-                prestadorCnpj: dadosProcessados.cabecalho.cnpj,
-                prestadorInscricaoMunicipal: dadosProcessados.cabecalho.inscricaoMunicipal
-              }, dadosProcessados.layout);
-
-              await db.criarRps({
-                arquivoId: novoArquivo.id,
-                empresaId: empresa.id,
-                ...rpsCompleto
-              });
-              rpsImportados++;
-            } catch (rpsError) {
-              if (rpsError.code === 'SQLITE_CONSTRAINT_UNIQUE' && atualizarExistentes === 'true') {
-                rpsAtualizados++;
-              }
+        for (const [rpsIndex, rps] of registrosDados.entries()) {
+          try {
+            await db.criarRps({
+              arquivoId: novoArquivo.id,
+              empresaId: empresa.id,
+              numeroRps: rps.numeroRps,
+              serieRps: rps.serieRps || '',
+              tipoRps: rps.tipoRps || '1',
+              dataEmissao: rps.dataEmissao,
+              dataCompetencia: rps.dataCompetencia || rps.dataEmissao,
+              prestadorCnpj: dadosProcessados.cabecalho.cnpj,
+              prestadorInscricaoMunicipal: dadosProcessados.cabecalho.inscricaoMunicipal,
+              discriminacao: rps.discriminacao || 'Serviços diversos',
+              valorServicos: rps.valorServicos || 0,
+              valorIss: rps.valorIss || 0,
+              baseCalculo: rps.baseCalculo || rps.valorServicos || 0,
+              aliquota: rps.aliquota || 0,
+              tipoEquipamento: rps.tipoEquipamento,
+              numeroSerie: rps.numeroSerie
+            });
+            rpsImportados++;
+            
+            if ((rpsIndex + 1) % 50 === 0) {
+              console.log(`📊 Progresso: ${rpsIndex + 1}/${registrosDados.length} RPS processados`);
+            }
+          } catch (rpsError) {
+            if (rpsError.code === 'SQLITE_CONSTRAINT_UNIQUE' && atualizarExistentes === 'true') {
+              console.log(`🔄 RPS ${rps.numeroRps} já existe, atualizando...`);
+              rpsAtualizados++;
+            } else {
+              console.log(`❌ Erro ao importar RPS ${rps.numeroRps}: ${rpsError.message}`);
+              rpsComErro++;
             }
           }
         }
+
+        console.log(`✅ Importação do arquivo concluída:`, {
+          rpsImportados,
+          rpsAtualizados,
+          rpsComErro,
+          valorTotal: `R$ ${((dadosProcessados.estatisticas?.valorTotal || 0) / 100).toFixed(2)}`
+        });
 
         resultados.push({
           arquivo: arquivo.originalname,
@@ -997,6 +662,7 @@ app.post('/api/importar-rps-com-cadastro', upload.array('arquivos'), async (req,
           empresaCadastradaAutomaticamente: resultadoEmpresa.cadastradaAutomaticamente,
           rpsImportados,
           rpsAtualizados,
+          rpsComErro,
           valorTotal: ((dadosProcessados.estatisticas?.valorTotal || 0) / 100).toLocaleString('pt-BR', {
             style: 'currency',
             currency: 'BRL'
@@ -1004,22 +670,103 @@ app.post('/api/importar-rps-com-cadastro', upload.array('arquivos'), async (req,
         });
 
       } catch (arquivoError) {
-        console.error(`Erro ao processar arquivo ${arquivo.originalname}:`, arquivoError);
+        console.log(`❌ Erro crítico ao processar arquivo ${arquivo.originalname}:`, arquivoError);
+        console.log(`📋 Stack trace:`, arquivoError.stack);
         resultados.push({
           arquivo: arquivo.originalname,
           status: 'erro',
           mensagem: arquivoError.message
         });
+      } finally {
+        // Limpar arquivo temporário
+        try {
+          if (fs.existsSync(arquivo.path)) {
+            fs.unlinkSync(arquivo.path);
+            console.log(`🗑️ Arquivo temporário removido: ${arquivo.path}`);
+          }
+        } catch (cleanupError) {
+          console.log(`⚠️ Erro ao remover arquivo temporário: ${cleanupError.message}`);
+        }
       }
-
-      // Limpar arquivo temporário
-      fs.unlinkSync(arquivo.path);
     }
 
-    res.json({ resultados });
+    // Calcular estatísticas consolidadas
+    const totalProcessados = resultados.length;
+    const importados = resultados.reduce((sum, r) => sum + (r.rpsImportados || 0), 0);
+    const atualizados = resultados.reduce((sum, r) => sum + (r.rpsAtualizados || 0), 0);
+    const erros = resultados.filter(r => r.status === 'erro').length;
+    const tempoProcessamento = Date.now() - inicioProcessamento;
+
+    console.log(`\n🎉 ===== IMPORTAÇÃO CONCLUÍDA =====`);
+    console.log(`⏱️ Tempo total: ${tempoProcessamento}ms (${(tempoProcessamento / 1000).toFixed(2)}s)`);
+    console.log(`📊 Estatísticas finais:`, {
+      totalProcessados,
+      importados,
+      atualizados,
+      erros,
+      taxaSucesso: `${((totalProcessados - erros) / totalProcessados * 100).toFixed(1)}%`
+    });
+
+    const resposta = {
+      totalProcessados,
+      importados,
+      atualizados,
+      erros,
+      tempo: `${(tempoProcessamento / 1000).toFixed(2)}s`,
+      detalhes: resultados.map(r => {
+        let observacoes = '';
+        
+        if (r.status === 'erro') {
+          observacoes = `❌ Erro: ${r.mensagem}`;
+        } else if (r.status === 'ignorado') {
+          observacoes = `⏭️ ${r.mensagem}`;
+        } else {
+          // Status de sucesso
+          const totalRegistros = (r.rpsImportados || 0) + (r.rpsAtualizados || 0);
+          
+          if (totalRegistros === 0) {
+            observacoes = `✅ Arquivo processado com sucesso, mas nenhum registro novo foi importado (possíveis duplicatas)`;
+          } else {
+            let partes = [];
+            if (r.rpsImportados > 0) {
+              partes.push(`${r.rpsImportados} novo${r.rpsImportados !== 1 ? 's' : ''} registro${r.rpsImportados !== 1 ? 's' : ''}`);
+            }
+            if (r.rpsAtualizados > 0) {
+              partes.push(`${r.rpsAtualizados} atualizado${r.rpsAtualizados !== 1 ? 's' : ''}`);
+            }
+            
+            observacoes = `✅ Importação concluída: ${partes.join(' e ')}`;
+            
+            // Adicionar informação sobre valor total se disponível
+            if (r.valorTotal && r.valorTotal !== 'R$ 0,00') {
+              observacoes += ` • Valor total: ${r.valorTotal}`;
+            }
+            
+            // Adicionar informação sobre empresa se foi cadastrada automaticamente
+            if (r.empresaCadastradaAutomaticamente) {
+              observacoes += ` • Empresa "${r.empresa}" cadastrada automaticamente`;
+            }
+          }
+        }
+        
+        return {
+          arquivo: r.arquivo,
+          sucesso: r.status === 'sucesso',
+          registros: (r.rpsImportados || 0) + (r.rpsAtualizados || 0),
+          observacoes: observacoes
+        };
+      })
+    };
+
+    console.log(`📤 Enviando resposta para o cliente...`);
+    res.json(resposta);
   } catch (error) {
-    console.error('Erro na importação:', error);
-    res.status(500).json({ erro: 'Erro interno do servidor' });
+    const tempoProcessamento = Date.now() - inicioProcessamento;
+    console.log(`\n💥 ===== ERRO CRÍTICO NA IMPORTAÇÃO =====`);
+    console.log(`⏱️ Tempo até erro: ${tempoProcessamento}ms`);
+    console.log(`❌ Erro:`, error.message);
+    console.log(`📋 Stack trace:`, error.stack);
+    res.status(500).json({ erro: 'Erro interno do servidor', detalhes: error.message });
   }
 });
 
@@ -1057,24 +804,79 @@ app.get('/api/rps', async (req, res) => {
 // Atualizar RPS em massa
 app.put('/api/rps/massa', async (req, res) => {
   try {
-    const { ids, dadosAtualizacao } = req.body;
+    const { ids, dados } = req.body;
+    
+    console.log('📝 Edição em massa recebida:', { ids: ids?.length, dados });
     
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ erro: 'IDs são obrigatórios' });
     }
+    
+    if (!dados || Object.keys(dados).length === 0) {
+      return res.status(400).json({ erro: 'Dados para atualização são obrigatórios' });
+    }
+
+    // Extrair flag de recálculo dos dados
+    const recalcularLiquido = dados.recalcular_liquido;
+    
+    // Remover a flag dos dados que serão salvos no banco
+    const dadosParaAtualizar = { ...dados };
+    delete dadosParaAtualizar.recalcular_liquido;
 
     let totalAtualizados = 0;
+    
     for (const id of ids) {
-      const resultado = await db.atualizarRps(id, dadosAtualizacao);
+      let dadosFinais = { ...dadosParaAtualizar };
+      
+      // Se solicitado recálculo do valor líquido
+      if (recalcularLiquido) {
+        // Buscar dados atuais do RPS
+        const rpsAtual = await db.buscarRpsPorId(id);
+        if (rpsAtual) {
+          const valorServicos = dadosFinais.valor_servicos ? parseFloat(dadosFinais.valor_servicos) : (rpsAtual.valor_servicos ?? 0);
+          const valorDeducoes = dadosFinais.valor_deducoes ? parseFloat(dadosFinais.valor_deducoes) : (rpsAtual.valor_deducoes ?? 0);
+          const valorPis = dadosFinais.valor_pis ? parseFloat(dadosFinais.valor_pis) : (rpsAtual.valor_pis ?? 0);
+          const valorCofins = dadosFinais.valor_cofins ? parseFloat(dadosFinais.valor_cofins) : (rpsAtual.valor_cofins ?? 0);
+          const valorInss = dadosFinais.valor_inss ? parseFloat(dadosFinais.valor_inss) : (rpsAtual.valor_inss ?? 0);
+          const valorIr = dadosFinais.valor_ir ? parseFloat(dadosFinais.valor_ir) : (rpsAtual.valor_ir ?? 0);
+          const valorCsll = dadosFinais.valor_csll ? parseFloat(dadosFinais.valor_csll) : (rpsAtual.valor_csll ?? 0);
+          const valorIss = dadosFinais.valor_iss ? parseFloat(dadosFinais.valor_iss) : (rpsAtual.valor_iss ?? 0);
+          const valorOutrasRetencoes = dadosFinais.valor_outras_retencoes ? parseFloat(dadosFinais.valor_outras_retencoes) : (rpsAtual.valor_outras_retencoes ?? 0);
+          
+          const totalRetencoes = valorPis + valorCofins + valorInss + valorIr + valorCsll + valorIss + valorOutrasRetencoes;
+          const valorLiquido = valorServicos - valorDeducoes - totalRetencoes;
+          
+          dadosFinais.valor_liquido = valorLiquido;
+          dadosFinais.base_calculo = valorServicos - valorDeducoes;
+          
+          console.log(`💰 RPS ${id} - Valor líquido recalculado: R$ ${valorLiquido.toFixed(2)}`);
+        }
+      }
+      
+      // Remover campos vazios antes de atualizar
+      const dadosLimpos = {};
+      for (const [key, value] of Object.entries(dadosFinais)) {
+        if (value !== '' && value !== null && value !== undefined) {
+          dadosLimpos[key] = value;
+        }
+      }
+      
+      const resultado = await db.atualizarRps(id, dadosLimpos);
       totalAtualizados += resultado.changes;
+      
+      console.log(`✅ RPS ${id} atualizado - ${resultado.changes} registros afetados`);
     }
+
+    console.log(`🎉 Edição em massa concluída: ${totalAtualizados} registros atualizados`);
 
     res.json({ 
       mensagem: `${totalAtualizados} RPS atualizados com sucesso`,
-      totalAtualizados 
+      atualizados: totalAtualizados,
+      registrosAfetados: totalAtualizados,
+      recalculoAplicado: recalcularLiquido
     });
   } catch (error) {
-    console.error('Erro ao atualizar RPS em massa:', error);
+    console.error('❌ Erro ao atualizar RPS em massa:', error);
     res.status(500).json({ erro: 'Erro interno do servidor' });
   }
 });
@@ -1187,6 +989,170 @@ app.get('/api/rps/empresa/:empresaId', async (req, res) => {
   }
 });
 
+// Buscar todos os RPS de uma empresa (sem filtro de período)
+app.get('/api/rps/empresa/:empresaId/todos', async (req, res) => {
+  try {
+    const { empresaId } = req.params;
+    const { status } = req.query;
+    
+    // Construir query para buscar todos os RPS da empresa
+    let query = `
+      SELECT 
+        r.id,
+        r.numero_rps,
+        r.serie_rps,
+        r.data_emissao,
+        r.tomador_razao_social,
+        r.discriminacao,
+        r.valor_servicos,
+        r.valor_iss,
+        r.valor_liquido,
+        r.status,
+        a.nome_arquivo
+      FROM rps r
+      LEFT JOIN arquivos_rps a ON r.arquivo_id = a.id
+      WHERE r.empresa_id = ?
+    `;
+    
+    let params = [empresaId];
+    
+    // Filtro opcional por status
+    if (status) {
+      query += ' AND r.status = ?';
+      params.push(status);
+    }
+    
+    // Ordenar por data de emissão (mais recentes primeiro)
+    query += ' ORDER BY r.data_emissao DESC, r.id DESC';
+    
+    const rps = await new Promise((resolve, reject) => {
+      db.db.all(query, params, (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows || []);
+        }
+      });
+    });
+    
+    res.json(rps);
+  } catch (error) {
+    console.error('Erro ao buscar todos os RPS da empresa:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor', detalhes: error.message });
+  }
+});
+
+// Debug: Listar todos os RPS (temporário)
+app.get('/api/rps/debug/todos', async (req, res) => {
+  try {
+    const rps = await db.listarTodosRps();
+    res.json(rps);
+  } catch (error) {
+    console.error('Erro ao buscar todos os RPS:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+// Debug: Atualizar empresa_id dos RPS (temporário)
+app.put('/api/rps/debug/atualizar-empresa/:novaEmpresaId', async (req, res) => {
+  try {
+    const { novaEmpresaId } = req.params;
+    const { empresaIdAtual } = req.query;
+    
+    if (!novaEmpresaId) {
+      return res.status(400).json({ erro: 'ID da nova empresa é obrigatório' });
+    }
+    
+    // Query para atualizar os RPS
+    const query = empresaIdAtual 
+      ? `UPDATE rps SET empresa_id = ? WHERE empresa_id = ?`
+      : `UPDATE rps SET empresa_id = ?`;
+    
+    const params = empresaIdAtual 
+      ? [novaEmpresaId, empresaIdAtual]
+      : [novaEmpresaId];
+    
+    const result = await new Promise((resolve, reject) => {
+      db.db.run(query, params, function(err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve({ changes: this.changes });
+        }
+      });
+    });
+    
+    res.json({ 
+      sucesso: true, 
+      mensagem: `${result.changes} RPS atualizados para empresa_id ${novaEmpresaId}`,
+      registrosAtualizados: result.changes
+    });
+    
+  } catch (error) {
+    console.error('Erro ao atualizar empresa_id dos RPS:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+// Debug: Excluir todos os RPS (operação crítica - usar com cuidado)
+app.delete('/api/rps/debug/excluir-todos', async (req, res) => {
+  try {
+    const { confirmacao } = req.query;
+    
+    // Verificação de segurança - requer confirmação explícita
+    if (confirmacao !== 'CONFIRMO_EXCLUSAO_TODOS_RPS') {
+      return res.status(400).json({ 
+        erro: 'Confirmação obrigatória', 
+        mensagem: 'Para excluir todos os RPS, adicione o parâmetro ?confirmacao=CONFIRMO_EXCLUSAO_TODOS_RPS'
+      });
+    }
+    
+    // Primeiro, contar quantos RPS existem
+    const totalAntes = await new Promise((resolve, reject) => {
+      db.db.get('SELECT COUNT(*) as total FROM rps', (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row.total);
+        }
+      });
+    });
+    
+    // Executar a exclusão
+    const result = await new Promise((resolve, reject) => {
+      db.db.run('DELETE FROM rps', function(err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve({ changes: this.changes });
+        }
+      });
+    });
+    
+    // Resetar o auto-increment (opcional)
+    await new Promise((resolve, reject) => {
+      db.db.run('DELETE FROM sqlite_sequence WHERE name="rps"', function(err) {
+        if (err) {
+          console.warn('Aviso: não foi possível resetar o auto-increment:', err);
+        }
+        resolve();
+      });
+    });
+    
+    res.json({ 
+      sucesso: true, 
+      mensagem: `Todos os RPS foram excluídos com sucesso`,
+      totalExcluidos: result.changes,
+      totalAnterior: totalAntes,
+      timestampExclusao: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Erro ao excluir todos os RPS:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor', detalhes: error.message });
+  }
+});
+
 // Criar novo RPS
 app.post('/api/rps', async (req, res) => {
   try {
@@ -1220,10 +1186,10 @@ app.post('/api/rps', async (req, res) => {
 // Listar layouts
 app.get('/api/layouts', async (req, res) => {
   try {
-    // Busca apenas layouts do banco de dados (sem layouts dinâmicos)
+    // Layouts do banco de dados
     const layoutsBD = await db.listarLayouts();
     
-    // Adiciona informação de origem
+    // Por enquanto, retorna apenas layouts do banco (layoutManager desabilitado temporariamente)
     const layoutsCompletos = layoutsBD.map(layout => ({ ...layout, origem: 'banco' }));
     
     res.json(layoutsCompletos);
@@ -1238,8 +1204,16 @@ app.get('/api/layouts/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Buscar diretamente no banco de dados
-    const layout = await db.buscarLayoutPorId(id);
+    // Primeiro tenta buscar no sistema dinâmico
+    let layout = layoutManager.obterLayout(id);
+    
+    if (layout) {
+      res.json({ ...layout, origem: 'dinamico' });
+      return;
+    }
+    
+    // Se não encontrar, busca no banco de dados
+    layout = await db.buscarLayoutPorId(id);
     
     if (!layout) {
       return res.status(404).json({ erro: 'Layout não encontrado' });
@@ -1269,15 +1243,23 @@ app.post('/api/layouts', async (req, res) => {
   try {
     const { layout_id, nome, descricao, versao, status, tipos_registro } = req.body;
     
+    console.log('POST /api/layouts - Dados recebidos:');
+    console.log('  layout_id:', layout_id);
+    console.log('  nome:', nome);
+    console.log('  tipos_registro:', tipos_registro?.length || 0);
+    
     // Validações básicas
     if (!layout_id || !nome) {
+      console.log('Erro: Campos obrigatórios não preenchidos');
       return res.status(400).json({ erro: 'Campos obrigatórios: layout_id, nome' });
     }
 
     if (!tipos_registro || tipos_registro.length === 0) {
+      console.log('Erro: Nenhum tipo de registro definido');
       return res.status(400).json({ erro: 'Pelo menos um tipo de registro deve ser definido' });
     }
 
+    console.log('Criando layout no banco...');
     // Criar o layout
     const novoLayout = await db.criarLayoutNovoSistema({
       layout_id,
@@ -1286,10 +1268,16 @@ app.post('/api/layouts', async (req, res) => {
       versao: versao || '1.0',
       status: status || 'ativo'
     });
+    
+    console.log('Layout criado com ID:', novoLayout.id);
+    console.log('Criando tipos de registro...');
 
     // Criar os tipos de registro
-    for (const tipo of tipos_registro) {
+    for (const [index, tipo] of tipos_registro.entries()) {
+      console.log(`Criando tipo ${index + 1}:`, tipo.codigo_tipo, '-', tipo.nome_tipo);
+      
       if (!tipo.codigo_tipo || !tipo.nome_tipo) {
+        console.log('Erro: Tipo sem código ou nome');
         return res.status(400).json({ erro: 'Cada tipo de registro deve ter código e nome' });
       }
 
@@ -1301,8 +1289,10 @@ app.post('/api/layouts', async (req, res) => {
         obrigatorio: tipo.obrigatorio !== false,
         ordem: tipo.ordem || 0
       });
+      console.log(`Tipo ${index + 1} criado com sucesso`);
     }
     
+    console.log('Layout completo criado com sucesso!');
     res.status(201).json({ 
       mensagem: 'Layout criado com sucesso',
       layout: novoLayout
@@ -1323,8 +1313,12 @@ app.put('/api/layouts/:id', async (req, res) => {
     const { id } = req.params;
     const { layout_id, nome, descricao, versao, status, tipos_registro } = req.body;
     
+    console.log('PUT /api/layouts/:id - ID:', id);
+    console.log('Dados recebidos:', { layout_id, nome, descricao, versao, status, tipos_registro: tipos_registro?.length || 0 });
+    
     // Validações básicas
     if (!layout_id || !nome) {
+      console.log('Erro de validação: campos obrigatórios não preenchidos');
       return res.status(400).json({ erro: 'Campos obrigatórios: layout_id, nome' });
     }
 
@@ -1343,11 +1337,15 @@ app.put('/api/layouts/:id', async (req, res) => {
 
     // Se tipos_registro foram fornecidos, atualizar
     if (tipos_registro && Array.isArray(tipos_registro)) {
+      console.log('Processando', tipos_registro.length, 'tipos de registro');
+      
       // Remover tipos existentes
+      console.log('Removendo tipos existentes do layout', id);
       await db.excluirTiposRegistroPorLayout(id);
 
       // Adicionar novos tipos
       for (const tipo of tipos_registro) {
+        console.log('Criando tipo:', tipo.codigo_tipo, '-', tipo.nome_tipo);
         await db.criarTipoRegistro(id, {
           codigo_tipo: tipo.codigo_tipo,
           nome_tipo: tipo.nome_tipo,
@@ -1359,6 +1357,7 @@ app.put('/api/layouts/:id', async (req, res) => {
       }
     }
     
+    console.log('Layout atualizado com sucesso');
     res.json({ mensagem: 'Layout atualizado com sucesso' });
   } catch (error) {
     console.error('Erro ao atualizar layout:', error);
@@ -1442,10 +1441,8 @@ app.get('/api/layouts/estatisticas', async (req, res) => {
 });
 
 // ==================== APIs PARA LAYOUTS DINÂMICOS ====================
-// FUNCIONALIDADE DESABILITADA - Usando apenas layouts persistidos no banco
 
-// Criar layout dinâmico (DESABILITADO)
-/*
+// Criar layout dinâmico
 app.post('/api/layouts/dinamico', async (req, res) => {
   try {
     const layout = req.body;
@@ -1471,7 +1468,6 @@ app.post('/api/layouts/dinamico', async (req, res) => {
     res.status(500).json({ erro: 'Erro interno do servidor' });
   }
 });
-*/
 
 // Testar processamento com layout específico
 app.post('/api/layouts/testar', upload.single('arquivo'), async (req, res) => {
@@ -1499,13 +1495,7 @@ app.post('/api/layouts/testar', upload.single('arquivo'), async (req, res) => {
     }
 
     // Processa o arquivo com o layout específico
-    // TODO: Implementar processamento baseado em banco de dados
-    const resultado = {
-      layout: layoutId,
-      sucesso: false,
-      erro: 'Sistema de processamento em desenvolvimento',
-      estatisticas: { linhasProcessadas: 0, erros: 0 }
-    };
+    const resultado = layoutManager.processarArquivo(conteudo, layoutId);
     
     // Calcula estatísticas do teste
     const linhas = conteudo.split('\n').filter(linha => linha.trim());
@@ -1576,8 +1566,7 @@ app.post('/api/layouts/detectar', async (req, res) => {
       return res.status(400).json({ erro: 'Conteúdo do arquivo é obrigatório' });
     }
 
-    // TODO: Implementar detecção baseada em banco de dados
-    const layout = { nome: 'Layout Padrão RJ', id: 'RJ_PADRAO_V1' };
+    const layout = layoutManager.detectarLayout(conteudo);
     
     res.json({
       mensagem: 'Layout detectado com sucesso',
@@ -1592,9 +1581,8 @@ app.post('/api/layouts/detectar', async (req, res) => {
 // Obter informações do sistema de layouts
 app.get('/api/layouts/sistema/info', (req, res) => {
   try {
-    // TODO: Implementar listagem baseada em banco de dados
-    const layouts = [{ nome: 'Layout Padrão RJ', id: 'RJ_PADRAO_V1' }];
-    const defaultLayout = { nome: 'Layout Padrão RJ', id: 'RJ_PADRAO_V1' };
+    const layouts = layoutManager.listarLayouts();
+    const defaultLayout = layoutManager.defaultLayout;
     
     res.json({
       totalLayouts: layouts.length,
@@ -1608,6 +1596,296 @@ app.get('/api/layouts/sistema/info', (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao obter info do sistema:', error);
+    res.status(500).json({ erro: 'Erro interno do servidor' });
+  }
+});
+
+// ============================================================================
+// ROTAS DE EXPORTAÇÃO E IMPORTAÇÃO DE LAYOUTS
+// ============================================================================
+
+// Exportar layout para JSON
+app.get('/api/layouts/:id/exportar', async (req, res) => {
+  try {
+    const layoutId = parseInt(req.params.id);
+    
+    console.log(`📤 Iniciando exportação do layout ID: ${layoutId}`);
+    
+    // Buscar dados do layout
+    const layout = await new Promise((resolve, reject) => {
+      db.db.get(
+        'SELECT * FROM layouts WHERE id = ?',
+        [layoutId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+    
+    if (!layout) {
+      return res.status(404).json({ erro: 'Layout não encontrado' });
+    }
+    
+    // Buscar tipos de registro do layout
+    const tiposRegistro = await new Promise((resolve, reject) => {
+      db.db.all(
+        'SELECT * FROM tipos_registro WHERE layout_id = ? ORDER BY ordem, codigo_tipo',
+        [layoutId],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
+    
+    // Preparar estrutura JSON para exportação
+    const layoutExportado = {
+      metadata: {
+        versao: '1.0',
+        data_exportacao: new Date().toISOString(),
+        exportado_por: 'RPS Manager',
+        descricao: 'Layout exportado do sistema RPS Manager'
+      },
+      layout: {
+        id: layout.id,
+        nome: layout.nome,
+        tipo: layout.tipo,
+        descricao: layout.descricao,
+        layout_id: layout.layout_id,
+        estrutura_completa: layout.estrutura_completa ? JSON.parse(layout.estrutura_completa) : null,
+        formatacao: layout.formatacao ? JSON.parse(layout.formatacao) : null,
+        origem: layout.origem,
+        data_criacao: layout.data_criacao
+      },
+      tipos_registro: tiposRegistro.map(tipo => ({
+        codigo_tipo: tipo.codigo_tipo,
+        nome_tipo: tipo.nome_tipo,
+        descricao: tipo.descricao,
+        campos: tipo.campos ? JSON.parse(tipo.campos) : [],
+        obrigatorio: tipo.obrigatorio === 1,
+        ordem: tipo.ordem,
+        data_criacao: tipo.data_criacao
+      }))
+    };
+    
+    console.log(`✅ Layout exportado com ${tiposRegistro.length} tipos de registro`);
+    
+    // Definir nome do arquivo
+    const nomeArquivo = `layout_${layout.layout_id || layout.id}_${new Date().toISOString().split('T')[0]}.json`;
+    
+    // Configurar headers para download
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${nomeArquivo}"`);
+    
+    res.json(layoutExportado);
+    
+  } catch (error) {
+    console.error('❌ Erro ao exportar layout:', error);
+    res.status(500).json({ 
+      erro: 'Erro ao exportar layout',
+      detalhes: error.message 
+    });
+  }
+});
+
+// Importar layout de JSON
+app.post('/api/layouts/importar', upload.single('arquivo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ erro: 'Nenhum arquivo foi enviado' });
+    }
+    
+    console.log(`📥 Iniciando importação do arquivo: ${req.file.originalname}`);
+    
+    // Ler e validar arquivo JSON
+    const conteudoArquivo = fs.readFileSync(req.file.path, 'utf8');
+    let layoutImportado;
+    
+    try {
+      layoutImportado = JSON.parse(conteudoArquivo);
+    } catch (parseError) {
+      return res.status(400).json({ 
+        erro: 'Arquivo JSON inválido',
+        detalhes: parseError.message 
+      });
+    }
+    
+    // Validar estrutura do JSON
+    if (!layoutImportado.layout || !layoutImportado.tipos_registro) {
+      return res.status(400).json({ 
+        erro: 'Estrutura do arquivo JSON inválida. Esperado: { layout: {...}, tipos_registro: [...] }' 
+      });
+    }
+    
+    const { layout, tipos_registro } = layoutImportado;
+    
+    // Verificar se já existe um layout com o mesmo layout_id
+    const layoutExistente = await new Promise((resolve, reject) => {
+      db.db.get(
+        'SELECT id FROM layouts WHERE layout_id = ?',
+        [layout.layout_id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+    
+    if (layoutExistente) {
+      return res.status(409).json({ 
+        erro: 'Já existe um layout com este ID',
+        layout_id: layout.layout_id,
+        id_existente: layoutExistente.id
+      });
+    }
+    
+    // Iniciar transação para importação
+    await new Promise((resolve, reject) => {
+      db.db.serialize(() => {
+        db.db.run('BEGIN TRANSACTION');
+        
+        // Inserir layout
+        const stmtLayout = db.db.prepare(`
+          INSERT INTO layouts (
+            nome, tipo, descricao, layout_id, estrutura_completa, 
+            formatacao, origem, data_criacao
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `);
+        
+        stmtLayout.run([
+          layout.nome,
+          layout.tipo,
+          layout.descricao,
+          layout.layout_id,
+          layout.estrutura_completa ? JSON.stringify(layout.estrutura_completa) : null,
+          layout.formatacao ? JSON.stringify(layout.formatacao) : null,
+          layout.origem + ' (Importado)'
+        ], function(err) {
+          if (err) {
+            db.db.run('ROLLBACK');
+            return reject(err);
+          }
+          
+          const novoLayoutId = this.lastID;
+          console.log(`✅ Layout inserido com ID: ${novoLayoutId}`);
+          
+          // Inserir tipos de registro
+          const stmtTipos = db.db.prepare(`
+            INSERT INTO tipos_registro (
+              layout_id, codigo_tipo, nome_tipo, descricao, campos, 
+              obrigatorio, ordem, data_criacao
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          `);
+          
+          let tiposInseridos = 0;
+          const totalTipos = tipos_registro.length;
+          
+          tipos_registro.forEach(tipo => {
+            stmtTipos.run([
+              novoLayoutId,
+              tipo.codigo_tipo,
+              tipo.nome_tipo,
+              tipo.descricao,
+              JSON.stringify(tipo.campos),
+              tipo.obrigatorio ? 1 : 0,
+              tipo.ordem
+            ], function(err) {
+              if (err) {
+                db.db.run('ROLLBACK');
+                return reject(err);
+              }
+              
+              tiposInseridos++;
+              if (tiposInseridos === totalTipos) {
+                stmtTipos.finalize();
+                db.db.run('COMMIT', (err) => {
+                  if (err) {
+                    reject(err);
+                  } else {
+                    console.log(`✅ ${totalTipos} tipos de registro inseridos`);
+                    resolve({ layoutId: novoLayoutId, totalTipos });
+                  }
+                });
+              }
+            });
+          });
+          
+          stmtLayout.finalize();
+        });
+      });
+    });
+    
+    // Remover arquivo temporário
+    fs.unlinkSync(req.file.path);
+    
+    console.log('✅ Importação concluída com sucesso');
+    
+    res.json({
+      sucesso: true,
+      mensagem: 'Layout importado com sucesso',
+      layout: {
+        nome: layout.nome,
+        layout_id: layout.layout_id,
+        total_tipos: tipos_registro.length
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao importar layout:', error);
+    
+    // Remover arquivo temporário em caso de erro
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    
+    res.status(500).json({ 
+      erro: 'Erro ao importar layout',
+      detalhes: error.message 
+    });
+  }
+});
+
+// Listar layouts disponíveis para exportação
+app.get('/api/layouts/exportar/lista', async (req, res) => {
+  try {
+    const layouts = await new Promise((resolve, reject) => {
+      db.db.all(`
+        SELECT 
+          l.id,
+          l.nome,
+          l.tipo,
+          l.descricao,
+          l.layout_id,
+          l.origem,
+          l.data_criacao,
+          COUNT(tr.id) as total_tipos
+        FROM layouts l
+        LEFT JOIN tipos_registro tr ON l.id = tr.layout_id
+        GROUP BY l.id
+        ORDER BY l.data_criacao DESC
+      `, [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+    
+    res.json({
+      layouts: layouts.map(layout => ({
+        id: layout.id,
+        nome: layout.nome,
+        tipo: layout.tipo,
+        descricao: layout.descricao,
+        layout_id: layout.layout_id,
+        origem: layout.origem,
+        data_criacao: layout.data_criacao,
+        total_tipos: layout.total_tipos,
+        url_exportacao: `/api/layouts/${layout.id}/exportar`
+      }))
+    });
+    
+  } catch (error) {
+    console.error('Erro ao listar layouts para exportação:', error);
     res.status(500).json({ erro: 'Erro interno do servidor' });
   }
 });

@@ -21,7 +21,13 @@ Sistema completo de gestão de RPS (Recibo de Prestação de Serviços) multi-em
 - Seleção múltipla para ações em massa
 - Edição e exclusão em lote
 
-### 📊 **Interface Moderna**
+### � **Export/Import de Layouts**
+- Exportação de layouts para arquivos JSON
+- Importação de layouts de outros sistemas
+- Backup e versionamento de configurações
+- Compartilhamento entre instalações
+
+### �📊 **Interface Moderna**
 - Design responsivo e profissional
 - Drag & Drop para arquivos
 - Notificações em tempo real
@@ -309,6 +315,105 @@ Se você receber este erro ao importar arquivos RPS:
 - 💡 **Features**: Sugira melhorias
 - 🤝 **Contribua**: Fork + Pull Request
 - 📧 **Contato**: [seu-email]
+
+---
+
+**RPS Manager Pro** - Gestão profissional de RPS multi-empresa! 🚀
+
+## 🔄 **Export/Import de Layouts**
+
+### **🎯 Visão Geral**
+O sistema de Export/Import permite backup, compartilhamento e migração de layouts entre diferentes instalações do RPS Manager. Os layouts são exportados em formato JSON com estrutura completa.
+
+### **🚀 Funcionalidades**
+
+#### **📤 Exportação de Layouts**
+- **Lista de layouts**: Visualização de todos os layouts disponíveis
+- **Exportação JSON**: Download automático de arquivo JSON estruturado
+- **Informações completas**: Metadata, configurações e tipos de registro
+- **Backup seguro**: Preservação total da estrutura e campos
+
+#### **📥 Importação de Layouts**
+- **Upload via interface**: Drag & drop ou seleção de arquivo
+- **Validação automática**: Verificação da estrutura JSON
+- **Controle de duplicatas**: Previne layouts com mesmo ID
+- **Transação segura**: Rollback automático em caso de erro
+
+### **📁 Estrutura do JSON Exportado**
+
+```json
+{
+  "metadata": {
+    "versao": "1.0",
+    "data_exportacao": "2025-01-08T12:00:00.000Z",
+    "exportado_por": "RPS Manager",
+    "descricao": "Layout exportado do sistema RPS Manager"
+  },
+  "layout": {
+    "id": 1,
+    "nome": "Padrão RJ - Prefeitura do Rio de Janeiro v2.1",
+    "tipo": "arquivo_posicional",
+    "layout_id": "RJ_PREFEITURA_PADRAO_V2_COMPLETO",
+    "estrutura_completa": { /* configurações */ },
+    "formatacao": { /* regras de formatação */ }
+  },
+  "tipos_registro": [
+    {
+      "codigo_tipo": "10",
+      "nome_tipo": "Cabeçalho do Arquivo",
+      "campos": [ /* definições dos campos */ ],
+      "obrigatorio": true,
+      "ordem": 0
+    }
+  ]
+}
+```
+
+### **🛠️ Como Usar**
+
+#### **1. Acessar a Funcionalidade**
+1. Abra o RPS Manager
+2. Navegue para `/layout-export-import.html`
+3. Ou acesse via menu principal
+
+#### **2. Exportar um Layout**
+1. Na seção "📤 Exportar Layouts"
+2. Encontre o layout desejado na lista
+3. Clique em "📤 Exportar JSON"
+4. O arquivo será baixado automaticamente
+
+#### **3. Importar um Layout**
+1. Na seção "📥 Importar Layout"
+2. Arraste o arquivo JSON ou clique em "Selecionar Arquivo"
+3. Aguarde a validação e importação
+4. O layout estará disponível no sistema
+
+### **🔧 APIs de Export/Import**
+
+```javascript
+// Listar layouts para exportação
+GET /api/layouts/exportar/lista
+
+// Exportar layout específico
+GET /api/layouts/:id/exportar
+
+// Importar layout
+POST /api/layouts/importar
+```
+
+### **⚠️ Considerações Importantes**
+
+1. **IDs únicos**: Layouts com mesmo `layout_id` não podem ser duplicados
+2. **Preservação**: Todos os campos e configurações são mantidos
+3. **Marcação**: Layouts importados são marcados como "(Importado)"
+4. **Segurança**: Transações garantem integridade dos dados
+
+### **📋 Casos de Uso**
+
+- **🔄 Migração**: Transferir layouts entre servidores
+- **💾 Backup**: Criar cópias de segurança dos layouts
+- **🤝 Compartilhamento**: Distribuir layouts para outras equipes
+- **📚 Versionamento**: Manter histórico de versões dos layouts
 
 ---
 

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exportação e Importação de Layouts - RPS Manager</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .layout-export-import {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+        
+        .section h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .layout-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+        }
+        
+        .layout-card h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        
+        .layout-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .layout-info span {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-right: 10px;
+            font-size: 0.9em;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+        }
+        
+        .btn-success:hover {
+            background: #219a52;
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+        }
+        
+        .btn-warning:hover {
+            background: #d68910;
+        }
+        
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            background: #fafafa;
+        }
+        
+        .upload-area.dragover {
+            border-color: #3498db;
+            background: #e8f4fd;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .status-message {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .export-options {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .badge {
+            background: #6c757d;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+        
+        .badge.obrigatorio {
+            background: #dc3545;
+        }
+        
+        .badge.opcional {
+            background: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔄 Exportação e Importação de Layouts</h1>
+        <nav>
+            <a href="index.html">Início</a>
+            <a href="gestao.html">Gestão</a>
+            <a href="manager.html">Layouts</a>
+            <a href="layout-export-import.html" class="active">Import/Export</a>
+        </nav>
+    </div>
+
+    <div class="layout-export-import">
+        
+        <!-- Seção de Exportação -->
+        <div class="section">
+            <h2>📤 Exportar Layouts</h2>
+            <p>Exporte layouts existentes para arquivos JSON que podem ser compartilhados ou usados como backup.</p>
+            
+            <div id="layoutsDisponiveis">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Carregando layouts disponíveis...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção de Importação -->
+        <div class="section">
+            <h2>📥 Importar Layout</h2>
+            <p>Importe um layout a partir de um arquivo JSON exportado anteriormente.</p>
+            
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-content">
+                    <p>📁 Arraste e solte um arquivo JSON aqui ou</p>
+                    <button class="btn btn-success" onclick="document.getElementById('fileInput').click()">
+                        Selecionar Arquivo
+                    </button>
+                    <input type="file" id="fileInput" class="file-input" accept=".json" />
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        Formatos aceitos: .json
+                    </p>
+                </div>
+            </div>
+            
+            <div id="importStatus"></div>
+            
+            <div class="loading" id="importLoading">
+                <div class="spinner"></div>
+                <p>Importando layout...</p>
+            </div>
+        </div>
+
+        <!-- Seção de Informações -->
+        <div class="section">
+            <h2>ℹ️ Informações sobre Import/Export</h2>
+            
+            <h3>Formato do Arquivo JSON</h3>
+            <p>Os arquivos de layout exportados contêm:</p>
+            <ul>
+                <li><strong>Metadata:</strong> Informações sobre a exportação (versão, data, etc.)</li>
+                <li><strong>Layout:</strong> Configurações principais do layout (nome, tipo, estrutura)</li>
+                <li><strong>Tipos de Registro:</strong> Todos os tipos de registro com seus campos e configurações</li>
+            </ul>
+            
+            <h3>Uso Recomendado</h3>
+            <ul>
+                <li>📋 <strong>Backup:</strong> Exporte layouts importantes regularmente</li>
+                <li>🔄 <strong>Migração:</strong> Transfira layouts entre diferentes instalações</li>
+                <li>🤝 <strong>Compartilhamento:</strong> Distribua layouts padronizados para outras equipes</li>
+                <li>📚 <strong>Versionamento:</strong> Mantenha versões históricas dos layouts</li>
+            </ul>
+            
+            <h3>Considerações Importantes</h3>
+            <ul>
+                <li>⚠️ Layouts com o mesmo <code>layout_id</code> não podem ser importados duplicadamente</li>
+                <li>🔧 Os IDs internos dos layouts podem mudar após a importação</li>
+                <li>📝 A origem do layout será marcada como "Importado"</li>
+                <li>✅ Todos os tipos de registro e campos são preservados</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Variáveis globais
+        let layoutsData = [];
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarLayoutsDisponiveis();
+            setupUploadArea();
+        });
+
+        // Carregar layouts disponíveis para exportação
+        async function carregarLayoutsDisponiveis() {
+            try {
+                const response = await fetch('/api/layouts/exportar/lista');
+                const data = await response.json();
+                
+                layoutsData = data.layouts;
+                renderizarLayouts();
+                
+            } catch (error) {
+                console.error('Erro ao carregar layouts:', error);
+                document.getElementById('layoutsDisponiveis').innerHTML = `
+                    <div class="status-message error">
+                        ❌ Erro ao carregar layouts: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Renderizar lista de layouts
+        function renderizarLayouts() {
+            const container = document.getElementById('layoutsDisponiveis');
+            
+            if (layoutsData.length === 0) {
+                container.innerHTML = `
+                    <div class="status-message info">
+                        📋 Nenhum layout disponível para exportação.
+                    </div>
+                `;
+                return;
+            }
+
+            const html = layoutsData.map(layout => `
+                <div class="layout-card">
+                    <h3>${layout.nome}</h3>
+                    <div class="layout-info">
+                        <span><strong>ID:</strong> ${layout.layout_id || layout.id}</span>
+                        <span><strong>Tipo:</strong> ${layout.tipo}</span>
+                        <span><strong>Tipos de Registro:</strong> ${layout.total_tipos}</span>
+                        <span><strong>Origem:</strong> ${layout.origem}</span>
+                        <span><strong>Criado em:</strong> ${new Date(layout.data_criacao).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    <p style="margin: 10px 0; color: #666; font-size: 0.9em;">
+                        ${layout.descricao}
+                    </p>
+                    <div class="export-options">
+                        <button class="btn" onclick="exportarLayout(${layout.id}, '${layout.nome}')">
+                            📤 Exportar JSON
+                        </button>
+                        <button class="btn btn-warning" onclick="visualizarLayout(${layout.id})">
+                            👁️ Visualizar
+                        </button>
+                        <span class="badge">${layout.total_tipos} tipos</span>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+        }
+
+        // Exportar layout
+        async function exportarLayout(layoutId, nomeLayout) {
+            try {
+                console.log(`Exportando layout ${layoutId}...`);
+                
+                const response = await fetch(`/api/layouts/${layoutId}/exportar`);
+                
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                
+                // Criar link para download
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `layout_${nomeLayout.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                mostrarStatus('success', `✅ Layout "${nomeLayout}" exportado com sucesso!`);
+                
+            } catch (error) {
+                console.error('Erro ao exportar layout:', error);
+                mostrarStatus('error', `❌ Erro ao exportar layout: ${error.message}`);
+            }
+        }
+
+        // Visualizar detalhes do layout
+        async function visualizarLayout(layoutId) {
+            try {
+                const response = await fetch(`/api/layouts/${layoutId}`);
+                const layout = await response.json();
+                
+                const tiposResponse = await fetch(`/api/layouts/${layoutId}/tipos`);
+                const tipos = await tiposResponse.json();
+                
+                const detalhes = `
+Layout: ${layout.nome}
+ID: ${layout.layout_id || layout.id}
+Tipo: ${layout.tipo}
+Descrição: ${layout.descricao}
+
+Tipos de Registro: ${tipos.length}
+${tipos.map(t => `- Tipo ${t.codigo_tipo}: ${t.nome_tipo} (${JSON.parse(t.campos).length} campos)`).join('\n')}
+                `;
+                
+                alert(detalhes);
+                
+            } catch (error) {
+                console.error('Erro ao visualizar layout:', error);
+                alert(`Erro ao carregar detalhes: ${error.message}`);
+            }
+        }
+
+        // Configurar área de upload
+        function setupUploadArea() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    processarArquivo(files[0]);
+                }
+            });
+
+            // Seleção de arquivo
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    processarArquivo(e.target.files[0]);
+                }
+            });
+        }
+
+        // Processar arquivo selecionado
+        function processarArquivo(arquivo) {
+            // Validar tipo
+            if (!arquivo.name.toLowerCase().endsWith('.json')) {
+                mostrarStatusImport('error', '❌ Por favor, selecione um arquivo JSON.');
+                return;
+            }
+
+            // Validar tamanho (max 10MB)
+            if (arquivo.size > 10 * 1024 * 1024) {
+                mostrarStatusImport('error', '❌ Arquivo muito grande. Máximo: 10MB.');
+                return;
+            }
+
+            importarLayout(arquivo);
+        }
+
+        // Importar layout
+        async function importarLayout(arquivo) {
+            const formData = new FormData();
+            formData.append('arquivo', arquivo);
+
+            try {
+                mostrarLoading(true);
+                mostrarStatusImport('info', '📤 Enviando arquivo...');
+
+                const response = await fetch('/api/layouts/importar', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    mostrarStatusImport('success', `✅ ${result.mensagem}`);
+                    
+                    // Mostrar detalhes
+                    setTimeout(() => {
+                        const detalhes = `
+Layout importado:
+• Nome: ${result.layout.nome}
+• ID: ${result.layout.layout_id}
+• Tipos de registro: ${result.layout.total_tipos}
+                        `;
+                        mostrarStatusImport('info', detalhes);
+                    }, 2000);
+                    
+                    // Recarregar lista de layouts
+                    setTimeout(() => {
+                        carregarLayoutsDisponiveis();
+                    }, 3000);
+                    
+                } else {
+                    mostrarStatusImport('error', `❌ ${result.erro}: ${result.detalhes || ''}`);
+                }
+
+            } catch (error) {
+                console.error('Erro ao importar layout:', error);
+                mostrarStatusImport('error', `❌ Erro na importação: ${error.message}`);
+            } finally {
+                mostrarLoading(false);
+                // Limpar input
+                document.getElementById('fileInput').value = '';
+            }
+        }
+
+        // Mostrar status geral
+        function mostrarStatus(tipo, mensagem) {
+            // Criar ou atualizar elemento de status
+            let statusEl = document.getElementById('globalStatus');
+            if (!statusEl) {
+                statusEl = document.createElement('div');
+                statusEl.id = 'globalStatus';
+                document.querySelector('.layout-export-import').insertBefore(statusEl, document.querySelector('.section'));
+            }
+            
+            statusEl.className = `status-message ${tipo}`;
+            statusEl.innerHTML = mensagem;
+            
+            // Auto remover após 5 segundos
+            setTimeout(() => {
+                if (statusEl.parentNode) {
+                    statusEl.parentNode.removeChild(statusEl);
+                }
+            }, 5000);
+        }
+
+        // Mostrar status de importação
+        function mostrarStatusImport(tipo, mensagem) {
+            const statusEl = document.getElementById('importStatus');
+            statusEl.className = `status-message ${tipo}`;
+            statusEl.innerHTML = mensagem.replace(/\n/g, '<br>');
+            statusEl.style.display = 'block';
+        }
+
+        // Mostrar/ocultar loading
+        function mostrarLoading(show) {
+            const loadingEl = document.getElementById('importLoading');
+            loadingEl.style.display = show ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

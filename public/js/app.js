@@ -1,3 +1,61 @@
+// ==================== FUNÇÕES DE NAVEGAÇÃO DO MENU E SIDEBAR ====================
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const mainContent = document.getElementById('mainContent');
+  const overlay = document.getElementById('overlay');
+  if (sidebar) sidebar.classList.toggle('show');
+  if (mainContent) mainContent.classList.toggle('shifted');
+  if (overlay) overlay.classList.toggle('show');
+}
+
+function showPage(pageName) {
+  // Remove active de todos os links de navegação
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.classList.remove('active');
+  });
+  // Esconde todas as páginas
+  document.querySelectorAll('.page-content').forEach(page => {
+    page.classList.add('hidden');
+    page.classList.remove('active');
+  });
+  // Adiciona active ao link selecionado
+  const navLink = document.querySelector(`[data-page="${pageName}"]`);
+  if (navLink) navLink.classList.add('active');
+  // Mostra a página selecionada
+  const pageElement = document.getElementById(`page-${pageName}`);
+  if (pageElement) {
+    pageElement.classList.remove('hidden');
+    pageElement.classList.add('active');
+  }
+  // Atualiza o título da página
+  const titles = {
+    dashboard: 'Dashboard',
+    empresas: 'Gestão de Empresas',
+    layouts: 'Gerenciamento de Layouts',
+    importacao: 'Importação de Arquivos RPS',
+    gestao: 'Gestão de RPS',
+    relatorios: 'Relatórios e Analytics'
+  };
+  const pageTitle = document.getElementById('pageTitle');
+  if (pageTitle) pageTitle.textContent = titles[pageName] || 'RPS Manager Pro';
+  // Carrega dados específicos da página
+  try {
+    if (pageName === 'empresas') {
+      carregarEmpresas();
+    } else if (pageName === 'layouts') {
+      atualizarListaLayouts();
+    } else if (pageName === 'dashboard') {
+      carregarDashboard();
+    } // Adicione outros carregamentos se necessário
+  } catch (error) {
+    console.error(`Erro ao carregar dados da página ${pageName}:`, error);
+  }
+  // Fecha o sidebar em dispositivos móveis
+  if (window.innerWidth <= 768) {
+    toggleSidebar();
+  }
+}
 /* RPS Manager Pro - JavaScript Principal */
 
 // ==================== VARIÁVEIS GLOBAIS ====================
@@ -15,7 +73,6 @@ let rpsData = [];
 let rpsAtual = null;
 let paginaAtual = 1;
 let itensPorPagina = 20;
-let rpsSelecionados = new Set();
 let ordenacaoAtual = { campo: 'data_emissao', direcao: 'desc' };
 
 // Layouts
@@ -76,14 +133,9 @@ function atualizarTabelaEmpresas() {
       <td>${empresa.nome_fantasia || '-'}</td>
       <td>${empresa.inscricao_municipal || '-'}</td>
       <td>
-        <div class="btn-group" role="group">
-          <button class="btn btn-sm btn-outline-primary" onclick="editarEmpresa(${empresa.id})" title="Editar">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="btn btn-sm btn-outline-danger" onclick="excluirEmpresa(${empresa.id})" title="Excluir">
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
+        <button class="btn btn-secondary" onclick="editarEmpresa(${empresa.id})">
+          <i class="fas fa-edit"></i>
+        </button>
       </td>
     </tr>
   `).join('');
@@ -93,9 +145,6 @@ function setupFormEmpresa() {
   // Configuração do formulário
   document.getElementById('formEmpresa').addEventListener('submit', async function(e) {
     e.preventDefault();
-    
-    const empresaId = document.getElementById('empresaId').value;
-    const isEdicao = empresaId && empresaId !== '';
     
     const dados = {
       cnpj: document.getElementById('cnpj').value.replace(/\D/g, ''),
@@ -108,26 +157,14 @@ function setupFormEmpresa() {
     };
 
     try {
-      let response;
-      if (isEdicao) {
-        // Atualizar empresa existente
-        response = await fetch(`/api/empresas/${empresaId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(dados)
-        });
-      } else {
-        // Criar nova empresa
-        response = await fetch('/api/empresas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(dados)
-        });
-      }
+      const response = await fetch('/api/empresas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados)
+      });
 
       if (response.ok) {
-        const mensagem = isEdicao ? 'Empresa atualizada com sucesso!' : 'Empresa cadastrada com sucesso!';
-        showNotification(mensagem, 'success');
+        showNotification('Empresa cadastrada com sucesso!', 'success');
         limparFormularioEmpresa();
         carregarEmpresas();
       } else {
@@ -175,19 +212,11 @@ function setupFormEmpresa() {
 
 function limparFormularioEmpresa() {
   document.getElementById('formEmpresa').reset();
-  document.getElementById('empresaId').value = '';
-  
-  // Atualizar texto do botão
-  const btnSubmit = document.querySelector('#formEmpresa button[type="submit"]');
-  if (btnSubmit) {
-    btnSubmit.innerHTML = '<i class="fas fa-save"></i> Salvar Empresa';
-  }
 }
 
 function editarEmpresa(id) {
   const empresa = empresas.find(e => e.id === id);
   if (empresa) {
-    document.getElementById('empresaId').value = empresa.id;
     document.getElementById('cnpj').value = formatarCNPJ(empresa.cnpj);
     document.getElementById('razaoSocial').value = empresa.razao_social;
     document.getElementById('nomeFantasia').value = empresa.nome_fantasia || '';
@@ -195,56 +224,6 @@ function editarEmpresa(id) {
     document.getElementById('endereco').value = empresa.endereco || '';
     document.getElementById('telefone').value = empresa.telefone || '';
     document.getElementById('email').value = empresa.email || '';
-    
-    // Atualizar texto do botão
-    const btnSubmit = document.querySelector('#formEmpresa button[type="submit"]');
-    if (btnSubmit) {
-      btnSubmit.innerHTML = '<i class="fas fa-save"></i> Atualizar Empresa';
-    }
-    
-    // Scroll para o formulário
-    document.querySelector('#formEmpresa').scrollIntoView({ behavior: 'smooth' });
-  }
-}
-
-async function excluirEmpresa(id) {
-  const empresa = empresas.find(e => e.id === id);
-  if (!empresa) {
-    showNotification('Empresa não encontrada', 'error');
-    return;
-  }
-
-  // Confirmar exclusão
-  const confirmacao = confirm(
-    `Tem certeza que deseja excluir a empresa "${empresa.razao_social}"?\n\n` +
-    'Esta ação não pode ser desfeita e todos os dados relacionados serão perdidos.'
-  );
-
-  if (!confirmacao) {
-    return;
-  }
-
-  try {
-    const response = await fetch(`/api/empresas/${id}`, {
-      method: 'DELETE'
-    });
-
-    if (response.ok) {
-      showNotification('Empresa excluída com sucesso!', 'success');
-      carregarEmpresas();
-      
-      // Se a empresa excluída estava sendo editada, limpar o formulário
-      const empresaIdForm = document.getElementById('empresaId').value;
-      if (empresaIdForm == id) {
-        limparFormularioEmpresa();
-      }
-    } else {
-      const error = await response.json();
-      showNotification(error.erro || 'Erro ao excluir empresa', 'error');
-    }
-  } catch (error) {
-    console.error('Erro ao excluir empresa:', error);
-    showNotification('Erro ao excluir empresa', 'error');
   }
 }
 
@@ -456,7 +435,7 @@ function renderizarTabelaRps(dados) {
         <button class="btn btn-sm btn-warning" onclick="editarRps(${rps.id})" title="Editar">
           <i class="fas fa-edit"></i>
         </button>
-        <button class="btn btn-sm btn-danger" onclick="excluirRps(${rps.id})" title="Excluir">
+        <button class="btn btn-sm btn-danger" onclick="excluirRPS(${rps.id})" title="Excluir">
           <i class="fas fa-trash"></i>
         </button>
       </td>
@@ -467,6 +446,9 @@ function renderizarTabelaRps(dados) {
   document.getElementById('infoInicio').textContent = inicio + 1;
   document.getElementById('infoFim').textContent = fim;
   document.getElementById('infoTotal').textContent = dados.length;
+  
+  // Atualizar estado dos botões de seleção
+  atualizarContadorSelecionados();
 }
 
 // ==================== FUNÇÕES DE LAYOUTS ====================
@@ -525,19 +507,30 @@ function setupDropZone() {
 function handleFiles(files) {
   arquivosSelecionados = Array.from(files);
   atualizarListaArquivos();
-  verificarHabilitarImportacao();
+  document.getElementById('btnImportar').disabled = arquivosSelecionados.length === 0;
+  // Validação da empresa e definição do layout padrão ao selecionar arquivo
+  if (typeof validarEmpresaSelecionada === 'function') validarEmpresaSelecionada();
+  if (typeof definirLayoutPadrao === 'function') definirLayoutPadrao();
 }
 
-function verificarHabilitarImportacao() {
-  const layoutId = document.getElementById('layoutImportacao').value;
-  const empresaId = document.getElementById('empresaImportacao').value;
-  const cadastrarEmpresas = document.getElementById('cadastrarEmpresas').checked;
-  const temArquivos = arquivosSelecionados.length > 0;
-  
-  // Habilita se tem arquivos, layout selecionado e (empresa selecionada OU cadastro automático marcado)
-  const podeImportar = temArquivos && layoutId && (empresaId || cadastrarEmpresas);
-  
-  document.getElementById('btnImportar').disabled = !podeImportar;
+// Função básica de validação da empresa selecionada (caso não exista)
+if (typeof validarEmpresaSelecionada !== 'function') {
+  function validarEmpresaSelecionada() {
+    const empresaId = document.getElementById('empresaImportacao')?.value;
+    if (!empresaId) {
+      showNotification('Selecione uma empresa para importar.', 'warning');
+    }
+  }
+}
+
+// Função básica para definir layout padrão (caso não exista)
+if (typeof definirLayoutPadrao !== 'function') {
+  function definirLayoutPadrao() {
+    const layoutSelect = document.getElementById('layoutImportacao');
+    if (layoutSelect && layoutSelect.options.length > 0) {
+      layoutSelect.selectedIndex = 0;
+    }
+  }
 }
 
 function atualizarListaArquivos() {
@@ -553,6 +546,54 @@ function atualizarListaArquivos() {
       </button>
     </div>
   `).join('');
+}
+
+function removerArquivo(index) {
+  arquivosSelecionados.splice(index, 1);
+  atualizarListaArquivos();
+  document.getElementById('btnImportar').disabled = arquivosSelecionados.length === 0;
+}
+
+async function consultarRPS() {
+  const empresaId = document.getElementById('empresaSelect').value;
+  const dataInicio = document.getElementById('dataInicio').value;
+  const dataFim = document.getElementById('dataFim').value;
+  const status = document.getElementById('statusFilter').value;
+
+  if (!empresaId) {
+    showNotification('Por favor, selecione uma empresa', 'warning');
+    return;
+  }
+
+  if (!dataInicio || !dataFim) {
+    showNotification('Por favor, informe o período de consulta', 'warning');
+    return;
+  }
+
+  try {
+    let url = `/api/rps/empresa/${empresaId}?dataInicio=${dataInicio}&dataFim=${dataFim}`;
+    if (status) {
+      url += `&status=${status}`;
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Erro na consulta: ${response.statusText}`);
+    }
+
+    const dadosRPS = await response.json();
+    
+    if (dadosRPS.length === 0) {
+      showNotification('Nenhum RPS encontrado para o período informado', 'info');
+      return;
+    }
+
+    showNotification(`${dadosRPS.length} RPS encontrados`, 'success');
+
+  } catch (error) {
+    console.error('Erro ao consultar RPS:', error);
+    showNotification('Erro ao consultar RPS', 'error');
+  }
 }
 
 // ==================== FUNÇÕES UTILITÁRIAS ====================
@@ -641,194 +682,347 @@ function mostrarNotificacao(mensagem, tipo = 'info') {
 
 // ==================== FUNÇÕES DE IMPORTAÇÃO ====================
 
+// ==================== FUNÇÕES DE IMPORTAÇÃO MELHORADAS ====================
+
+async function analisarArquivo(arquivo) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const conteudo = e.target.result;
+        const linhas = conteudo.split('\n').filter(linha => linha.trim());
+        
+        if (linhas.length === 0) {
+          reject(new Error('Arquivo vazio'));
+          return;
+        }
+        
+        // Analisar cabeçalho (linha tipo 10)
+        const cabecalho = linhas.find(linha => linha.startsWith('10'));
+        if (!cabecalho) {
+          reject(new Error('Cabeçalho não encontrado (linha tipo 10)'));
+          return;
+        }
+        
+        // Extrair CNPJ (posições 6-19)
+        const cnpj = cabecalho.substring(6, 20).replace(/\D/g, '');
+        const inscricaoMunicipal = cabecalho.substring(20, 35).trim();
+        const dataInicio = cabecalho.substring(35, 43);
+        const dataFim = cabecalho.substring(43, 51);
+        
+        // Contar tipos de registro
+        const tipos = {};
+        linhas.forEach(linha => {
+          const tipo = linha.substring(0, 2);
+          tipos[tipo] = (tipos[tipo] || 0) + 1;
+        });
+        
+        resolve({
+          cnpj,
+          inscricaoMunicipal,
+          dataInicio: formatarDataExibicao(dataInicio),
+          dataFim: formatarDataExibicao(dataFim),
+          totalLinhas: linhas.length,
+          tipos,
+          temCabecalho: !!tipos['10'],
+          temRodape: !!tipos['90'],
+          totalRPS: (tipos['20'] || 0) + (tipos['30'] || 0) + (tipos['40'] || 0)
+        });
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+    reader.readAsText(arquivo);
+  });
+}
+
+function formatarDataExibicao(dataStr) {
+  if (!dataStr || dataStr.length !== 8) return dataStr;
+  return `${dataStr.substring(6, 8)}/${dataStr.substring(4, 6)}/${dataStr.substring(0, 4)}`;
+}
+
+async function buscarEmpresaPorCnpj(cnpj) {
+  try {
+    const response = await fetch(`/api/empresas/cnpj/${cnpj}`);
+    if (response.ok) {
+      return await response.json();
+    }
+    return null;
+  } catch (error) {
+    console.error('Erro ao buscar empresa:', error);
+    return null;
+  }
+}
+
+function atualizarResumoImportacao(analise) {
+  const resumoHtml = `
+    <div class="alert alert-info">
+      <h6><i class="fas fa-info-circle"></i> Resumo do Arquivo</h6>
+      <div class="row">
+        <div class="col-md-6">
+          <p><strong>CNPJ:</strong> ${analise.cnpj || 'Não identificado'}</p>
+          <p><strong>Período:</strong> ${analise.dataInicio} a ${analise.dataFim}</p>
+          <p><strong>Total de RPS:</strong> ${analise.totalRPS}</p>
+        </div>
+        <div class="col-md-6">
+          <p><strong>Total de linhas:</strong> ${analise.totalLinhas}</p>
+          <p><strong>Tipos de registro:</strong></p>
+          <ul class="mb-0">
+            ${Object.entries(analise.tipos).map(([tipo, qtd]) => {
+              const nomes = {
+                '10': 'Cabeçalho',
+                '20': 'RPS Normal',
+                '21': 'Intermediário',
+                '30': 'RPS-C (Cupons)',
+                '40': 'Nota Convencional',
+                '90': 'Rodapé'
+              };
+              return `<li>Tipo ${tipo} (${nomes[tipo] || 'Desconhecido'}): ${qtd}</li>`;
+            }).join('')}
+          </ul>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('resumoArquivo').innerHTML = resumoHtml;
+  document.getElementById('resumoArquivo').style.display = 'block';
+}
+
 function iniciarImportacao() {
   const empresaId = document.getElementById('empresaImportacao').value;
   const layoutId = document.getElementById('layoutImportacao').value;
   const arquivos = document.getElementById('fileInput').files;
-  const cadastrarEmpresas = document.getElementById('cadastrarEmpresas').checked;
   
-  if (!layoutId || arquivos.length === 0) {
-    showNotification('Por favor, selecione layout e arquivos para importação.', 'danger');
+  if (!empresaId || !layoutId || arquivos.length === 0) {
+    showNotification('Por favor, selecione empresa, layout e arquivos para importação.', 'danger');
     return;
   }
   
-  // Se não tem empresa selecionada e não vai cadastrar automaticamente
-  if (!empresaId && !cadastrarEmpresas) {
-    showNotification('Por favor, selecione uma empresa ou marque a opção de cadastro automático.', 'danger');
-    return;
-  }
+  // Inicializar barra de progresso
+  mostrarBarraProgresso();
+  atualizarProgresso(0, 'Preparando importação...');
   
   const formData = new FormData();
-  if (empresaId) formData.append('empresa_id', empresaId);
+  formData.append('empresa_id', empresaId);
   formData.append('layout_id', layoutId);
   formData.append('atualizar_existentes', document.getElementById('atualizarExistentes').checked);
   formData.append('ignorar_duplicadas', document.getElementById('ignorarDuplicadas').checked);
-  formData.append('cadastrar_empresas', cadastrarEmpresas);
   
   for (let i = 0; i < arquivos.length; i++) {
     formData.append('arquivos', arquivos[i]);
   }
   
-  // Mostra loading
+  // Mostra loading no botão
   const btnImportar = document.getElementById('btnImportar');
   const textoOriginal = btnImportar.innerHTML;
-  btnImportar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importando...';
+  btnImportar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
   btnImportar.disabled = true;
   
-  // Usar a nova rota de importação com cadastro
-  const rota = cadastrarEmpresas ? '/api/importar-rps-com-cadastro' : '/api/importar-rps';
+  atualizarProgresso(15, 'Validando arquivos...');
   
-  fetch(rota, {
-    method: 'POST',
-    body: formData
-  })
-  .then(response => response.json())
-  .then(data => {
-    mostrarResultadoImportacao(data);
-    // Reset form
-    document.getElementById('fileInput').value = '';
-    document.getElementById('arquivosSelecionados').style.display = 'none';
-  })
-  .catch(error => {
-    console.error('Erro na importação:', error);
-    showNotification('Erro durante a importação. Tente novamente.', 'danger');
-  })
-  .finally(() => {
-    btnImportar.innerHTML = textoOriginal;
-    btnImportar.disabled = false;
-  });
+  setTimeout(() => {
+    atualizarProgresso(25, 'Enviando arquivos para o servidor...');
+    
+    fetch('/api/importar-rps', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => {
+      atualizarProgresso(50, 'Processando dados no servidor...');
+      
+      if (!response.ok) {
+        // Tentar extrair mensagem de erro do response
+        return response.text().then(text => {
+          try {
+            const errorData = JSON.parse(text);
+            throw new Error(errorData.error || errorData.message || `Erro HTTP ${response.status}`);
+          } catch {
+            throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
+          }
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      atualizarProgresso(75, 'Consolidando resultados...');
+      
+      // Adaptar resposta para formato esperado
+      const adaptedData = {
+        sucessos: data.importados || 0,
+        erros: data.erros || 0,
+        duplicadas: data.atualizados || 0,
+        total: data.totalProcessados || 0,
+        detalhes: data.detalhes || [],
+        tempo: data.tempo || 'N/A'
+      };
+      
+      atualizarProgresso(100, 'Importação concluída!');
+      
+      setTimeout(() => {
+        ocultarBarraProgresso();
+        mostrarResultadoImportacao(adaptedData);
+        
+        if (data.erros > 0) {
+          showNotification(`Importação concluída com ${data.erros} erro(s). Verifique os detalhes.`, 'warning');
+        } else {
+          showNotification(`Importação concluída com sucesso! ${data.importados} registros processados.`, 'success');
+        }
+        
+        // Reset form
+        document.getElementById('fileInput').value = '';
+        document.getElementById('arquivosSelecionados').style.display = 'none';
+        document.getElementById('resumoArquivo').style.display = 'none';
+      }, 1500);
+    })
+    .catch(error => {
+      console.error('Erro na importação:', error);
+      atualizarProgresso(100, 'Erro na importação');
+      
+      setTimeout(() => {
+        ocultarBarraProgresso();
+        mostrarErroDetalhado(error);
+        showNotification(`Erro durante a importação: ${error.message}`, 'danger');
+      }, 1000);
+    })
+    .finally(() => {
+      btnImportar.innerHTML = textoOriginal;
+      btnImportar.disabled = false;
+    });
+  }, 500); // Pequeno delay para mostrar o progresso inicial
+}
+
+function mostrarBarraProgresso() {
+  document.getElementById('progressContainer').style.display = 'block';
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('progressText').textContent = 'Iniciando...';
+}
+
+function atualizarProgresso(porcentagem, texto) {
+  document.getElementById('progressBar').style.width = porcentagem + '%';
+  document.getElementById('progressText').textContent = texto;
+  document.getElementById('progressBar').setAttribute('aria-valuenow', porcentagem);
+}
+
+function ocultarBarraProgresso() {
+  document.getElementById('progressContainer').style.display = 'none';
+}
+
+function mostrarErroDetalhado(error) {
+  const detalhesErro = `
+    <div class="alert alert-danger">
+      <h6><i class="fas fa-exclamation-triangle"></i> Erro de Importação</h6>
+      <p><strong>Mensagem:</strong> ${error.message}</p>
+      <p><strong>Tipo:</strong> ${error.name || 'Erro genérico'}</p>
+      <div class="mt-3">
+        <h6>Possíveis causas e soluções:</h6>
+        <ul class="mb-2">
+          <li><strong>Formato de arquivo:</strong> Verifique se o arquivo está no formato RPS padrão RJ</li>
+          <li><strong>Estrutura de dados:</strong> Confirme se as linhas têm o tamanho correto e tipos válidos</li>
+          <li><strong>CNPJ:</strong> Verifique se a empresa do arquivo está cadastrada no sistema</li>
+          <li><strong>Layout:</strong> Confirme se o layout selecionado é compatível com o arquivo</li>
+          <li><strong>Conexão:</strong> Verifique se o servidor está respondendo corretamente</li>
+        </ul>
+        <div class="mt-2">
+          <small class="text-muted">
+            <strong>Dicas:</strong><br>
+            • Tente importar um arquivo menor para teste<br>
+            • Verifique os logs do servidor para mais detalhes<br>
+            • Entre em contato com o suporte técnico se o problema persistir
+          </small>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  const container = document.getElementById('resultadoImportacao');
+  const conteudo = document.getElementById('resultadoConteudo');
+  
+  if (conteudo) {
+    conteudo.innerHTML = detalhesErro;
+  } else {
+    container.innerHTML = detalhesErro;
+  }
+  
+  container.style.display = 'block';
 }
 
 function mostrarResultadoImportacao(data) {
   const container = document.getElementById('resultadoImportacao');
   const conteudo = document.getElementById('resultadoConteudo');
   
-  // Contar estatísticas dos resultados
-  let sucessos = 0, erros = 0, empresasCadastradas = 0, ignorados = 0;
-  
-  if (data.resultados) {
-    data.resultados.forEach(resultado => {
-      if (resultado.status === 'sucesso') {
-        sucessos++;
-        if (resultado.empresaCadastradaAutomaticamente) {
-          empresasCadastradas++;
-        }
-      } else if (resultado.status === 'erro' || resultado.status === 'empresa_nao_cadastrada') {
-        erros++;
-      } else if (resultado.status === 'ignorado') {
-        ignorados++;
-      }
-    });
-  }
+  const agora = new Date();
+  const tempoFormatado = data.tempo || agora.toLocaleTimeString('pt-BR');
   
   let html = `
     <div class="row mb-4">
       <div class="col-md-3">
-        <div class="text-center">
+        <div class="text-center p-3 border rounded">
           <div class="text-success mb-2">
-            <i class="fas fa-check-circle fa-2x"></i>
+            <i class="fas fa-check-circle fa-3x"></i>
           </div>
-          <h5>${sucessos}</h5>
-          <p class="text-muted mb-0">Sucessos</p>
+          <h4 class="text-success">${data.sucessos || 0}</h4>
+          <p class="text-muted mb-0">Importados</p>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="text-center">
+        <div class="text-center p-3 border rounded">
           <div class="text-danger mb-2">
-            <i class="fas fa-times-circle fa-2x"></i>
+            <i class="fas fa-times-circle fa-3x"></i>
           </div>
-          <h5>${erros}</h5>
+          <h4 class="text-danger">${data.erros || 0}</h4>
           <p class="text-muted mb-0">Erros</p>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="text-center">
+        <div class="text-center p-3 border rounded">
           <div class="text-warning mb-2">
-            <i class="fas fa-exclamation-triangle fa-2x"></i>
+            <i class="fas fa-refresh fa-3x"></i>
           </div>
-          <h5>${ignorados}</h5>
-          <p class="text-muted mb-0">Ignorados</p>
+          <h4 class="text-warning">${data.duplicadas || 0}</h4>
+          <p class="text-muted mb-0">Atualizados</p>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="text-center">
+        <div class="text-center p-3 border rounded">
           <div class="text-info mb-2">
-            <i class="fas fa-building fa-2x"></i>
+            <i class="fas fa-file-alt fa-3x"></i>
           </div>
-          <h5>${empresasCadastradas}</h5>
-          <p class="text-muted mb-0">Empresas Cadastradas</p>
+          <h4 class="text-info">${data.total || 0}</h4>
+          <p class="text-muted mb-0">Total</p>
         </div>
       </div>
     </div>
+    
+    <div class="alert alert-info">
+      <h6><i class="fas fa-clock"></i> Resumo da Importação</h6>
+      <p class="mb-1"><strong>Concluída em:</strong> ${tempoFormatado}</p>
+      <p class="mb-1"><strong>Taxa de sucesso:</strong> ${data.total > 0 ? ((data.sucessos / data.total) * 100).toFixed(1) : 0}%</p>
+      <p class="mb-0"><strong>Status:</strong> ${data.erros > 0 ? 'Concluída com advertências' : 'Concluída com sucesso'}</p>
+    </div>
   `;
   
-  if (data.resultados && data.resultados.length > 0) {
+  if (data.detalhes && data.detalhes.length > 0) {
     html += `
-      <h6><i class="fas fa-list me-2"></i>Detalhes da Importação:</h6>
-      <div class="mt-3">
+      <hr>
+      <h6><i class="fas fa-list"></i> Detalhes da Importação:</h6>
+      <div class="mt-3" style="max-height: 300px; overflow-y: auto;">
     `;
     
-    data.resultados.forEach(resultado => {
-      let statusClass, statusIcon, statusText;
-      
-      switch (resultado.status) {
-        case 'sucesso':
-          statusClass = 'success';
-          statusIcon = 'fas fa-check-circle';
-          statusText = 'Sucesso';
-          break;
-        case 'erro':
-          statusClass = 'danger';
-          statusIcon = 'fas fa-times-circle';
-          statusText = 'Erro';
-          break;
-        case 'empresa_nao_cadastrada':
-          statusClass = 'warning';
-          statusIcon = 'fas fa-building';
-          statusText = 'Empresa não cadastrada';
-          break;
-        case 'ignorado':
-          statusClass = 'secondary';
-          statusIcon = 'fas fa-eye-slash';
-          statusText = 'Ignorado';
-          break;
-        default:
-          statusClass = 'info';
-          statusIcon = 'fas fa-info-circle';
-          statusText = resultado.status;
-      }
+    data.detalhes.forEach((detalhe, index) => {
+      const statusClass = detalhe.status === 'sucesso' ? 'success' : 
+                         detalhe.status === 'erro' ? 'danger' : 'warning';
+      const icon = detalhe.status === 'sucesso' ? 'check' : 
+                   detalhe.status === 'erro' ? 'times' : 'exclamation-triangle';
       
       html += `
-        <div class="alert alert-${statusClass} mb-2">
-          <div class="d-flex justify-content-between align-items-start">
-            <div class="flex-grow-1">
-              <h6 class="alert-heading mb-1">
-                <i class="${statusIcon} me-2"></i>${resultado.arquivo}
-                <span class="badge bg-${statusClass} ms-2">${statusText}</span>
-              </h6>
-              <p class="mb-1">${resultado.mensagem || 'Processado com sucesso'}</p>
-              
-              ${resultado.status === 'empresa_nao_cadastrada' ? `
-                <div class="mt-2 p-2 bg-light rounded">
-                  <strong>CNPJ encontrado:</strong> ${resultado.cnpj_formatado || resultado.cnpj}<br>
-                  <small class="text-muted">${resultado.acao_necessaria}</small>
-                  <div class="mt-2">
-                    <button class="btn btn-sm btn-primary me-2" onclick="preCadastrarEmpresa('${resultado.cnpj}', '${resultado.arquivo}')">
-                      <i class="fas fa-plus me-1"></i>${resultado.botao_acao || 'Pré-cadastrar Empresa'}
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="mostrarFormularioManual('${resultado.cnpj}', '${resultado.arquivo}')">
-                      <i class="fas fa-edit me-1"></i>Cadastro Manual
-                    </button>
-                  </div>
-                </div>
-              ` : ''}
-              
-              ${resultado.empresa ? `<small class="text-muted">Empresa: ${resultado.empresa}</small><br>` : ''}
-              ${resultado.empresaCadastradaAutomaticamente ? '<small class="text-success"><i class="fas fa-star me-1"></i>Empresa cadastrada automaticamente</small><br>' : ''}
-              ${resultado.rpsImportados ? `<small class="text-muted">RPS importados: ${resultado.rpsImportados}</small><br>` : ''}
-              ${resultado.rpsAtualizados ? `<small class="text-muted">RPS atualizados: ${resultado.rpsAtualizados}</small><br>` : ''}
-              ${resultado.valorTotal ? `<small class="text-muted">Valor total: ${resultado.valorTotal}</small>` : ''}
-            </div>
+        <div class="alert alert-${statusClass} py-2 d-flex align-items-center">
+          <i class="fas fa-${icon} me-2"></i>
+          <div class="flex-grow-1">
+            <small class="fw-bold">${detalhe.arquivo || `Item ${index + 1}`}</small><br>
+            <small>${detalhe.mensagem}</small>
           </div>
         </div>
       `;
@@ -837,13 +1031,26 @@ function mostrarResultadoImportacao(data) {
     html += '</div>';
   }
   
+  // Botões de ação
+  html += `
+    <hr>
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" onclick="showPage('gestao')">
+        <i class="fas fa-list"></i> Ver RPS Importados
+      </button>
+      <button class="btn btn-secondary" onclick="window.location.reload()">
+        <i class="fas fa-refresh"></i> Nova Importação
+      </button>
+    </div>
+  `;
+  
   conteudo.innerHTML = html;
   container.style.display = 'block';
   
   // Scroll para o resultado
-  container.scrollIntoView({ behavior: 'smooth' });
-  
-  showNotification(`Importação concluída! ${sucessos} arquivo(s) processado(s) com sucesso.`, sucessos > 0 ? 'success' : 'warning');
+  setTimeout(() => {
+    container.scrollIntoView({ behavior: 'smooth' });
+  }, 100);
 }
 
 // ==================== FUNÇÕES DE LAYOUT ====================
@@ -988,17 +1195,11 @@ function carregarDadosLayout(layout) {
 
 async function carregarTiposRegistro(layoutId) {
   try {
-    console.log('🔍 Carregando tipos para layout ID:', layoutId);
     const response = await fetch(`/api/layouts/${layoutId}/tipos`);
     if (response.ok) {
       const tipos = await response.json();
-      console.log('✅ Tipos carregados:', tipos.length);
-      console.log('📋 Dados dos tipos:', tipos);
       tiposRegistroConfig = tipos;
-      console.log('🎯 tiposRegistroConfig atualizado:', tiposRegistroConfig.length);
       renderizarTiposRegistro();
-    } else {
-      console.error('❌ Erro na resposta:', response.status, response.statusText);
     }
   } catch (error) {
     console.error('Erro ao carregar tipos de registro:', error);
@@ -1028,21 +1229,16 @@ function carregarCamposPadrao(tipoId, codigoTipo) {
   if (camposPadrao && camposPadrao.length > 0) {
     const tipo = tiposRegistroConfig.find(t => t.id === tipoId);
     if (tipo) {
-      tipo.campos = {};
-      
-      camposPadrao.forEach((campo, index) => {
-        const ordem = (index + 1).toString();
-        tipo.campos[ordem] = {
-          id: Date.now() + index,
-          nome: campo.nome,
-          posicao: campo.posicao_inicial,
-          tamanho: campo.tamanho,
-          tipo: campo.tipo,
-          descricao: campo.descricao,
-          obrigatorio: campo.obrigatorio || false,
-          valor_fixo: campo.valor_fixo || ''
-        };
-      });
+      tipo.campos = camposPadrao.map((campo, index) => ({
+        id: Date.now() + index,
+        nome: campo.nome,
+        posicao: campo.posicao_inicial,
+        tamanho: campo.tamanho,
+        tipo: campo.tipo,
+        descricao: campo.descricao,
+        obrigatorio: campo.obrigatorio || false,
+        valor_fixo: campo.valor_fixo || ''
+      }));
       
       renderizarTiposRegistro();
       mostrarNotificacao(`Campos padrão carregados para o tipo ${codigoTipo}`, 'success');
@@ -1117,19 +1313,9 @@ function obterCamposRPSPadrao(codigoTipo) {
 }
 
 function renderizarTiposRegistro() {
-  console.log('🎨 Renderizando tipos...');
   const container = document.getElementById('tiposRegistro');
-  console.log('📦 Container encontrado:', !!container);
-  
-  if (!container) {
-    console.error('❌ Elemento tiposRegistro não encontrado!');
-    return;
-  }
-  
-  console.log('📊 Quantidade de tipos:', tiposRegistroConfig.length);
   
   if (tiposRegistroConfig.length === 0) {
-    console.log('ℹ️ Nenhum tipo para renderizar');
     container.innerHTML = `
       <div class="text-center text-muted py-3">
         <i class="fas fa-plus-circle fa-2x mb-2"></i>
@@ -1141,14 +1327,11 @@ function renderizarTiposRegistro() {
   }
   
   let html = '';
-  tiposRegistroConfig.forEach((tipo, index) => {
-    console.log(`🔧 Gerando HTML para tipo ${index + 1}:`, tipo.codigo_tipo, tipo.nome_tipo);
+  tiposRegistroConfig.forEach(tipo => {
     html += gerarHTMLTipoRegistro(tipo);
   });
   
-  console.log('📝 HTML gerado, tamanho:', html.length);
   container.innerHTML = html;
-  console.log('✅ Tipos renderizados no DOM');
 }
 
 function gerarHTMLTipoRegistro(tipo) {
@@ -1212,16 +1395,14 @@ function gerarHTMLTipoRegistro(tipo) {
 }
 
 function renderizarCamposTipo(tipo) {
-  if (!tipo.campos || typeof tipo.campos !== 'object' || Object.keys(tipo.campos).length === 0) {
+  if (!tipo.campos || tipo.campos.length === 0) {
     return '<div class="text-center text-muted py-2"><small>Nenhum campo configurado</small></div>';
   }
   
   // Cabeçalho das colunas
   const cabecalho = `
     <div class="row g-2 mb-2 fw-bold text-muted small bg-light p-2 rounded">
-      <div class="col-md-1 text-center">
-        <i class="fas fa-sort-numeric-down me-1"></i>Ordem
-      </div>
+      <div class="col-md-1 text-center">Ordem</div>
       <div class="col-md-2">Campo</div>
       <div class="col-md-1 text-center">Inicial</div>
       <div class="col-md-1 text-center">Final</div>
@@ -1233,16 +1414,7 @@ function renderizarCamposTipo(tipo) {
     </div>
   `;
   
-  // Converter objeto de campos para array ordenado pela chave (ordem)
-  const camposOrdenados = Object.entries(tipo.campos)
-    .sort(([a], [b]) => parseInt(a) - parseInt(b))
-    .map(([ordem, campo]) => ({
-      ...campo,
-      id: campo.id || `${tipo.id}_${ordem}`,
-      ordem: parseInt(ordem)
-    }));
-  
-  return cabecalho + camposOrdenados.map((campo) => gerarHTMLCampoRegistro(tipo.id, campo, campo.ordem)).join('');
+  return cabecalho + tipo.campos.map((campo, index) => gerarHTMLCampoRegistro(tipo.id, campo, index + 1)).join('');
 }
 
 function gerarHTMLCampoRegistro(tipoId, campo, ordem) {
@@ -1250,20 +1422,12 @@ function gerarHTMLCampoRegistro(tipoId, campo, ordem) {
   const posicaoInicial = parseInt(campo.posicao) || 1;
   const tamanho = parseInt(campo.tamanho) || 1;
   const posicaoFinal = posicaoInicial + tamanho - 1;
-  const temSubcampos = campo.subcampos && campo.subcampos.length > 0;
   
   return `
     <div class="row g-2 mb-2 campo-registro border p-2 rounded align-items-center" data-campo-id="${campo.id}">
       <!-- Ordem -->
       <div class="col-md-1 text-center">
-        <div class="input-group input-group-sm" style="max-width: 70px; margin: 0 auto;">
-          <input type="number" class="form-control form-control-sm text-center fw-bold" value="${ordem}" 
-                 onchange="atualizarOrdemCampo(${tipoId}, ${campo.id}, parseInt(this.value))"
-                 placeholder="Ord" min="1" max="999" 
-                 title="Número de ordem do campo - clique para editar"
-                 style="border-color: #007bff; color: #007bff;">
-        </div>
-        ${temSubcampos ? '<i class="fas fa-sitemap text-info d-block mt-1" title="Campo com subcampos condicionais" style="font-size: 10px;"></i>' : ''}
+        <span class="badge bg-secondary">${ordem}</span>
       </div>
       
       <!-- Campo -->
@@ -1272,7 +1436,6 @@ function gerarHTMLCampoRegistro(tipoId, campo, ordem) {
                onchange="atualizarCampoRegistro(${tipoId}, ${campo.id}, 'nome', this.value)"
                placeholder="Nome do campo">
         ${valorFixoInfo}
-        ${temSubcampos ? '<small class="text-info">Campo condicional</small>' : ''}
       </div>
       
       <!-- Inicial -->
@@ -1316,30 +1479,19 @@ function gerarHTMLCampoRegistro(tipoId, campo, ordem) {
       </div>
       
       <!-- Conteúdo (descrição completa) -->
-      <div class="col-md-2">
+      <div class="col-md-3">
         <textarea class="form-control form-control-sm" rows="2" 
                   onchange="atualizarCampoRegistro(${tipoId}, ${campo.id}, 'descricao', this.value)"
                   placeholder="Descrição completa do campo...">${campo.descricao || ''}</textarea>
       </div>
       
       <!-- Ações -->
-      <div class="col-md-2 text-center">
-        <div class="btn-group" role="group">
-          <button type="button" class="btn btn-sm btn-outline-info" onclick="gerenciarSubcampos(${tipoId}, ${campo.id}, ${ordem})"
-                  title="Gerenciar subcampos condicionais">
-            <i class="fas fa-sitemap"></i>
-          </button>
-          <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerCampoRegistro(${tipoId}, ${campo.id})"
-                  ${campo.valor_fixo ? 'title="Campo padrão - pode ser removido se necessário"' : 'title="Remover campo"'}>
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
+      <div class="col-md-1 text-center">
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerCampoRegistro(${tipoId}, ${campo.id})"
+                ${campo.valor_fixo ? 'title="Campo padrão - pode ser removido se necessário"' : 'title="Remover campo"'}>
+          <i class="fas fa-trash"></i>
+        </button>
       </div>
-    </div>
-    
-    <!-- Subcampos condicionais (se existirem) -->
-    <div id="subcampos-${campo.id}" class="subcampos-container ms-4" style="display: none;">
-      ${temSubcampos ? gerarHTMLSubcampos(campo.subcampos) : ''}
     </div>
   `;
 }
@@ -1387,20 +1539,16 @@ function removerTipoRegistro(tipoId) {
 function adicionarCampoRegistro(tipoId) {
   const tipo = tiposRegistroConfig.find(t => t.id === tipoId);
   if (tipo) {
-    if (!tipo.campos) tipo.campos = {};
+    if (!tipo.campos) tipo.campos = [];
     
     // Calcular próxima posição baseada no último campo
     let proximaPosicao = 1;
-    const camposArray = Object.values(tipo.campos);
-    if (camposArray.length > 0) {
+    if (tipo.campos.length > 0) {
       // Ordenar campos por posição para encontrar o último
-      const camposOrdenados = camposArray.sort((a, b) => (a.posicao || 0) - (b.posicao || 0));
+      const camposOrdenados = tipo.campos.sort((a, b) => (a.posicao || 0) - (b.posicao || 0));
       const ultimoCampo = camposOrdenados[camposOrdenados.length - 1];
       proximaPosicao = (parseInt(ultimoCampo.posicao) || 1) + (parseInt(ultimoCampo.tamanho) || 1);
     }
-    
-    // Encontrar próximo número de ordem
-    const proximaOrdem = Object.keys(tipo.campos).length + 1;
     
     const novoCampo = {
       id: Date.now(),
@@ -1412,7 +1560,7 @@ function adicionarCampoRegistro(tipoId) {
       obrigatorio: false
     };
     
-    tipo.campos[proximaOrdem.toString()] = novoCampo;
+    tipo.campos.push(novoCampo);
     renderizarTiposRegistro();
     
     // Foco no campo nome do novo campo adicionado
@@ -1425,65 +1573,14 @@ function adicionarCampoRegistro(tipoId) {
 
 function atualizarCampoRegistro(tipoId, campoId, propriedade, valor) {
   const tipo = tiposRegistroConfig.find(t => t.id === tipoId);
-  if (tipo && tipo.campos) {
-    // Encontrar o campo na estrutura de objeto (chave = ordem)
-    for (const [ordem, campo] of Object.entries(tipo.campos)) {
-      if (campo.id === campoId) {
-        campo[propriedade] = valor;
-        // Re-renderizar para atualizar cálculos automáticos
-        renderizarTiposRegistro();
-        break;
-      }
+  if (tipo) {
+    const campo = tipo.campos.find(c => c.id === campoId);
+    if (campo) {
+      campo[propriedade] = valor;
+      // Re-renderizar para atualizar cálculos automáticos
+      renderizarTiposRegistro();
     }
   }
-}
-
-function atualizarOrdemCampo(tipoId, campoId, novaOrdem) {
-  const tipo = tiposRegistroConfig.find(t => t.id === tipoId);
-  if (!tipo || !tipo.campos) {
-    return;
-  }
-
-  // Encontrar o campo atual
-  let campoAtual = null;
-  let chaveAtual = null;
-  
-  for (const [chave, campo] of Object.entries(tipo.campos)) {
-    if (campo.id === campoId) {
-      campoAtual = campo;
-      chaveAtual = chave;
-      break;
-    }
-  }
-
-  if (!campoAtual || !chaveAtual) {
-    return;
-  }
-
-  // Verificar se a nova ordem já existe
-  if (tipo.campos[novaOrdem.toString()]) {
-    // Se a ordem já existe, trocar as posições
-    const campoExistente = tipo.campos[novaOrdem.toString()];
-    
-    // Remover ambos os campos
-    delete tipo.campos[chaveAtual];
-    delete tipo.campos[novaOrdem.toString()];
-    
-    // Recolocar com ordens trocadas
-    tipo.campos[novaOrdem.toString()] = campoAtual;
-    tipo.campos[chaveAtual] = campoExistente;
-    
-    mostrarNotificacao(`Campos trocaram de posição: ordem ${chaveAtual} ↔ ordem ${novaOrdem}`, 'info');
-  } else {
-    // Se a ordem não existe, apenas mover o campo
-    delete tipo.campos[chaveAtual];
-    tipo.campos[novaOrdem.toString()] = campoAtual;
-    
-    mostrarNotificacao(`Campo movido para ordem ${novaOrdem}`, 'sucesso');
-  }
-
-  // Re-renderizar para mostrar as mudanças
-  renderizarTiposRegistro();
 }
 
 function atualizarTamanhoAutomatico(tipoId, campoId) {
@@ -1496,16 +1593,9 @@ function atualizarTamanhoAutomatico(tipoId, campoId) {
 
 function removerCampoRegistro(tipoId, campoId) {
   const tipo = tiposRegistroConfig.find(t => t.id === tipoId);
-  if (tipo && tipo.campos) {
-    // Encontrar a chave do campo a ser removido
-    const chaveParaRemover = Object.keys(tipo.campos).find(chave => 
-      tipo.campos[chave].id === campoId
-    );
-    
-    if (chaveParaRemover) {
-      delete tipo.campos[chaveParaRemover];
-      renderizarTiposRegistro();
-    }
+  if (tipo) {
+    tipo.campos = tipo.campos.filter(c => c.id !== campoId);
+    renderizarTiposRegistro();
   }
 }
 
@@ -2473,128 +2563,6 @@ async function salvarNovoLayout() {
   }
 }
 
-async function atualizarListaLayouts() {
-  try {
-    const response = await fetch('/api/layouts');
-    if (!response.ok) throw new Error('Erro ao carregar layouts');
-    
-    const layouts = await response.json();
-    const container = document.getElementById('layoutsContainer');
-    
-    if (!container) return;
-    
-    if (layouts.length === 0) {
-      container.innerHTML = `
-        <div class="p-4 text-center">
-          <i class="fas fa-table fa-3x text-muted mb-3"></i>
-          <h5>Nenhum Layout Encontrado</h5>
-          <p class="text-muted">Crie seu primeiro layout baseado em tipos de registro.</p>
-          <button class="btn btn-primary" onclick="mostrarFormularioLayout()">
-            <i class="fas fa-plus"></i> Criar Primeiro Layout
-          </button>
-        </div>
-      `;
-      return;
-    }
-    
-    let html = `
-      <div class="table-responsive">
-        <table class="table table-hover">
-          <thead class="table-light">
-            <tr>
-              <th>Nome</th>
-              <th class="d-none d-md-table-cell">ID</th>
-              <th class="d-none d-lg-table-cell">Versão</th>
-              <th class="d-none d-lg-table-cell">Status</th>
-              <th class="d-none d-lg-table-cell">Tipos de Registro</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-    
-    for (const layout of layouts) {
-      // Buscar tipos de registro para este layout
-      let tiposCount = 0;
-      try {
-        const tiposResponse = await fetch(`/api/layouts/${layout.id}/tipos`);
-        if (tiposResponse.ok) {
-          const tipos = await tiposResponse.json();
-          tiposCount = tipos.length;
-        }
-      } catch (error) {
-        console.warn('Erro ao carregar tipos para layout:', layout.id);
-      }
-      
-      const status = layout.status || 'ativo';
-      
-      html += `
-        <tr>
-          <td>
-            <strong>${layout.nome}</strong>
-            <br><small class="text-muted">${layout.descricao || 'Sem descrição'}</small>
-            <div class="d-md-none mt-2">
-              <span class="badge bg-secondary me-1">${layout.layout_id}</span>
-              <span class="badge ${status === 'ativo' ? 'bg-success' : 'bg-warning'}">${status}</span>
-              <span class="badge bg-info">${tiposCount} tipos</span>
-            </div>
-          </td>
-          <td class="d-none d-md-table-cell">
-            <code class="small">${layout.layout_id}</code>
-          </td>
-          <td class="d-none d-lg-table-cell">${layout.versao || '1.0'}</td>
-          <td class="d-none d-lg-table-cell">
-            <span class="badge ${status === 'ativo' ? 'bg-success' : 'bg-warning'}">${status}</span>
-          </td>
-          <td class="d-none d-lg-table-cell">
-            <span class="badge bg-info">${tiposCount} tipo(s)</span>
-          </td>
-          <td>
-            <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-primary" onclick="visualizarLayout('${layout.id}')" title="Visualizar">
-                <i class="fas fa-eye"></i>
-              </button>
-              <button class="btn btn-outline-info" onclick="editarLayoutNovo('${layout.id}')" title="Editar">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button class="btn btn-outline-success" onclick="testarLayout('${layout.id}')" title="Testar">
-                <i class="fas fa-vial"></i>
-              </button>
-              <button class="btn btn-outline-danger" onclick="confirmarExclusaoLayout('${layout.id}')" title="Excluir">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }
-    
-    html += `
-          </tbody>
-        </table>
-      </div>
-    `;
-    
-    container.innerHTML = html;
-    
-  } catch (error) {
-    console.error('Erro ao carregar layouts:', error);
-    const container = document.getElementById('layoutsContainer');
-    if (container) {
-      container.innerHTML = `
-        <div class="p-4 text-center">
-          <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-          <h5>Erro ao Carregar Layouts</h5>
-          <p class="text-muted">Ocorreu um erro ao carregar a lista de layouts.</p>
-          <button class="btn btn-outline-primary" onclick="atualizarListaLayouts()">
-            <i class="fas fa-sync"></i> Tentar Novamente
-          </button>
-        </div>
-      `;
-    }
-  }
-}
-
 async function editarLayoutNovo(layoutId) {
   try {
     const response = await fetch(`/api/layouts/${layoutId}`);
@@ -2689,20 +2657,6 @@ function filtrarLayouts() {
 }
 
 // ==================== FUNÇÕES DE EMPRESAS (PLACEHOLDER) ====================
-
-function limparFormularioEmpresa() {
-  document.getElementById('formEmpresa').reset();
-  showNotification('Formulário limpo!', 'info');
-}
-
-function buscarDadosCNPJ() {
-  const cnpj = document.getElementById('cnpj').value;
-  if (!cnpj) {
-    showNotification('Por favor, digite um CNPJ para buscar.', 'warning');
-    return;
-  }
-  showNotification('Funcionalidade de busca de CNPJ será implementada em breve.', 'info');
-}
 
 function abrirModalTestarLayout(layoutId) {
   const modal = document.createElement('div');
@@ -2899,9 +2853,7 @@ function mostrarNotificacao(message, type = 'sucesso') {
 }
 
 // ==================== LAYOUTS DINÂMICOS ====================
-// FUNCIONALIDADE DESABILITADA - Usando apenas layouts do banco de dados
 
-/*
 async function carregarLayoutsDinamicos() {
   try {
     const response = await fetch('/api/layouts/sistema/info');
@@ -2922,68 +2874,6 @@ async function carregarLayoutsDinamicos() {
     console.error('Erro ao carregar layouts dinâmicos:', error);
     mostrarNotificacao('Erro ao carregar layouts dinâmicos: ' + error.message, 'erro');
   }
-}
-*/
-
-async function abrirModalTestarLayout() {
-  const modal = document.createElement('div');
-  modal.className = 'modal fade';
-  modal.innerHTML = `
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Testar Layout Dinâmico</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Layout (opcional):</label>
-            <select id="layoutTeste" class="form-control">
-              <option value="">Detectar automaticamente</option>
-            </select>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Conteúdo do Arquivo:</label>
-            <textarea id="conteudoTeste" class="form-control" rows="10" 
-                      placeholder="Cole aqui o conteúdo do arquivo RPS para testar..."></textarea>
-          </div>
-          <div id="resultadoTeste" class="mt-3" style="display: none;">
-            <h6>Resultado do Teste:</h6>
-            <pre id="resultadoTexto" class="bg-light p-3" style="max-height: 300px; overflow-y: auto;"></pre>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-          <button type="button" class="btn btn-primary" onclick="executarTesteLauout()">Testar Layout</button>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  document.body.appendChild(modal);
-  const bsModal = new bootstrap.Modal(modal);
-  bsModal.show();
-  
-  // Carregar layouts reais do banco de dados
-  try {
-    const response = await fetch('/api/layouts');
-    const layouts = await response.json();
-    
-    const selectLayout = document.getElementById('layoutTeste');
-    layouts.forEach(layout => {
-      const option = document.createElement('option');
-      option.value = layout.id;
-      option.textContent = `${layout.nome} (ID: ${layout.id})`;
-      selectLayout.appendChild(option);
-    });
-  } catch (error) {
-    console.error('Erro ao carregar layouts:', error);
-    mostrarNotificacao('Erro ao carregar layouts disponíveis', 'error');
-  }
-  
-  modal.addEventListener('hidden.bs.modal', () => {
-    document.body.removeChild(modal);
-  });
 }
 
 async function executarTesteLauout() {
@@ -3044,913 +2934,804 @@ async function detectarLayoutAutomatico(conteudo) {
   }
 }
 
-// ==================== FUNÇÕES PARA SUBCAMPOS CONDICIONAIS ====================
+// ==================== FUNÇÕES DE EDIÇÃO DE RPS ====================
 
-function gerarHTMLSubcampos(subcampos) {
-  if (!subcampos || subcampos.length === 0) return '';
-  
-  let html = '<div class="subcampos-list mt-2 p-2 bg-light border rounded">';
-  html += '<h6 class="text-info mb-2"><i class="fas fa-sitemap"></i> Subcampos Condicionais</h6>';
-  
-  // Agrupar subcampos por condição
-  const subcamposPorCondicao = {};
-  subcampos.forEach(subcampo => {
-    if (!subcamposPorCondicao[subcampo.condicao_valor]) {
-      subcamposPorCondicao[subcampo.condicao_valor] = [];
-    }
-    subcamposPorCondicao[subcampo.condicao_valor].push(subcampo);
-  });
-  
-  Object.entries(subcamposPorCondicao).forEach(([condicao, subs]) => {
-    html += `<div class="mb-2">`;
-    html += `<small class="badge bg-secondary">Quando valor = ${condicao}</small>`;
-    subs.forEach(sub => {
-      html += `
-        <div class="row g-2 mt-1 align-items-center border-start border-info ps-2">
-          <div class="col-1">
-            <span class="badge bg-info">${sub.subcampo_letra}</span>
-          </div>
-          <div class="col-3">
-            <small>${sub.nome_subcampo}</small>
-          </div>
-          <div class="col-2">
-            <small>Pos: ${sub.posicao_inicial}-${sub.posicao_final}</small>
-          </div>
-          <div class="col-2">
-            <small>Tam: ${sub.tamanho}</small>
-          </div>
-          <div class="col-2">
-            <small>${sub.formato}</small>
-          </div>
-          <div class="col-2">
-            ${sub.obrigatorio ? '<i class="fas fa-check text-success" title="Obrigatório"></i>' : '<i class="fas fa-minus text-muted" title="Opcional"></i>'}
-          </div>
-        </div>
-      `;
-    });
-    html += `</div>`;
-  });
-  
-  html += '</div>';
-  return html;
-}
-
-function gerenciarSubcampos(tipoId, campoId, ordem) {
-  const modalHTML = `
-    <div class="modal fade" id="modalSubcampos" tabindex="-1" aria-labelledby="modalSubcamposLabel" aria-hidden="true">
-      <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalSubcamposLabel">
-              <i class="fas fa-sitemap"></i> Gerenciar Subcampos Condicionais - Campo #${ordem}
-            </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="alert alert-info">
-              <i class="fas fa-info-circle"></i>
-              <strong>Subcampos Condicionais:</strong> Dependendo do valor deste campo, outros subcampos podem ter tamanhos ou obrigatoriedades diferentes.
-            </div>
-            
-            <form id="formSubcampos">
-              <div class="row mb-3">
-                <div class="col-md-6">
-                  <label class="form-label">Valor da Condição</label>
-                  <input type="text" id="condicaoValor" class="form-control" placeholder="Ex: 1, 2, 3, 4">
-                  <small class="text-muted">Valor que ativa esta condição</small>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Descrição da Condição</label>
-                  <input type="text" id="condicaoDescricao" class="form-control" placeholder="Ex: CPF, CNPJ, etc.">
-                </div>
-              </div>
-              
-              <h6 class="text-primary mt-4 mb-3">Subcampos para esta condição:</h6>
-              
-              <div class="row mb-2 text-muted">
-                <div class="col-1"><small><strong>Letra</strong></small></div>
-                <div class="col-3"><small><strong>Nome</strong></small></div>
-                <div class="col-2"><small><strong>Inicial</strong></small></div>
-                <div class="col-2"><small><strong>Final</strong></small></div>
-                <div class="col-1"><small><strong>Tamanho</strong></small></div>
-                <div class="col-2"><small><strong>Formato</strong></small></div>
-                <div class="col-1"><small><strong>Obrig.</strong></small></div>
-              </div>
-              
-              <div id="subcamposLista">
-                <!-- Subcampos serão adicionados aqui -->
-              </div>
-              
-              <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="adicionarSubcampo()">
-                <i class="fas fa-plus"></i> Adicionar Subcampo
-              </button>
-            </form>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="button" class="btn btn-primary" onclick="salvarSubcampos(${tipoId}, ${campoId})">
-              <i class="fas fa-save"></i> Salvar Subcampos
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  // Remover modal existente se houver
-  const modalExistente = document.getElementById('modalSubcampos');
-  if (modalExistente) {
-    modalExistente.remove();
-  }
-  
-  // Adicionar novo modal
-  document.body.insertAdjacentHTML('beforeend', modalHTML);
-  
-  // Mostrar modal
-  const modal = new bootstrap.Modal(document.getElementById('modalSubcampos'));
-  modal.show();
-  
-  // Carregar subcampos existentes se houver
-  carregarSubcamposExistentes(tipoId, campoId);
-}
-
-let subcamposTemporarios = [];
-
-function adicionarSubcampo() {
-  const container = document.getElementById('subcamposLista');
-  const index = subcamposTemporarios.length;
-  
-  const html = `
-    <div class="row g-2 mb-2 subcampo-item border p-2 rounded" data-index="${index}">
-      <div class="col-1">
-        <input type="text" class="form-control form-control-sm text-center" id="letra_${index}" placeholder="A" maxlength="1">
-      </div>
-      <div class="col-3">
-        <input type="text" class="form-control form-control-sm" id="nome_${index}" placeholder="Nome do subcampo">
-      </div>
-      <div class="col-2">
-        <input type="number" class="form-control form-control-sm" id="inicial_${index}" placeholder="Pos" min="1" onchange="calcularFinalSubcampo(${index})">
-      </div>
-      <div class="col-2">
-        <input type="number" class="form-control form-control-sm bg-light" id="final_${index}" readonly>
-      </div>
-      <div class="col-1">
-        <input type="number" class="form-control form-control-sm" id="tamanho_${index}" placeholder="Tam" min="1" onchange="calcularFinalSubcampo(${index})">
-      </div>
-      <div class="col-2">
-        <select class="form-control form-control-sm" id="formato_${index}">
-          <option value="Texto">Texto</option>
-          <option value="Número">Número</option>
-          <option value="Data">Data</option>
-          <option value="Valor">Valor</option>
-        </select>
-      </div>
-      <div class="col-1 text-center">
-        <div class="form-check">
-          <input type="checkbox" class="form-check-input" id="obrigatorio_${index}">
-        </div>
-        <button type="button" class="btn btn-sm btn-outline-danger mt-1" onclick="removerSubcampo(${index})">
-          <i class="fas fa-trash"></i>
-        </button>
-      </div>
-    </div>
-  `;
-  
-  container.insertAdjacentHTML('beforeend', html);
-  subcamposTemporarios.push({});
-}
-
-function calcularFinalSubcampo(index) {
-  const inicial = parseInt(document.getElementById(`inicial_${index}`).value) || 0;
-  const tamanho = parseInt(document.getElementById(`tamanho_${index}`).value) || 0;
-  const final = inicial + tamanho - 1;
-  
-  if (inicial > 0 && tamanho > 0) {
-    document.getElementById(`final_${index}`).value = final;
-  }
-}
-
-function removerSubcampo(index) {
-  const elemento = document.querySelector(`[data-index="${index}"]`);
-  if (elemento) {
-    elemento.remove();
-  }
-}
-
-function carregarSubcamposExistentes(tipoId, campoId) {
-  // Aqui você carregaria os subcampos existentes do servidor
-  // Por enquanto, vamos deixar vazio para implementação futura
-  console.log(`Carregando subcampos para tipo ${tipoId}, campo ${campoId}`);
-}
-
-function salvarSubcampos(tipoId, campoId) {
-  const condicaoValor = document.getElementById('condicaoValor').value;
-  const condicaoDescricao = document.getElementById('condicaoDescricao').value;
-  
-  if (!condicaoValor) {
-    alert('Por favor, informe o valor da condição');
-    return;
-  }
-  
-  const subcampos = [];
-  const items = document.querySelectorAll('.subcampo-item');
-  
-  items.forEach((item, index) => {
-    const letra = document.getElementById(`letra_${index}`)?.value;
-    const nome = document.getElementById(`nome_${index}`)?.value;
-    const inicial = parseInt(document.getElementById(`inicial_${index}`)?.value);
-    const tamanho = parseInt(document.getElementById(`tamanho_${index}`)?.value);
-    const formato = document.getElementById(`formato_${index}`)?.value;
-    const obrigatorio = document.getElementById(`obrigatorio_${index}`)?.checked;
-    
-    if (letra && nome && inicial && tamanho) {
-      subcampos.push({
-        subcampo_letra: letra.toUpperCase(),
-        nome_subcampo: nome,
-        posicao_inicial: inicial,
-        posicao_final: inicial + tamanho - 1,
-        tamanho: tamanho,
-        formato: formato,
-        obrigatorio: obrigatorio,
-        condicao_valor: condicaoValor,
-        descricao: condicaoDescricao
-      });
-    }
-  });
-  
-  if (subcampos.length === 0) {
-    alert('Adicione pelo menos um subcampo');
-    return;
-  }
-  
-  // Enviar para o servidor
-  fetch('/api/subcampos', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      tipoId: tipoId,
-      campoId: campoId,
-      condicaoValor: condicaoValor,
-      subcampos: subcampos
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.erro) {
-      alert('Erro ao salvar subcampos: ' + data.erro);
-    } else {
-      alert('Subcampos salvos com sucesso!');
-      // Fechar modal
-      const modal = bootstrap.Modal.getInstance(document.getElementById('modalSubcampos'));
-      modal.hide();
-      
-      // Atualizar visualização
-      renderizarCamposTipo(tipoId);
-    }
-  })
-  .catch(error => {
-    console.error('Erro:', error);
-    alert('Erro ao salvar subcampos');
-  });
-}
-
-// ==================== IMPORTAÇÃO/EXPORTAÇÃO DE LAYOUTS ====================
-
-async function exportarLayouts() {
+async function visualizarRps(id) {
   try {
-    console.log('🚀 Exportando todos os layouts...');
+    console.log('👁️ Visualizando RPS:', id);
     
-    // Buscar todos os layouts
-    const response = await fetch('/api/layouts');
-    if (!response.ok) throw new Error('Erro ao buscar layouts');
+    // Buscar dados do RPS
+    const response = await fetch(`/api/rps/${id}`);
+    const resultado = await response.json();
     
-    const layouts = await response.json();
-    
-    if (layouts.length === 0) {
-      mostrarNotificacao('Nenhum layout encontrado para exportar', 'warning');
-      return;
+    if (!response.ok) {
+      throw new Error(resultado.erro || 'RPS não encontrado');
     }
     
-    // Buscar tipos para cada layout
-    const layoutsCompletos = [];
-    for (const layout of layouts) {
-      const tiposResponse = await fetch(`/api/layouts/${layout.id}/tipos`);
-      if (tiposResponse.ok) {
-        const tipos = await tiposResponse.json();
-        layoutsCompletos.push({
-          ...layout,
-          tipos_registro: tipos
-        });
-      }
-    }
+    const rps = resultado.data;
     
-    // Criar objeto de exportação
-    const dadosExportacao = {
-      versao: '1.0',
-      data_exportacao: new Date().toISOString(),
-      total_layouts: layoutsCompletos.length,
-      layouts: layoutsCompletos
-    };
-    
-    // Download do arquivo
-    downloadJSON(dadosExportacao, `layouts_backup_${formatarDataParaArquivo()}.json`);
-    
-    mostrarNotificacao(`${layoutsCompletos.length} layout(s) exportado(s) com sucesso!`, 'success');
-    
-  } catch (error) {
-    console.error('Erro ao exportar layouts:', error);
-    mostrarNotificacao('Erro ao exportar layouts: ' + error.message, 'erro');
-  }
-}
-
-async function exportarLayoutSelecionado() {
-  try {
-    // Verificar se há um layout sendo editado
-    const layoutId = document.getElementById('layoutIdEdicao')?.value;
-    
-    if (!layoutId) {
-      mostrarNotificacao('Selecione um layout para editar primeiro', 'warning');
-      return;
-    }
-    
-    console.log('🚀 Exportando layout ID:', layoutId);
-    
-    // Buscar dados do layout
-    const layoutResponse = await fetch(`/api/layouts/${layoutId}`);
-    if (!layoutResponse.ok) throw new Error('Layout não encontrado');
-    
-    const layout = await layoutResponse.json();
-    
-    // Buscar tipos do layout
-    const tiposResponse = await fetch(`/api/layouts/${layoutId}/tipos`);
-    const tipos = tiposResponse.ok ? await tiposResponse.json() : [];
-    
-    // Criar objeto de exportação
-    const dadosExportacao = {
-      versao: '1.0',
-      data_exportacao: new Date().toISOString(),
-      total_layouts: 1,
-      layouts: [{
-        ...layout,
-        tipos_registro: tipos
-      }]
-    };
-    
-    // Download do arquivo
-    const nomeArquivo = `layout_${layout.nome.replace(/[^a-zA-Z0-9]/g, '_')}_${formatarDataParaArquivo()}.json`;
-    downloadJSON(dadosExportacao, nomeArquivo);
-    
-    mostrarNotificacao(`Layout "${layout.nome}" exportado com sucesso!`, 'success');
-    
-  } catch (error) {
-    console.error('Erro ao exportar layout:', error);
-    mostrarNotificacao('Erro ao exportar layout: ' + error.message, 'erro');
-  }
-}
-
-function abrirModalExportarLayout() {
-  const modal = new bootstrap.Modal(document.getElementById('modalExportarLayout'));
-  
-  // Limpar estado anterior
-  document.getElementById('layoutParaExportar').value = '';
-  document.getElementById('previewExportacao').style.display = 'none';
-  document.getElementById('btnExecutarExportacao').disabled = true;
-  
-  // Carregar layouts disponíveis
-  carregarLayoutsParaExportacao();
-  
-  modal.show();
-}
-
-function carregarLayoutsParaExportacao() {
-  const select = document.getElementById('layoutParaExportar');
-  
-  // Limpar opções existentes
-  select.innerHTML = '<option value="">Selecione um layout...</option>';
-  
-  if (layouts && layouts.length > 0) {
-    layouts.forEach(layout => {
-      const option = document.createElement('option');
-      option.value = layout.id;
-      option.textContent = layout.nome;
-      select.appendChild(option);
-    });
-  } else {
-    const option = document.createElement('option');
-    option.value = '';
-    option.textContent = 'Nenhum layout disponível';
-    option.disabled = true;
-    select.appendChild(option);
-  }
-}
-
-function aoSelecionarLayoutExportacao() {
-  const selectLayout = document.getElementById('layoutParaExportar');
-  const layoutId = selectLayout.value;
-  const previewDiv = document.getElementById('previewExportacao');
-  const btnExecutar = document.getElementById('btnExecutarExportacao');
-  
-  if (!layoutId) {
-    previewDiv.style.display = 'none';
-    btnExecutar.disabled = true;
-    return;
-  }
-  
-  const layout = layouts.find(l => l.id == layoutId);
-  if (!layout) {
-    previewDiv.style.display = 'none';
-    btnExecutar.disabled = true;
-    return;
-  }
-  
-  // Mostrar preview do layout
-  const previewContent = document.getElementById('previewContentExportacao');
-  previewContent.innerHTML = `
-    <div class="card">
-      <div class="card-header">
-        <h6 class="mb-0">${layout.nome}</h6>
-      </div>
-      <div class="card-body">
-        <p class="text-muted mb-2">${layout.descricao || 'Sem descrição'}</p>
+    // Criar modal de visualização simples
+    const modalContent = `
+      <div style="max-width: 600px;">
+        <h5><i class="fas fa-file-alt me-2"></i>RPS #${rps.numero_rps}</h5>
+        <hr>
         <div class="row">
-          <div class="col-6">
-            <small class="text-muted">Tipos de registro:</small>
-            <div id="tiposPreview"></div>
-          </div>
-          <div class="col-6">
-            <small class="text-muted">Total de campos:</small>
-            <div id="camposPreview"></div>
-          </div>
+          <div class="col-6"><strong>Série:</strong> ${rps.serie_rps || '-'}</div>
+          <div class="col-6"><strong>Data Emissão:</strong> ${new Date(rps.data_emissao).toLocaleDateString()}</div>
+          <div class="col-6"><strong>Tomador:</strong> ${rps.tomador_razao_social || '-'}</div>
+          <div class="col-6"><strong>Valor Serviços:</strong> R$ ${(rps.valor_servicos || 0).toFixed(2)}</div>
+          <div class="col-6"><strong>Valor ISS:</strong> R$ ${(rps.valor_iss || 0).toFixed(2)}</div>
+          <div class="col-6"><strong>Valor Líquido:</strong> R$ ${(rps.valor_liquido || 0).toFixed(2)}</div>
+          <div class="col-12 mt-2"><strong>Discriminação:</strong><br>${rps.discriminacao || '-'}</div>
         </div>
-      </div>
-    </div>
-  `;
-  
-  // Carregar e mostrar tipos de registro
-  carregarTiposParaPreview(layout.id);
-  
-  previewDiv.style.display = 'block';
-  btnExecutar.disabled = false;
-}
-
-async function carregarTiposParaPreview(layoutId) {
-  try {
-    const response = await fetch(`/api/layouts/${layoutId}/tipos`);
-    if (!response.ok) throw new Error('Erro ao carregar tipos');
-    
-    const tipos = await response.json();
-    
-    let totalCampos = 0;
-    const tiposHtml = tipos.map(tipo => {
-      totalCampos += tipo.campos ? tipo.campos.length : 0;
-      return `<span class="badge bg-secondary me-1">${tipo.tipo}</span>`;
-    }).join('');
-    
-    document.getElementById('tiposPreview').innerHTML = tiposHtml || '<span class="text-muted">Nenhum tipo</span>';
-    document.getElementById('camposPreview').innerHTML = `<span class="fw-bold">${totalCampos}</span> campos`;
-    
-  } catch (error) {
-    console.error('Erro ao carregar preview:', error);
-    document.getElementById('tiposPreview').innerHTML = '<span class="text-danger">Erro ao carregar</span>';
-    document.getElementById('camposPreview').innerHTML = '<span class="text-danger">-</span>';
-  }
-}
-
-async function executarExportacaoLayout() {
-  const layoutId = document.getElementById('layoutParaExportar').value;
-  const incluirMetadados = document.getElementById('incluirMetadadosExport').checked;
-  const formatarJson = document.getElementById('formatarJsonExport').checked;
-  
-  if (!layoutId) {
-    mostrarNotificacao('Selecione um layout para exportar', 'erro');
-    return;
-  }
-  
-  try {
-    // Buscar o layout
-    const layout = layouts.find(l => l.id == layoutId);
-    if (!layout) {
-      mostrarNotificacao('Layout não encontrado', 'erro');
-      return;
-    }
-    
-    // Buscar tipos e campos
-    const response = await fetch(`/api/layouts/${layoutId}/tipos`);
-    if (!response.ok) throw new Error('Erro ao carregar dados do layout');
-    
-    const tipos = await response.json();
-    
-    // Preparar dados para exportação
-    let dadosExportacao;
-    
-    if (incluirMetadados) {
-      dadosExportacao = {
-        metadata: {
-          exportado_por: 'RPS Manager',
-          data_exportacao: new Date().toISOString(),
-          versao: '1.0',
-          total_layouts: 1
-        },
-        layouts: [{
-          ...layout,
-          tipos_registro: tipos
-        }]
-      };
-    } else {
-      dadosExportacao = {
-        ...layout,
-        tipos_registro: tipos
-      };
-    }
-    
-    // Gerar nome do arquivo
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
-    const nomeArquivo = `layout_${layout.nome.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.json`;
-    
-    // Download do arquivo
-    const jsonString = formatarJson ? JSON.stringify(dadosExportacao, null, 2) : JSON.stringify(dadosExportacao);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = nomeArquivo;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    // Fechar modal e mostrar sucesso
-    const modal = bootstrap.Modal.getInstance(document.getElementById('modalExportarLayout'));
-    modal.hide();
-    
-    mostrarNotificacao(`Layout "${layout.nome}" exportado com sucesso!`, 'success');
-    
-  } catch (error) {
-    console.error('Erro ao exportar layout:', error);
-    mostrarNotificacao('Erro ao exportar layout: ' + error.message, 'erro');
-  }
-}
-
-function abrirModalImportarLayout() {
-  const modal = new bootstrap.Modal(document.getElementById('modalImportarLayout'));
-  
-  // Limpar estado anterior
-  document.getElementById('arquivoLayoutImport').value = '';
-  document.getElementById('previewImportacao').style.display = 'none';
-  document.getElementById('opcoesImportacao').style.display = 'none';
-  document.getElementById('resultadoImportacao').style.display = 'none';
-  document.getElementById('btnExecutarImportacao').disabled = true;
-  
-  modal.show();
-}
-
-function processarArquivoImportacao(input) {
-  const arquivo = input.files[0];
-  
-  if (!arquivo) {
-    document.getElementById('previewImportacao').style.display = 'none';
-    document.getElementById('opcoesImportacao').style.display = 'none';
-    document.getElementById('btnExecutarImportacao').disabled = true;
-    return;
-  }
-  
-  if (!arquivo.name.toLowerCase().endsWith('.json')) {
-    mostrarNotificacao('Por favor, selecione um arquivo JSON válido', 'erro');
-    return;
-  }
-  
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const dados = JSON.parse(e.target.result);
-      
-      // Validar estrutura do arquivo
-      if (!dados.layouts || !Array.isArray(dados.layouts)) {
-        throw new Error('Arquivo JSON inválido: propriedade "layouts" não encontrada ou não é um array');
-      }
-      
-      // Mostrar preview
-      document.getElementById('infoArquivoImport').innerHTML = `
-        <strong>Arquivo:</strong> ${arquivo.name}<br>
-        <strong>Tamanho:</strong> ${(arquivo.size / 1024).toFixed(2)} KB<br>
-        <strong>Versão:</strong> ${dados.versao || 'N/A'}<br>
-        <strong>Data de Exportação:</strong> ${dados.data_exportacao ? new Date(dados.data_exportacao).toLocaleString() : 'N/A'}
-      `;
-      
-      // Mostrar layouts encontrados
-      let layoutsHtml = `<strong>Layouts encontrados (${dados.layouts.length}):</strong><ul class="mt-2 mb-0">`;
-      dados.layouts.forEach(layout => {
-        const tiposCount = layout.tipos_registro ? layout.tipos_registro.length : 0;
-        layoutsHtml += `<li>${layout.nome || 'Nome não especificado'} (${tiposCount} tipos)</li>`;
-      });
-      layoutsHtml += '</ul>';
-      
-      document.getElementById('layoutsEncontrados').innerHTML = layoutsHtml;
-      
-      // Mostrar seções
-      document.getElementById('previewImportacao').style.display = 'block';
-      document.getElementById('opcoesImportacao').style.display = 'block';
-      document.getElementById('btnExecutarImportacao').disabled = false;
-      
-      // Armazenar dados para importação
-      window.dadosImportacao = dados;
-      
-    } catch (error) {
-      console.error('Erro ao processar arquivo:', error);
-      mostrarNotificacao('Erro ao processar arquivo: ' + error.message, 'erro');
-    }
-  };
-  
-  reader.readAsText(arquivo);
-}
-
-async function executarImportacaoLayout() {
-  try {
-    if (!window.dadosImportacao) {
-      mostrarNotificacao('Nenhum arquivo carregado para importação', 'erro');
-      return;
-    }
-    
-    const substituirDuplicados = document.getElementById('substituirDuplicados').checked;
-    const manterIds = document.getElementById('manterIds').checked;
-    
-    console.log('🚀 Executando importação de layouts...');
-    console.log('Substituir duplicados:', substituirDuplicados);
-    console.log('Manter IDs:', manterIds);
-    
-    let sucessos = 0;
-    let erros = 0;
-    let duplicados = 0;
-    const resultados = [];
-    
-    for (const layoutImport of window.dadosImportacao.layouts) {
-      try {
-        // Preparar dados do layout
-        const layoutData = {
-          nome: layoutImport.nome,
-          tipo: layoutImport.tipo || 'importado',
-          descricao: layoutImport.descricao || 'Layout importado',
-          estrutura_completa: layoutImport.estrutura_completa || {},
-          formatacao: layoutImport.formatacao || {},
-          origem: 'importado',
-          tipos_registro: layoutImport.tipos_registro || []
-        };
-        
-        // Se não manter IDs, remover ID
-        if (!manterIds && layoutData.id) {
-          delete layoutData.id;
-        }
-        
-        // Verificar duplicados se necessário
-        if (substituirDuplicados) {
-          const layoutsExistentes = await fetch('/api/layouts').then(r => r.json());
-          const duplicado = layoutsExistentes.find(l => l.nome === layoutData.nome);
-          
-          if (duplicado) {
-            // Atualizar layout existente
-            const response = await fetch(`/api/layouts/${duplicado.id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(layoutData)
-            });
-            
-            if (response.ok) {
-              duplicados++;
-              resultados.push(`✅ ${layoutData.nome} (substituído)`);
-            } else {
-              erros++;
-              resultados.push(`❌ ${layoutData.nome} (erro ao substituir)`);
-            }
-            continue;
-          }
-        }
-        
-        // Criar novo layout
-        const response = await fetch('/api/layouts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(layoutData)
-        });
-        
-        if (response.ok) {
-          sucessos++;
-          resultados.push(`✅ ${layoutData.nome} (criado)`);
-        } else {
-          erros++;
-          resultados.push(`❌ ${layoutData.nome} (erro ao criar)`);
-        }
-        
-      } catch (error) {
-        console.error('Erro ao importar layout:', layoutImport.nome, error);
-        erros++;
-        resultados.push(`❌ ${layoutImport.nome || 'Layout sem nome'} (erro: ${error.message})`);
-      }
-    }
-    
-    // Mostrar resultado
-    const statusHtml = `
-      <div class="row">
-        <div class="col-md-4 text-center">
-          <div class="text-success">
-            <i class="fas fa-check-circle fa-2x"></i>
-            <div><strong>${sucessos}</strong></div>
-            <div>Criados</div>
-          </div>
-        </div>
-        <div class="col-md-4 text-center">
-          <div class="text-warning">
-            <i class="fas fa-sync fa-2x"></i>
-            <div><strong>${duplicados}</strong></div>
-            <div>Substituídos</div>
-          </div>
-        </div>
-        <div class="col-md-4 text-center">
-          <div class="text-danger">
-            <i class="fas fa-times-circle fa-2x"></i>
-            <div><strong>${erros}</strong></div>
-            <div>Erros</div>
-          </div>
-        </div>
-      </div>
-      <div class="mt-3">
-        <details>
-          <summary><strong>Detalhes da importação:</strong></summary>
-          <ul class="mt-2 mb-0">
-            ${resultados.map(r => `<li>${r}</li>`).join('')}
-          </ul>
-        </details>
       </div>
     `;
     
-    document.getElementById('statusImportacao').innerHTML = statusHtml;
-    document.getElementById('resultadoImportacao').style.display = 'block';
-    
-    // Atualizar lista de layouts
-    await atualizarListaLayouts();
-    
-    const mensagem = `Importação concluída: ${sucessos} criados, ${duplicados} substituídos, ${erros} erros`;
-    mostrarNotificacao(mensagem, erros > 0 ? 'warning' : 'success');
+    // Usar alert por enquanto (pode ser melhorado com modal Bootstrap)
+    alert(`RPS #${rps.numero_rps}\n\nTomador: ${rps.tomador_razao_social || '-'}\nValor: R$ ${(rps.valor_servicos || 0).toFixed(2)}\nData: ${new Date(rps.data_emissao).toLocaleDateString()}\n\nDiscriminação: ${rps.discriminacao || '-'}`);
     
   } catch (error) {
-    console.error('Erro durante importação:', error);
-    mostrarNotificacao('Erro durante importação: ' + error.message, 'erro');
+    console.error('❌ Erro ao visualizar RPS:', error);
+    showNotification(`Erro ao visualizar RPS: ${error.message}`, 'error');
   }
 }
 
-// Funções auxiliares
-function downloadJSON(dados, nomeArquivo) {
-  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = nomeArquivo;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  
-  URL.revokeObjectURL(url);
-}
-
-function formatarDataParaArquivo() {
-  const agora = new Date();
-  return agora.toISOString().slice(0, 19).replace(/[:-]/g, '').replace('T', '_');
-}
-
-// ==================== FUNÇÕES DE PRÉ-CADASTRO DE EMPRESA ====================
-
-async function preCadastrarEmpresa(cnpj, arquivo) {
+async function editarRps(id) {
   try {
-    showNotification('Buscando dados da empresa...', 'info');
+    console.log('🔄 Carregando dados do RPS:', id);
     
-    const response = await fetch('/api/empresas/pre-cadastro', {
-      method: 'POST',
+    // Buscar dados do RPS
+    const response = await fetch(`/api/rps/${id}`);
+    const resultado = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(resultado.erro || 'RPS não encontrado');
+    }
+    
+    // A API pode retornar os dados diretamente ou dentro de um objeto 'data'
+    const rps = resultado.data || resultado;
+    console.log('📋 Dados do RPS carregados:', rps);
+    
+    // Verificar se os dados foram carregados corretamente
+    if (!rps || !rps.id) {
+      throw new Error('Dados do RPS não foram carregados corretamente');
+    }
+    
+    // Preencher o formulário de edição
+    preencherFormularioEdicao(rps);
+    
+    // Abrir o modal
+    const modal = new bootstrap.Modal(document.getElementById('modalEditarRps'));
+    modal.show();
+    
+  } catch (error) {
+    console.error('❌ Erro ao carregar RPS para edição:', error);
+    showNotification(`Erro ao carregar RPS: ${error.message}`, 'error');
+  }
+}
+
+function preencherFormularioEdicao(rps) {
+  console.log('📝 Preenchendo formulário com dados:', rps);
+  
+  // Verificar se o RPS tem dados válidos
+  if (!rps || !rps.id) {
+    console.error('❌ Dados do RPS inválidos:', rps);
+    throw new Error('Dados do RPS inválidos');
+  }
+  
+  // Função auxiliar para definir valor seguramente
+  const setValueSafe = (elementId, value) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.value = value || '';
+    } else {
+      console.warn(`⚠️ Elemento '${elementId}' não encontrado`);
+    }
+  };
+  
+  // Função auxiliar para definir checkbox seguramente
+  const setCheckedSafe = (elementId, checked) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.checked = Boolean(checked);
+    } else {
+      console.warn(`⚠️ Elemento '${elementId}' não encontrado`);
+    }
+  };
+  
+  // ID do RPS
+  setValueSafe('editRpsId', rps.id);
+  
+  // Informações Básicas
+  setValueSafe('editNumeroRps', rps.numero_rps);
+  setValueSafe('editSerieRps', rps.serie_rps);
+  setValueSafe('editTipoRps', rps.tipo_rps);
+  
+  // Datas
+  if (rps.data_emissao) {
+    setValueSafe('editDataEmissao', rps.data_emissao.split('T')[0]);
+  }
+  if (rps.data_competencia) {
+    setValueSafe('editDataCompetencia', rps.data_competencia.split('T')[0]);
+  }
+  
+  // Prestador
+  setValueSafe('editPrestadorCnpj', rps.prestador_cnpj);
+  setValueSafe('editPrestadorInscricao', rps.prestador_inscricao_municipal);
+  
+  // Tomador
+  setValueSafe('editTomadorCnpj', rps.tomador_cnpj);
+  setValueSafe('editTomadorCpf', rps.tomador_cpf);
+  setValueSafe('editTomadorRazaoSocial', rps.tomador_razao_social);
+  setValueSafe('editTomadorInscricao', rps.tomador_inscricao_municipal);
+  setValueSafe('editTomadorEndereco', rps.tomador_endereco);
+  setValueSafe('editTomadorNumero', rps.tomador_numero);
+  setValueSafe('editTomadorBairro', rps.tomador_bairro);
+  setValueSafe('editTomadorCep', rps.tomador_cep);
+  setValueSafe('editTomadorCidade', rps.tomador_cidade);
+  setValueSafe('editTomadorUf', rps.tomador_uf);
+  setValueSafe('editTomadorTelefone', rps.tomador_telefone);
+  
+  // Serviços
+  setValueSafe('editCodigoServico', rps.codigo_servico);
+  setValueSafe('editCodigoCnae', rps.codigo_cnae);
+  setValueSafe('editCodigoMunicipio', rps.codigo_municipio);
+  setValueSafe('editDiscriminacao', rps.discriminacao);
+  
+  // Valores
+  setValueSafe('editValorServicos', rps.valor_servicos || 0);
+  setValueSafe('editValorDeducoes', rps.valor_deducoes || 0);
+  setValueSafe('editValorPis', rps.valor_pis || 0);
+  setValueSafe('editValorCofins', rps.valor_cofins || 0);
+  setValueSafe('editValorInss', rps.valor_inss || 0);
+  setValueSafe('editValorIr', rps.valor_ir || 0);
+  setValueSafe('editValorCsll', rps.valor_csll || 0);
+  setValueSafe('editValorIss', rps.valor_iss || 0);
+  setValueSafe('editValorLiquido', rps.valor_liquido || 0);
+  setValueSafe('editAliquota', rps.aliquota || 0);
+  
+  // Opções
+  setCheckedSafe('editOptanteSimples', rps.optante_simples_nacional);
+  setCheckedSafe('editIncentivadorCultural', rps.incentivador_cultural);
+  
+  // Adicionar listeners para cálculo automático
+  setupCalculoValores();
+}
+
+function setupCalculoValores() {
+  const camposValor = [
+    'editValorServicos', 'editValorDeducoes', 'editValorPis', 
+    'editValorCofins', 'editValorInss', 'editValorIr', 
+    'editValorCsll', 'editValorIss'
+  ];
+  
+  camposValor.forEach(campoId => {
+    const campo = document.getElementById(campoId);
+    if (campo) {
+      campo.addEventListener('input', calcularValorLiquido);
+    }
+  });
+}
+
+function calcularValorLiquido() {
+  const valorServicos = parseFloat(document.getElementById('editValorServicos').value) || 0;
+  const valorDeducoes = parseFloat(document.getElementById('editValorDeducoes').value) || 0;
+  const valorPis = parseFloat(document.getElementById('editValorPis').value) || 0;
+  const valorCofins = parseFloat(document.getElementById('editValorCofins').value) || 0;
+  const valorInss = parseFloat(document.getElementById('editValorInss').value) || 0;
+  const valorIr = parseFloat(document.getElementById('editValorIr').value) || 0;
+  const valorCsll = parseFloat(document.getElementById('editValorCsll').value) || 0;
+  const valorIss = parseFloat(document.getElementById('editValorIss').value) || 0;
+  
+  const totalRetencoes = valorPis + valorCofins + valorInss + valorIr + valorCsll + valorIss;
+  const valorLiquido = valorServicos - valorDeducoes - totalRetencoes;
+  
+  document.getElementById('editValorLiquido').value = valorLiquido.toFixed(2);
+}
+
+async function salvarRpsEditado() {
+  try {
+    const form = document.getElementById('formEditarRps');
+    
+    // Validar campos obrigatórios
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    
+    const rpsId = document.getElementById('editRpsId').value;
+    
+    // Coletar dados do formulário
+    const dadosRps = {
+      numero_rps: document.getElementById('editNumeroRps').value,
+      serie_rps: document.getElementById('editSerieRps').value,
+      tipo_rps: document.getElementById('editTipoRps').value,
+      data_emissao: document.getElementById('editDataEmissao').value,
+      data_competencia: document.getElementById('editDataCompetencia').value,
+      
+      prestador_cnpj: document.getElementById('editPrestadorCnpj').value,
+      prestador_inscricao_municipal: document.getElementById('editPrestadorInscricao').value,
+      
+      tomador_cnpj: document.getElementById('editTomadorCnpj').value,
+      tomador_cpf: document.getElementById('editTomadorCpf').value,
+      tomador_razao_social: document.getElementById('editTomadorRazaoSocial').value,
+      tomador_inscricao_municipal: document.getElementById('editTomadorInscricao').value,
+      tomador_endereco: document.getElementById('editTomadorEndereco').value,
+      tomador_numero: document.getElementById('editTomadorNumero').value,
+      tomador_bairro: document.getElementById('editTomadorBairro').value,
+      tomador_cep: document.getElementById('editTomadorCep').value,
+      tomador_cidade: document.getElementById('editTomadorCidade').value,
+      tomador_uf: document.getElementById('editTomadorUf').value,
+      tomador_telefone: document.getElementById('editTomadorTelefone').value,
+      
+      codigo_servico: document.getElementById('editCodigoServico').value,
+      codigo_cnae: document.getElementById('editCodigoCnae').value,
+      codigo_municipio: document.getElementById('editCodigoMunicipio').value,
+      discriminacao: document.getElementById('editDiscriminacao').value,
+      
+      valor_servicos: parseFloat(document.getElementById('editValorServicos').value) || 0,
+      valor_deducoes: parseFloat(document.getElementById('editValorDeducoes').value) || 0,
+      valor_pis: parseFloat(document.getElementById('editValorPis').value) || 0,
+      valor_cofins: parseFloat(document.getElementById('editValorCofins').value) || 0,
+      valor_inss: parseFloat(document.getElementById('editValorInss').value) || 0,
+      valor_ir: parseFloat(document.getElementById('editValorIr').value) || 0,
+      valor_csll: parseFloat(document.getElementById('editValorCsll').value) || 0,
+      valor_iss: parseFloat(document.getElementById('editValorIss').value) || 0,
+      valor_liquido: parseFloat(document.getElementById('editValorLiquido').value) || 0,
+      aliquota: parseFloat(document.getElementById('editAliquota').value) || 0,
+      
+      optante_simples_nacional: document.getElementById('editOptanteSimples').checked ? 1 : 0,
+      incentivador_cultural: document.getElementById('editIncentivadorCultural').checked ? 1 : 0
+    };
+    
+    console.log('💾 Salvando RPS editado:', { rpsId, dadosRps });
+    
+    // Enviar dados para o servidor
+    const response = await fetch(`/api/rps/${rpsId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(dadosRps)
+    });
+    
+    const resultado = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(resultado.erro || 'Erro ao salvar RPS');
+    }
+    
+    // Fechar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarRps'));
+    modal.hide();
+    
+    // Recarregar lista de RPS
+    await atualizarListaRps();
+    
+    // Mostrar notificação de sucesso
+    showNotification('✅ RPS atualizado com sucesso!', 'success');
+    
+    console.log('✅ RPS salvo com sucesso:', resultado);
+    
+  } catch (error) {
+    console.error('❌ Erro ao salvar RPS:', error);
+    showNotification(`Erro ao salvar RPS: ${error.message}`, 'error');
+  }
+}
+
+// ==================== FUNÇÕES DE SELEÇÃO E EDIÇÃO EM MASSA ====================
+
+function toggleSelecionarRps(id) {
+  console.log('🔄 Toggle seleção RPS:', id);
+  
+  if (rpsSelecionados.has(id)) {
+    rpsSelecionados.delete(id);
+    console.log('❌ RPS removido da seleção:', id);
+  } else {
+    rpsSelecionados.add(id);
+    console.log('✅ RPS adicionado à seleção:', id);
+  }
+  
+  console.log('📊 Total selecionados:', rpsSelecionados.size, Array.from(rpsSelecionados));
+  atualizarContadorSelecionados();
+}
+
+function selecionarTodos() {
+  // Selecionar todos os RPS da página atual
+  const checkboxes = document.querySelectorAll('#corpoTabelaRPS input[type="checkbox"]');
+  checkboxes.forEach(checkbox => {
+    if (!checkbox.checked) {
+      checkbox.click(); // Usar click para acionar o evento onChange
+    }
+  });
+}
+
+function deselecionarTodos() {
+  // Desselecionar todos os RPS
+  const checkboxes = document.querySelectorAll('#corpoTabelaRPS input[type="checkbox"]');
+  checkboxes.forEach(checkbox => {
+    if (checkbox.checked) {
+      checkbox.click(); // Usar click para acionar o evento onChange
+    }
+  });
+}
+
+function atualizarContadorSelecionados() {
+  const contador = rpsSelecionados.size;
+  const elementoContador = document.getElementById('contadorSelecionados');
+  const btnExcluir = document.getElementById('btnExcluirSelecionados');
+  const btnEditar = document.getElementById('btnEditarSelecionados');
+  
+  console.log('🔄 Atualizando contador selecionados:', {
+    contador,
+    elementoContador: !!elementoContador,
+    btnExcluir: !!btnExcluir,
+    btnEditar: !!btnEditar
+  });
+  
+  if (elementoContador) {
+    elementoContador.textContent = `${contador} selecionados`;
+  }
+  
+  // Habilitar/desabilitar botões baseado na seleção
+  if (btnExcluir) {
+    btnExcluir.disabled = contador === 0;
+    console.log('🗑️ Botão excluir:', btnExcluir.disabled ? 'desabilitado' : 'habilitado');
+  }
+  if (btnEditar) {
+    btnEditar.disabled = contador === 0;
+    console.log('✏️ Botão editar:', btnEditar.disabled ? 'desabilitado' : 'habilitado');
+  }
+}
+
+function editarSelecionados() {
+  if (rpsSelecionados.size === 0) {
+    showNotification('Selecione pelo menos um RPS para editar', 'warning');
+    return;
+  }
+  
+  console.log('📝 Editando RPS selecionados:', Array.from(rpsSelecionados));
+  
+  // Atualizar contador no modal
+  const elementoQtd = document.getElementById('qtdSelecionados');
+  if (elementoQtd) {
+    elementoQtd.textContent = rpsSelecionados.size;
+  }
+  
+  // Limpar formulário
+  document.getElementById('formEditarMassa').reset();
+  
+  // Abrir modal
+  const modal = new bootstrap.Modal(document.getElementById('modalEditarMassa'));
+  modal.show();
+}
+
+async function salvarEdicaoMassa() {
+  try {
+    if (rpsSelecionados.size === 0) {
+      throw new Error('Nenhum RPS selecionado');
+    }
+    
+    // Coletar dados do formulário (apenas campos preenchidos)
+    const dadosEdicao = {};
+    
+    const campos = [
+      'massaValorServicos', 'massaValorDeducoes', 'massaAliquota', 'massaValorIss',
+      'massaValorPis', 'massaValorCofins', 'massaValorInss', 'massaValorIr',
+      'massaValorCsll', 'massaValorOutrasRetencoes'
+    ];
+    
+    campos.forEach(campoId => {
+      const elemento = document.getElementById(campoId);
+      if (elemento && elemento.value.trim() !== '') {
+        // Converter para nome do campo no banco
+        let nomeCampo;
+        switch(campoId) {
+          case 'massaValorServicos': nomeCampo = 'valor_servicos'; break;
+          case 'massaValorDeducoes': nomeCampo = 'valor_deducoes'; break;
+          case 'massaAliquota': nomeCampo = 'aliquota'; break;
+          case 'massaValorIss': nomeCampo = 'valor_iss'; break;
+          case 'massaValorPis': nomeCampo = 'valor_pis'; break;
+          case 'massaValorCofins': nomeCampo = 'valor_cofins'; break;
+          case 'massaValorInss': nomeCampo = 'valor_inss'; break;
+          case 'massaValorIr': nomeCampo = 'valor_ir'; break;
+          case 'massaValorCsll': nomeCampo = 'valor_csll'; break;
+          case 'massaValorOutrasRetencoes': nomeCampo = 'valor_outras_retencoes'; break;
+          default: nomeCampo = campoId;
+        }
+        dadosEdicao[nomeCampo] = parseFloat(elemento.value);
+      }
+    });
+    
+    const recalcularLiquido = document.getElementById('massaRecalcularLiquido').checked;
+    
+    if (Object.keys(dadosEdicao).length === 0) {
+      throw new Error('Preencha pelo menos um campo para atualizar');
+    }
+    
+    console.log('💾 Dados para edição em massa:', { dadosEdicao, ids: Array.from(rpsSelecionados), recalcularLiquido });
+    
+    // Enviar para o servidor
+    const response = await fetch('/api/rps/massa', {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        cnpj: cnpj,
-        continuar_importacao: true
+        ids: Array.from(rpsSelecionados),
+        dados: dadosEdicao,
+        recalcularLiquido: recalcularLiquido
       })
     });
     
-    const data = await response.json();
+    const resultado = await response.json();
     
-    if (response.ok) {
-      showNotification(`Empresa pré-cadastrada com sucesso! ${data.dados_externos ? 'Dados obtidos externamente.' : 'Cadastrada com dados básicos.'}`, 'success');
-      
-      // Recarregar lista de empresas
-      carregarEmpresas();
-      
-      // Mostrar opção para continuar importação
-      mostrarOpcaoContinuarImportacao(arquivo, data.empresa);
-      
-    } else {
-      if (response.status === 409) {
-        showNotification('Empresa já está cadastrada!', 'warning');
-        carregarEmpresas();
-      } else {
-        showNotification(data.erro || 'Erro ao pré-cadastrar empresa', 'danger');
-      }
+    if (!response.ok) {
+      throw new Error(resultado.erro || 'Erro ao salvar edições');
     }
     
-  } catch (error) {
-    console.error('Erro no pré-cadastro:', error);
-    showNotification('Erro na comunicação com o servidor', 'danger');
-  }
-}
-
-function mostrarFormularioManual(cnpj, arquivo) {
-  // Preencher o formulário de empresa com o CNPJ
-  document.getElementById('cnpjEmpresa').value = cnpj;
-  
-  // Abrir modal de empresa
-  const modal = new bootstrap.Modal(document.getElementById('modalEmpresa'));
-  modal.show();
-  
-  showNotification('Complete os dados da empresa no formulário que se abriu.', 'info');
-}
-
-function mostrarOpcaoContinuarImportacao(arquivo, empresa) {
-  const html = `
-    <div class="alert alert-success mt-3" id="alertContinuarImportacao">
-      <h6><i class="fas fa-check-circle me-2"></i>Empresa Cadastrada com Sucesso!</h6>
-      <p class="mb-2"><strong>${empresa.razao_social}</strong> (CNPJ: ${formatarCNPJ(empresa.cnpj)})</p>
-      <p class="mb-3">Agora você pode continuar a importação do arquivo <strong>${arquivo}</strong>.</p>
-      <div>
-        <button class="btn btn-primary me-2" onclick="continuarImportacaoComEmpresa('${empresa.id}', '${arquivo}')">
-          <i class="fas fa-upload me-1"></i>Continuar Importação
-        </button>
-        <button class="btn btn-outline-secondary" onclick="document.getElementById('alertContinuarImportacao').remove()">
-          <i class="fas fa-times me-1"></i>Fechar
-        </button>
-      </div>
-    </div>
-  `;
-  
-  const container = document.getElementById('resultadoImportacao');
-  if (container) {
-    container.insertAdjacentHTML('beforeend', html);
-  }
-}
-
-async function continuarImportacaoComEmpresa(empresaId, arquivo) {
-  try {
-    // Reprocessar o arquivo com a empresa cadastrada
-    showNotification('Reprocessando arquivo com empresa cadastrada...', 'info');
+    // Fechar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarMassa'));
+    modal.hide();
     
-    // Aqui seria necessário reenviar o arquivo específico
-    // Por simplicidade, vamos orientar o usuário a refazer a importação
-    showNotification('Empresa cadastrada! Selecione-a na lista e tente a importação novamente.', 'success');
+    // Limpar seleções
+    rpsSelecionados.clear();
+    atualizarContadorSelecionados();
     
-    // Atualizar select de empresas
-    carregarEmpresas();
+    // Recarregar lista
+    await atualizarListaRps();
     
-    // Remover alerta
-    const alert = document.getElementById('alertContinuarImportacao');
-    if (alert) {
-      alert.remove();
-    }
+    // Mostrar sucesso
+    showNotification(`✅ ${resultado.registrosAfetados || rpsSelecionados.size} RPS atualizados com sucesso!`, 'success');
+    
+    console.log('✅ Edição em massa concluída:', resultado);
     
   } catch (error) {
-    console.error('Erro ao continuar importação:', error);
-    showNotification('Erro ao continuar importação', 'danger');
+    console.error('❌ Erro na edição em massa:', error);
+    showNotification(`Erro na edição em massa: ${error.message}`, 'error');
   }
 }
 
-function formatarCNPJ(cnpj) {
-  if (!cnpj || cnpj.length !== 14) return cnpj;
-  return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+function excluirSelecionados() {
+  if (rpsSelecionados.size === 0) {
+    showNotification('Selecione pelo menos um RPS para excluir', 'warning');
+    return;
+  }
+  
+  if (confirm(`Tem certeza que deseja excluir ${rpsSelecionados.size} RPS selecionados? Esta ação não pode ser desfeita.`)) {
+    console.log('🗑️ Excluindo RPS selecionados:', Array.from(rpsSelecionados));
+    // Implementar exclusão em massa (reutilizar endpoint existente)
+    // TODO: Implementar se necessário
+    showNotification('Funcionalidade de exclusão em massa será implementada', 'info');
+  }
 }
 
 // ==================== INICIALIZAÇÃO ====================
 
 document.addEventListener('DOMContentLoaded', function() {
-  carregarEmpresas();
-  setupDropZone();
-  setupFormEmpresa();
-  formatarInputs();
+  console.log('🚀 Inicializando RPS Manager Pro...');
   
-  // Event listeners para verificação de importação
-  const empresaImportacao = document.getElementById('empresaImportacao');
-  const layoutImportacao = document.getElementById('layoutImportacao');
-  const cadastrarEmpresas = document.getElementById('cadastrarEmpresas');
+  // Verificar se as funções essenciais existem
+  console.log('🔍 Verificando funções disponíveis...');
+  console.log('- carregarEmpresas:', typeof carregarEmpresas);
+  console.log('- setupDropZone:', typeof setupDropZone);
+  console.log('- setupFormEmpresa:', typeof setupFormEmpresa);
+  console.log('- formatarInputs:', typeof formatarInputs);
+  console.log('- carregarDashboard:', typeof carregarDashboard);
+  console.log('- atualizarContadorSelecionados:', typeof atualizarContadorSelecionados);
+  console.log('- atualizarListaLayouts:', typeof atualizarListaLayouts);
   
-  if (empresaImportacao) {
-    empresaImportacao.addEventListener('change', verificarHabilitarImportacao);
+  try {
+    carregarEmpresas();
+    console.log('✅ carregarEmpresas executada');
+  } catch (e) {
+    console.error('❌ Erro em carregarEmpresas:', e);
   }
-  if (layoutImportacao) {
-    layoutImportacao.addEventListener('change', verificarHabilitarImportacao);
+  
+  try {
+    setupDropZone();
+    console.log('✅ setupDropZone executada');
+  } catch (e) {
+    console.error('❌ Erro em setupDropZone:', e);
   }
-  if (cadastrarEmpresas) {
-    cadastrarEmpresas.addEventListener('change', verificarHabilitarImportacao);
+  
+  try {
+    setupFormEmpresa();
+    console.log('✅ setupFormEmpresa executada');
+  } catch (e) {
+    console.error('❌ Erro em setupFormEmpresa:', e);
+  }
+  
+  try {
+    formatarInputs();
+    console.log('✅ formatarInputs executada');
+  } catch (e) {
+    console.error('❌ Erro em formatarInputs:', e);
+  }
+  
+  // Carregar dashboard por padrão
+  console.log('📊 Carregando dashboard...');
+  try {
+    carregarDashboard();
+    console.log('✅ carregarDashboard executada');
+  } catch (e) {
+    console.error('❌ Erro em carregarDashboard:', e);
+  }
+  
+  // Inicializar estado dos botões de seleção
+  try {
+    atualizarContadorSelecionados();
+    console.log('✅ atualizarContadorSelecionados executada');
+  } catch (e) {
+    console.error('❌ Erro em atualizarContadorSelecionados:', e);
   }
   
   // Inicializar layouts se a aba estiver ativa
   if (document.getElementById('layouts') && document.getElementById('layouts').style.display !== 'none') {
-    atualizarListaLayouts();
+    try {
+      atualizarListaLayouts();
+      console.log('✅ atualizarListaLayouts executada');
+    } catch (e) {
+      console.error('❌ Erro em atualizarListaLayouts:', e);
+    }
+  }
+  
+  console.log('✅ Inicialização completa!');
+});
+
+// ==================== FUNÇÕES DE TESTE E DEBUG ====================
+
+// Função para teste manual direto da dashboard
+window.testarDashboardAgora = function() {
+  console.log('🧪 TESTE MANUAL DA DASHBOARD INICIADO');
+  
+  // Testar se elementos existem
+  const elementos = ['totalEmpresas', 'totalRPS', 'totalLayouts', 'totalImportacoes'];
+  elementos.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      console.log(`✅ ${id}: encontrado, valor atual: "${el.textContent}"`);
+      el.textContent = 'TESTE OK';
+      el.style.backgroundColor = 'yellow';
+      el.style.color = 'black';
+    } else {
+      console.log(`❌ ${id}: não encontrado`);
+    }
+  });
+  
+  // Testar API
+  console.log('🔬 Testando API...');
+  return testarAPI();
+};
+
+// Função para testar apenas a API
+window.testarAPIAgora = function() {
+  console.log('🔬 TESTE DIRETO DA API');
+  return testarAPI();
+};
+
+// Função para forçar carregamento da dashboard
+window.forcarCarregarDashboard = function() {
+  console.log('🔄 FORÇANDO CARREGAMENTO DA DASHBOARD');
+  return carregarDashboard();
+};
+
+// ==================== OPERAÇÕES ADMINISTRATIVAS E EXCLUSÃO DE RPS ====================
+
+async function excluirMultiplasRPS(ids) {
+  try {
+    for (const id of ids) {
+      const response = await fetch(`/api/rps/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error(`Erro ao excluir RPS ${id}: ${response.status}`);
+      }
+    }
+    showNotification(`${ids.length} RPS excluída(s) com sucesso!`, 'success');
+    await listarTodosRPS();
+  } catch (error) {
+    console.error('Erro ao excluir RPS:', error);
+    showNotification('Erro ao excluir RPS selecionadas.', 'error');
+  }
+}
+
+async function excluirRPS(id) {
+  if (confirm('Tem certeza que deseja excluir esta RPS?')) {
+    try {
+      const response = await fetch(`/api/rps/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error(`Erro ao excluir RPS: ${response.status}`);
+      }
+      showNotification('RPS excluída com sucesso!', 'success');
+      await listarTodosRPS();
+    } catch (error) {
+      console.error('Erro ao excluir RPS:', error);
+      showNotification('Erro ao excluir RPS.', 'error');
+    }
+  }
+}
+
+async function atualizarEstatisticasSistema() {
+  console.log('📊 Iniciando atualização das estatísticas...');
+  
+  try {
+    console.log('📡 Fazendo requisição para /api/dashboard/estatisticas');
+    const response = await fetch('/api/dashboard/estatisticas');
+    
+    if (!response.ok) {
+      throw new Error(`Erro na requisição: ${response.status} - ${response.statusText}`);
+    }
+    
+    const stats = await response.json();
+    console.log('📊 Estatísticas recebidas:', stats);
+    
+    // Atualizar elementos da dashboard
+    const elementos = {
+      'totalEmpresas': stats.totalEmpresas || 0,
+      'totalLayouts': stats.totalLayouts || 0,
+      'totalRPS': stats.totalRPS || 0,
+      'totalImportacoes': stats.totalImportacoes || 0
+    };
+    
+    console.log('🔄 Atualizando elementos:', elementos);
+    
+    Object.entries(elementos).forEach(([id, valor]) => {
+      const elemento = document.getElementById(id);
+      if (elemento) {
+        elemento.textContent = valor;
+        console.log(`✅ ${id} atualizado para: ${valor}`);
+      } else {
+        console.warn(`⚠️ Elemento ${id} não encontrado no DOM`);
+      }
+    });
+    
+    console.log('📊 Estatísticas da dashboard atualizadas com sucesso!');
+    
+  } catch (error) {
+    console.error('❌ Erro ao atualizar estatísticas:', error);
+    
+    // Fallback: buscar dados diretamente das APIs se disponíveis
+    console.log('🔄 Tentando fallback...');
+    try {
+      const [empresasRes, layoutsRes] = await Promise.all([
+        fetch('/api/empresas').catch(() => null),
+        fetch('/api/layouts').catch(() => null)
+      ]);
+      
+      if (empresasRes?.ok) {
+        const empresas = await empresasRes.json();
+        const elem = document.getElementById('totalEmpresas');
+        if (elem) {
+          elem.textContent = empresas.length;
+          console.log(`✅ Fallback: totalEmpresas = ${empresas.length}`);
+        }
+      }
+      
+      if (layoutsRes?.ok) {
+        const layouts = await layoutsRes.json();
+        const elem = document.getElementById('totalLayouts');
+        if (elem) {
+          elem.textContent = layouts.length;
+          console.log(`✅ Fallback: totalLayouts = ${layouts.length}`);
+        }
+      }
+      
+    } catch (fallbackError) {
+      console.error('❌ Erro no fallback das estatísticas:', fallbackError);
+    }
+  }
+}
+
+async function carregarDashboard() {
+  console.log('📊 Iniciando carregamento do dashboard...');
+  
+  try {
+    console.log('🔄 Chamando atualizarEstatisticasSistema...');
+    await atualizarEstatisticasSistema();
+    console.log('✅ atualizarEstatisticasSistema concluída com sucesso');
+  } catch (error) {
+    console.error('❌ Erro em atualizarEstatisticasSistema:', error);
+    console.error('Stack trace:', error.stack);
+  }
+  
+  console.log('📊 Dashboard carregado!');
+}
+
+// Função para teste manual (temporária)
+function testarDashboard() {
+  console.log('🧪 Teste manual da dashboard iniciado');
+  carregarDashboard();
+}
+
+// Função para testar API diretamente
+async function testarAPI() {
+  console.log('🔬 Testando API de estatísticas...');
+  try {
+    const response = await fetch('/api/dashboard/estatisticas');
+    console.log('📡 Status da resposta:', response.status, response.statusText);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('📊 Dados recebidos:', data);
+      return data;
+    } else {
+      console.error('❌ Erro na API:', response.status, response.statusText);
+      const error = await response.text();
+      console.error('📄 Detalhes do erro:', error);
+    }
+  } catch (error) {
+    console.error('❌ Erro na requisição:', error);
+  }
+}
+
+async function confirmarExclusaoTodosRPS() {
+  // Primeira confirmação
+  const confirmacao1 = confirm(
+    '⚠️ ATENÇÃO: Esta operação irá excluir TODOS os RPS do sistema permanentemente!\n\n' +
+    'Esta ação NÃO PODE SER DESFEITA!\n\n' +
+    'Deseja realmente continuar?'
+  );
+  if (!confirmacao1) { return; }
+  // Segunda confirmação com digitação
+  const textoConfirmacao = prompt(
+    '⚠️ CONFIRMAÇÃO FINAL ⚠️\n\n' +
+    'Para confirmar a exclusão de TODOS os RPS, digite exatamente:\n' +
+    'EXCLUIR TODOS OS RPS\n\n' +
+    'Digite o texto acima:'
+  );
+  if (textoConfirmacao !== 'EXCLUIR TODOS OS RPS') {
+    showNotification('Operação cancelada - texto de confirmação incorreto', 'warning');
+    return;
+  }
+  // Terceira confirmação numérica
+  const numeroAleatorio = Math.floor(Math.random() * 9000) + 1000;
+  const numeroDigitado = prompt(
+    '⚠️ ÚLTIMA CONFIRMAÇÃO ⚠️\n\n' +
+    'Digite o número abaixo para confirmar definitivamente:\n' + numeroAleatorio
+  );
+  if (parseInt(numeroDigitado) !== numeroAleatorio) {
+    showNotification('Operação cancelada - número incorreto', 'warning');
+    return;
+  }
+  // Executar exclusão
+  await executarExclusaoTodosRPS();
+}
+
+async function executarExclusaoTodosRPS() {
+  try {
+    showNotification('Executando exclusão de todos os RPS...', 'info');
+    const response = await fetch('/api/rps/debug/excluir-todos?confirmacao=CONFIRMO_EXCLUSAO_TODOS_RPS', { method: 'DELETE' });
+    if (!response.ok) {
+      throw new Error(`Erro na exclusão: ${response.statusText}`);
+    }
+    const resultado = await response.json();
+    if (resultado.sucesso) {
+      showNotification(
+        `✅ Exclusão concluída! ${resultado.totalExcluidos} RPS foram removidos do sistema.`,
+        'success'
+      );
+      limparFiltros();
+      atualizarEstatisticasSistema();
+      console.log('Detalhes da exclusão:', resultado);
+    } else {
+      throw new Error(resultado.erro || 'Erro desconhecido na exclusão');
+    }
+  } catch (error) {
+    console.error('Erro ao excluir todos os RPS:', error);
+    showNotification(`❌ Erro na exclusão: ${error.message}`, 'error');
+  }
+}
+
+function carregarEstatisticasGestao() {
+  atualizarEstatisticasSistema();
+}
+
+// Responsividade Sidebar
+window.addEventListener('resize', function() {
+  const sidebar = document.getElementById('sidebar');
+  const mainContent = document.getElementById('mainContent');
+  const overlay = document.getElementById('overlay');
+  if (window.innerWidth > 768) {
+    if (sidebar) sidebar.classList.remove('show');
+    if (overlay) overlay.classList.remove('show');
   }
 });

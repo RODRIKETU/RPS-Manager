@@ -1,0 +1,66 @@
+{
+  "metadata": {
+    "versao": "1.0",
+    "data_exportacao": "2025-01-08T12:00:00.000Z",
+    "exportado_por": "RPS Manager",
+    "descricao": "Layout exportado do sistema RPS Manager"
+  },
+  "layout": {
+    "id": 1,
+    "nome": "Padrão RJ - Prefeitura do Rio de Janeiro v2.1 (Completo)",
+    "tipo": "arquivo_posicional",
+    "descricao": "Layout completo da Prefeitura do Rio de Janeiro com todos os 7 tipos de registro especificados no manual",
+    "layout_id": "RJ_PREFEITURA_PADRAO_V2_COMPLETO",
+    "estrutura_completa": {
+      "total_campos": 16,
+      "tamanho_linha": 236,
+      "separador": "",
+      "encoding": "UTF-8",
+      "quebra_linha": "CRLF",
+      "tipos_registro": ["10", "20", "21", "30", "40", "60", "90"],
+      "obrigatorios": ["10", "90"],
+      "opcionais": ["20", "21", "30", "40", "60"]
+    },
+    "formatacao": {
+      "preenchimento_numerico": "zeros_esquerda",
+      "preenchimento_string": "espacos_direita",
+      "case_string": "maiusculo",
+      "formato_data": "YYYYMMDD",
+      "formato_decimal": "centavos"
+    },
+    "origem": "PDF Manual Prefeitura RJ",
+    "data_criacao": "2025-01-08 12:00:00"
+  },
+  "tipos_registro": [
+    {
+      "codigo_tipo": "10",
+      "nome_tipo": "Cabeçalho do Arquivo",
+      "descricao": "Registro de cabeçalho do arquivo. Uma linha.",
+      "campos": [
+        {
+          "nome": "tipo_registro",
+          "posicao": 1,
+          "tamanho": 2,
+          "tipo": "string",
+          "obrigatorio": true,
+          "ordem": 0,
+          "descricao": "Tipo do registro - sempre 10",
+          "valor_fixo": "10"
+        },
+        {
+          "nome": "versao_layout",
+          "posicao": 3,
+          "tamanho": 3,
+          "tipo": "string",
+          "obrigatorio": true,
+          "ordem": 1,
+          "descricao": "Versão do layout",
+          "valor_padrao": "001"
+        }
+      ],
+      "obrigatorio": true,
+      "ordem": 0,
+      "data_criacao": "2025-01-08 12:00:00"
+    }
+  ]
+}

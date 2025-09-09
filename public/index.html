@@ -18,103 +18,8 @@
   <link rel="stylesheet" href="css/styles.css">
   
   <style>
-    .sidebar {
-      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-      min-height: 100vh;
-      position: fixed;
-      width: 280px;
-      top: 0;
-      left: -280px;
-      transition: left 0.3s ease;
-      z-index: 1000;
-      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-    }
-    
-    .sidebar.show {
-      left: 0;
-    }
-    
-    .sidebar-header {
-      padding: 1.5rem;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    .sidebar-brand {
-      color: white;
-      font-size: 1.5rem;
-      font-weight: 600;
-      text-decoration: none;
-    }
-    
-    .sidebar-nav {
-      padding: 1rem 0;
-    }
-    
-    .nav-item {
-      margin: 0.25rem 0;
-    }
-    
-    .nav-link {
-      color: rgba(255,255,255,0.8);
-      padding: 0.75rem 1.5rem;
-      display: flex;
-      align-items: center;
-      text-decoration: none;
-      transition: all 0.3s ease;
-    }
-    
-    .nav-link:hover,
-    .nav-link.active {
-      color: white;
-      background: rgba(255,255,255,0.1);
-      border-right: 3px solid white;
-    }
-    
-    .nav-link i {
-      margin-right: 0.75rem;
-      width: 20px;
-      text-align: center;
-    }
-    
-    .main-content {
-      margin-left: 0;
-      transition: margin-left 0.3s ease;
-      min-height: 100vh;
-    }
-    
-    .main-content.shifted {
-      margin-left: 280px;
-    }
-    
-    .navbar {
-      background: white;
-      border-bottom: 1px solid #e2e8f0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    
-    .content-area {
-      padding: 2rem;
-      background: #f8fafc;
-      min-height: calc(100vh - 56px);
-    }
-    
-    .overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      z-index: 999;
-      display: none;
-    }
-    
-    .overlay.show {
-      display: block;
-    }
-    
     .page-header {
-      background: white;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
       padding: 2rem;
       margin-bottom: 2rem;
       border-radius: 12px;
@@ -147,6 +52,52 @@
       background-color: rgba(37, 99, 235, 0.05);
     }
     
+    .page-content {
+      display: none;
+      width: 100%;
+      min-height: 100vh;
+    }
+    
+    .page-content.active {
+      display: block !important;
+    }
+    
+    .page-content#page-dashboard {
+      display: block;
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    .d-none-important {
+      display: none !important;
+    }
+    
+    /* Estilos para atualização automática */
+    .fa-spin {
+      animation: fa-spin 1s infinite linear;
+    }
+    
+    @keyframes fa-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .auto-update-indicator {
+      font-size: 0.75rem;
+      opacity: 0.8;
+    }
+    
+    .stats-card {
+      transition: all 0.3s ease;
+    }
+    
+    .stats-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
     @media (max-width: 768px) {
       .main-content.shifted {
         margin-left: 0;
@@ -155,67 +106,54 @@
   </style>
 </head>
 <body>
-  <!-- Sidebar -->
-  <nav class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <a href="#" class="sidebar-brand">
+
+  <!-- Menu Superior em Abas -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center" href="#">
         <i class="fas fa-receipt me-2"></i>
         RPS Manager Pro
       </a>
-    </div>
-    
-    <div class="sidebar-nav">
-      <div class="nav-item">
-        <a href="#" class="nav-link active" data-page="dashboard" onclick="showPage('dashboard')">
-          <i class="fas fa-tachometer-alt"></i>
-          Dashboard
-        </a>
-      </div>
-      <div class="nav-item">
-        <a href="#" class="nav-link" data-page="empresas" onclick="showPage('empresas')">
-          <i class="fas fa-building"></i>
-          Empresas
-        </a>
-      </div>
-      <div class="nav-item">
-        <a href="#" class="nav-link" data-page="layouts" onclick="showPage('layouts')">
-          <i class="fas fa-table"></i>
-          Layouts
-        </a>
-      </div>
-      <div class="nav-item">
-        <a href="#" class="nav-link" data-page="importacao" onclick="showPage('importacao')">
-          <i class="fas fa-upload"></i>
-          Importação
-        </a>
-      </div>
-      <div class="nav-item">
-        <a href="#" class="nav-link" data-page="gestao" onclick="showPage('gestao')">
-          <i class="fas fa-cogs"></i>
-          Gestão RPS
-        </a>
-      </div>
-      <div class="nav-item">
-        <a href="#" class="nav-link" data-page="relatorios" onclick="showPage('relatorios')">
-          <i class="fas fa-chart-bar"></i>
-          Relatórios
-        </a>
-      </div>
+      <ul class="nav nav-tabs ms-auto" id="mainTabMenu">
+        <li class="nav-item">
+          <a class="nav-link active" data-page="dashboard" onclick="showPage('dashboard')" href="#">
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-page="empresas" onclick="showPage('empresas')" href="#">
+            <i class="fas fa-building"></i> Empresas
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-page="layouts" onclick="showPage('layouts')" href="#">
+            <i class="fas fa-table"></i> Layouts
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-page="importacao" onclick="showPage('importacao')" href="#">
+            <i class="fas fa-upload"></i> Importação
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-page="gestao" onclick="showPage('gestao')" href="#">
+            <i class="fas fa-cogs"></i> Gestão RPS
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-page="relatorios" onclick="showPage('relatorios')" href="#">
+            <i class="fas fa-chart-bar"></i> Relatórios
+          </a>
+        </li>
+      </ul>
     </div>
   </nav>
-
-  <!-- Overlay for mobile -->
-  <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
   <!-- Main Content -->
   <div class="main-content" id="mainContent">
     <!-- Top Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light">
       <div class="container-fluid">
-        <button class="btn btn-outline-primary me-3" type="button" onclick="toggleSidebar()">
-          <i class="fas fa-bars"></i>
-        </button>
-        
         <span class="navbar-brand mb-0 h1" id="pageTitle">Dashboard</span>
         
         <div class="ms-auto d-flex align-items-center">
@@ -230,18 +168,36 @@
     <!-- Content Area -->
     <div class="content-area">
       <!-- Dashboard Page -->
-      <div id="page-dashboard" class="page-content">
+      <div id="page-dashboard" class="page-content active">
         <div class="page-header">
-          <h1 class="page-title">
-            <i class="fas fa-tachometer-alt me-2"></i>
-            Dashboard
-          </h1>
-          <p class="page-subtitle">Visão geral do sistema RPS Manager Pro</p>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h1 class="page-title">
+                <i class="fas fa-tachometer-alt me-2"></i>
+                Dashboard
+              </h1>
+              <p class="page-subtitle">Visão geral do sistema RPS Manager Pro</p>
+            </div>
+            <div class="text-end">
+              <div class="mb-2">
+                <button class="btn btn-outline-primary btn-sm" onclick="atualizarEstatisticasSistema()">
+                  <i class="fas fa-sync" id="iconSync"></i> Atualizar
+                </button>
+                <button class="btn btn-outline-success btn-sm" id="btnAutoUpdate" onclick="toggleAutoUpdate()">
+                  <i class="fas fa-play"></i> Auto <span id="autoUpdateText">Ativar</span>
+                </button>
+              </div>
+              <small class="text-muted">
+                <i class="fas fa-clock"></i> 
+                Última atualização: <span id="ultimaAtualizacaoInfo">Nunca</span>
+              </small>
+            </div>
+          </div>
         </div>
         
         <div class="row">
           <div class="col-md-3 mb-4">
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm stats-card">
               <div class="card-body text-center">
                 <div class="text-primary mb-2">
                   <i class="fas fa-building fa-2x"></i>
@@ -254,7 +210,7 @@
           </div>
           
           <div class="col-md-3 mb-4">
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm stats-card">
               <div class="card-body text-center">
                 <div class="text-success mb-2">
                   <i class="fas fa-file-invoice fa-2x"></i>
@@ -267,7 +223,7 @@
           </div>
           
           <div class="col-md-3 mb-4">
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm stats-card">
               <div class="card-body text-center">
                 <div class="text-warning mb-2">
                   <i class="fas fa-table fa-2x"></i>
@@ -280,7 +236,7 @@
           </div>
           
           <div class="col-md-3 mb-4">
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm stats-card">
               <div class="card-body text-center">
                 <div class="text-info mb-2">
                   <i class="fas fa-upload fa-2x"></i>
@@ -338,7 +294,7 @@
       </div>
 
       <!-- Empresas Page -->
-      <div id="page-empresas" class="page-content" style="display: none;">
+      <div id="page-empresas" class="page-content hidden">
         <div class="page-header">
           <h1 class="page-title">
             <i class="fas fa-building me-2"></i>
@@ -359,7 +315,6 @@
           </div>
           <div class="card-body">
             <form id="formEmpresa">
-              <input type="hidden" id="empresaId" value="">
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <label class="form-label">CNPJ *</label>
@@ -423,7 +378,7 @@
                     <th>Razão Social</th>
                     <th>Nome Fantasia</th>
                     <th>Inscrição Municipal</th>
-                    <th width="140">Ações</th>
+                    <th width="120">Ações</th>
                   </tr>
                 </thead>
                 <tbody id="empresasTable">
@@ -436,7 +391,7 @@
       </div>
 
       <!-- Layouts Page -->
-      <div id="page-layouts" class="page-content" style="display: none;">
+      <div id="page-layouts" class="page-content hidden">
         <div class="page-header">
           <h1 class="page-title">
             <i class="fas fa-table me-2"></i>
@@ -461,14 +416,6 @@
               <button class="btn btn-outline-primary" onclick="atualizarListaLayouts()">
                 <i class="fas fa-sync"></i> Atualizar
               </button>
-              
-              <button class="btn btn-outline-primary" onclick="abrirModalImportarLayout()">
-                <i class="fas fa-upload"></i> Importar
-              </button>
-              
-              <button class="btn btn-outline-success" onclick="abrirModalExportarLayout()">
-                <i class="fas fa-download"></i> Exportar
-              </button>
             </div>
           </div>
           <div class="card-body">
@@ -490,7 +437,7 @@
         </div>
 
         <!-- Formulário de Layout (oculto por padrão) -->
-        <div id="formularioLayout" class="card border-0 shadow-sm mb-4" style="display: none;">
+        <div id="formularioLayout" class="card border-0 shadow-sm mb-4 hidden">
           <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">
               <i class="fas fa-edit me-2"></i>
@@ -609,7 +556,7 @@
       </div>
 
       <!-- Importação Page -->
-      <div id="page-importacao" class="page-content" style="display: none;">
+      <div id="page-importacao" class="page-content hidden">
         <div class="page-header">
           <h1 class="page-title">
             <i class="fas fa-upload me-2"></i>
@@ -626,17 +573,18 @@
             </h5>
           </div>
           <div class="card-body">
-            <div class="upload-area border-2 border-dashed rounded p-4 text-center" id="uploadArea">
+            <div class="upload-area border-2 border-dashed rounded p-4 text-center" id="dropZone">
               <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
               <h5>Arraste arquivos aqui ou clique para selecionar</h5>
               <p class="text-muted">Formatos suportados: .txt, .csv</p>
-              <input type="file" id="fileInput" multiple accept=".txt,.csv" style="display: none;">
+              <input type="file" id="fileInput" multiple accept=".txt,.csv" class="file-input-hidden">
               <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
                 <i class="fas fa-folder-open"></i> Selecionar Arquivos
               </button>
+              <div id="filesList" class="mt-3"></div>
             </div>
             
-            <div id="arquivosSelecionados" class="mt-4" style="display: none;">
+            <div id="arquivosSelecionados" class="mt-4 hidden">
               <h6>Arquivos Selecionados:</h6>
               <div id="listaArquivos"></div>
             </div>
@@ -671,15 +619,20 @@
                 </label>
               </div>
 
-              <div class="form-check mb-3">
-                <input class="form-check-input" type="checkbox" id="cadastrarEmpresas" checked>
-                <label class="form-check-label" for="cadastrarEmpresas">
-                  <i class="fas fa-building text-primary me-1"></i>
-                  Cadastrar empresas automaticamente se não existirem
-                </label>
-                <small class="form-text text-muted">
-                  Se marcado, empresas não cadastradas serão criadas automaticamente usando dados externos (CNPJ)
-                </small>
+              <!-- Resumo do Arquivo -->
+              <div id="resumoArquivo" class="mb-3 hidden"></div>
+
+              <!-- Barra de Progresso -->
+              <div id="progressContainer" class="mb-3 hidden">
+                <div class="d-flex justify-content-between mb-2">
+                  <span id="progressText">Preparando importação...</span>
+                  <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress">
+                  <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated progress-bar-initial" 
+                       role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                  </div>
+                </div>
               </div>
 
               <button class="btn btn-success" onclick="iniciarImportacao()" id="btnImportar" disabled>
@@ -689,7 +642,7 @@
           </div>
         </div>
 
-        <div class="card border-0 shadow-sm" id="resultadoImportacao" style="display: none;">
+        <div class="card border-0 shadow-sm hidden" id="resultadoImportacao">
           <div class="card-header bg-white">
             <h5 class="card-title mb-0">
               <i class="fas fa-check-circle me-2"></i>
@@ -703,7 +656,7 @@
       </div>
 
       <!-- Gestão RPS Page -->
-      <div id="page-gestao" class="page-content" style="display: none;">
+      <div id="page-gestao" class="page-content hidden">
         <div class="page-header">
           <h1 class="page-title">
             <i class="fas fa-cogs me-2"></i>
@@ -722,25 +675,135 @@
           </div>
           <div class="card-body">
             <div class="row g-3">
-              <div class="col-md-4">
-                <label for="empresaGestao" class="form-label">Empresa</label>
-                <select id="empresaGestao" class="form-control" onchange="carregarRpsEmpresa()">
-                  <option value="">Selecione uma empresa</option>
+              <div class="col-md-3">
+                <label for="empresaSelect" class="form-label">Empresa</label>
+                <select id="empresaSelect" class="form-select">
+                  <option value="">Carregando empresas...</option>
                 </select>
               </div>
               <div class="col-md-3">
-                <label for="dataInicioGestao" class="form-label">Data Inicial</label>
-                <input type="date" id="dataInicioGestao" class="form-control" onchange="carregarRpsEmpresa()">
+                <label for="dataInicio" class="form-label">Data Início</label>
+                <input type="date" id="dataInicio" class="form-control">
               </div>
               <div class="col-md-3">
-                <label for="dataFimGestao" class="form-label">Data Final</label>
-                <input type="date" id="dataFimGestao" class="form-control" onchange="carregarRpsEmpresa()">
+                <label for="dataFim" class="form-label">Data Fim</label>
+                <input type="date" id="dataFim" class="form-control">
               </div>
-              <div class="col-md-2">
-                <label class="form-label">&nbsp;</label>
-                <button type="button" class="btn btn-primary w-100" onclick="carregarRpsEmpresa()">
-                  <i class="fas fa-search me-1"></i> Consultar
+              <div class="col-md-3">
+                <label for="statusFilter" class="form-label">Status</label>
+                <select id="statusFilter" class="form-select">
+                  <option value="">Todos</option>
+                  <option value="1">Ativo</option>
+                  <option value="0">Inativo</option>
+                </select>
+              </div>
+            </div>
+            <div class="row mt-3">
+              <div class="col-12">
+                <button type="button" class="btn btn-primary" onclick="consultarRPS()">
+                  <i class="fas fa-search me-2"></i>
+                  Consultar RPS
                 </button>
+                <button type="button" class="btn btn-info ms-2" onclick="listarTodosRPS()">
+                  <i class="fas fa-list me-2"></i>
+                  Listar Todos os RPS
+                </button>
+                <button type="button" class="btn btn-secondary ms-2" onclick="limparFiltros()">
+                  <i class="fas fa-eraser me-2"></i>
+                  Limpar Filtros
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Totalizadores -->
+        <div id="totalizadores" class="row g-3 mb-4 d-none-important">
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body text-center">
+                <h6 class="card-title text-muted">Total de RPS</h6>
+                <h3 class="text-primary" id="totalRPSGestao">0</h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body text-center">
+                <h6 class="card-title text-muted">Valor Total Serviços</h6>
+                <h3 class="text-success" id="totalServicos">R$ 0,00</h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body text-center">
+                <h6 class="card-title text-muted">Valor Total ISS</h6>
+                <h3 class="text-warning" id="totalISS">R$ 0,00</h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body text-center">
+                <h6 class="card-title text-muted">Valor Líquido</h6>
+                <h3 class="text-info" id="totalLiquido">R$ 0,00</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Operações Administrativas -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white">
+            <h5 class="card-title mb-0 text-warning">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              Operações Administrativas
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-warning d-flex align-items-center" role="alert">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              <div>
+                <strong>Atenção!</strong> As operações abaixo são irreversíveis e afetam todos os dados do sistema.
+              </div>
+            </div>
+            
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="card border-danger">
+                  <div class="card-body">
+                    <h6 class="card-title text-danger">
+                      <i class="fas fa-trash-alt me-2"></i>
+                      Excluir Todos os RPS
+                    </h6>
+                    <p class="card-text small text-muted">
+                      Remove permanentemente todos os RPS do sistema. Esta operação não pode ser desfeita.
+                    </p>
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmarExclusaoTodosRPS()">
+                      <i class="fas fa-trash-alt me-1"></i>
+                      Excluir Todos os RPS
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="card border-info">
+                  <div class="card-body">
+                    <h6 class="card-title text-info">
+                      <i class="fas fa-database me-2"></i>
+                      Estatísticas do Sistema
+                    </h6>
+                    <p class="card-text small text-muted">
+                      Total de RPS no sistema: <span id="totalRPSSistema" class="fw-bold">-</span>
+                    </p>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="atualizarEstatisticasSistema()">
+                      <i class="fas fa-sync-alt me-1"></i>
+                      Atualizar Estatísticas
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -752,103 +815,102 @@
             <h5 class="card-title mb-0">
               <i class="fas fa-list me-2"></i>
               Lista de RPS
+              <span id="contadorRPS" class="badge bg-primary ms-2">0</span>
             </h5>
-            <div class="d-flex gap-2">
-              <button type="button" class="btn btn-outline-primary btn-sm" onclick="selecionarTodosRps()">
-                <i class="fas fa-check-square me-1"></i> Selecionar Todos
-              </button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="desmarcarTodosRps()">
-                <i class="fas fa-square me-1"></i> Desmarcar Todos
+            <div>
+              <button type="button" class="btn btn-outline-success btn-sm d-none-important" onclick="exportarCSV()" id="btnExportar">
+                <i class="fas fa-download me-1"></i>
+                Exportar CSV
               </button>
             </div>
           </div>
-          <div class="card-body p-0">
-            <!-- Filtros da Tabela -->
-            <div class="p-3 border-bottom bg-light">
-              <div class="row g-2">
-                <div class="col-md-2">
-                  <input type="text" class="form-control form-control-sm" placeholder="Filtrar Número RPS" onkeyup="filtrarTabela('numeroRps', this.value)">
+          <div class="card-body">
+            <div id="loadingRPS" class="d-flex justify-content-center p-4 d-none-important">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+              </div>
+            </div>
+            
+            <div id="mensagemRPS" class="text-center text-muted p-4">
+              Selecione uma empresa e período para consultar os RPS
+            </div>
+
+            <div id="gridRPS" class="d-none-important">
+              <!-- Barra de Ações -->
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="selecionarTodos()">
+                    <i class="fas fa-check-square me-1"></i>
+                    Selecionar Todos
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="deselecionarTodos()">
+                    <i class="fas fa-square me-1"></i>
+                    Desmarcar Todos
+                  </button>
                 </div>
-                <div class="col-md-2">
-                  <input type="text" class="form-control form-control-sm" placeholder="Filtrar Série" onkeyup="filtrarTabela('serieRps', this.value)">
-                </div>
-                <div class="col-md-2">
-                  <input type="date" class="form-control form-control-sm" placeholder="Filtrar Data" onchange="filtrarTabela('dataEmissao', this.value)">
-                </div>
-                <div class="col-md-3">
-                  <input type="text" class="form-control form-control-sm" placeholder="Filtrar Tomador" onkeyup="filtrarTabela('tomadorNome', this.value)">
-                </div>
-                <div class="col-md-2">
-                  <input type="text" class="form-control form-control-sm" placeholder="Filtrar Valor" onkeyup="filtrarTabela('valorServicos', this.value)">
-                </div>
-                <div class="col-md-1">
-                  <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="limparFiltros()" title="Limpar Filtros">
-                    <i class="fas fa-times"></i>
+                <div>
+                  <span id="contadorSelecionados" class="text-muted me-3">0 selecionados</span>
+                  <button type="button" class="btn btn-sm btn-outline-warning me-2" onclick="editarSelecionados()" id="btnEditarSelecionados" disabled>
+                    <i class="fas fa-edit me-1"></i>
+                    Editar Valores
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-danger" onclick="excluirSelecionados()" id="btnExcluirSelecionados" disabled>
+                    <i class="fas fa-trash me-1"></i>
+                    Excluir Selecionados
                   </button>
                 </div>
               </div>
-            </div>
 
-            <!-- Tabela -->
-            <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
-              <table class="table table-hover table-striped mb-0" id="tabelaRps">
-                <thead class="table-dark sticky-top">
-                  <tr>
-                    <th style="width: 50px;">
-                      <input type="checkbox" id="checkTodos" onchange="toggleTodosRps(this.checked)">
-                    </th>
-                    <th style="width: 100px;">Número</th>
-                    <th style="width: 80px;">Série</th>
-                    <th style="width: 120px;">Data Emissão</th>
-                    <th style="width: 250px;">Tomador</th>
-                    <th style="width: 300px;">Discriminação</th>
-                    <th style="width: 120px;">Valor Serviços</th>
-                    <th style="width: 100px;">ISS</th>
-                    <th style="width: 120px;">Valor Líquido</th>
-                    <th style="width: 100px;">Status</th>
-                    <th style="width: 100px;">Ações</th>
-                  </tr>
-                </thead>
-                <tbody id="corpoTabelaRps">
-                  <tr>
-                    <td colspan="11" class="text-center text-muted py-4">
-                      <i class="fas fa-search fa-2x mb-2"></i>
-                      <br>Selecione uma empresa e período para consultar os RPS
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-          <!-- Rodapé com Totais -->
-          <div class="card-footer bg-light">
-            <div class="row">
-              <div class="col-md-6">
-                <strong>
-                  <i class="fas fa-list-ol me-1"></i>
-                  Total de registros: <span id="totalRegistros">0</span>
-                </strong>
+              <!-- Filtros Rápidos -->
+              <div class="row g-2 mb-3">
+                <div class="col-md-3">
+                  <input type="text" class="form-control form-control-sm" id="filtroNumero" placeholder="Filtrar por Número RPS" onkeyup="filtrarRPS()">
+                </div>
+                <div class="col-md-2">
+                  <input type="text" class="form-control form-control-sm" id="filtroSerie" placeholder="Filtrar por Série" onkeyup="filtrarRPS()">
+                </div>
+                <div class="col-md-3">
+                  <input type="text" class="form-control form-control-sm" id="filtroTomador" placeholder="Filtrar por Tomador" onkeyup="filtrarRPS()">
+                </div>
+                <div class="col-md-2">
+                  <select class="form-select form-select-sm" id="filtroStatus" onchange="filtrarRPS()">
+                    <option value="">Todos Status</option>
+                    <option value="1">Ativo</option>
+                    <option value="0">Inativo</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <button type="button" class="btn btn-sm btn-outline-secondary w-100" onclick="limparFiltrosGrid()">
+                    <i class="fas fa-eraser me-1"></i>
+                    Limpar
+                  </button>
+                </div>
               </div>
-              <div class="col-md-6 text-end">
-                <strong>
-                  <i class="fas fa-calculator me-1"></i>
-                  Valor Total: <span id="valorTotalExibido" class="text-success">R$ 0,00</span>
-                </strong>
-              </div>
-            </div>
-            <div class="row mt-2" id="totalSelecionados" style="display: none;">
-              <div class="col-md-6">
-                <span class="text-primary">
-                  <i class="fas fa-check-square me-1"></i>
-                  Selecionados: <span id="quantidadeSelecionados">0</span>
-                </span>
-              </div>
-              <div class="col-md-6 text-end">
-                <span class="text-primary">
-                  <i class="fas fa-money-bill-wave me-1"></i>
-                  Valor Selecionado: <span id="valorSelecionado">R$ 0,00</span>
-                </span>
+
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead class="table-light">
+                    <tr>
+                      <th width="50">
+                        <input type="checkbox" class="form-check-input" id="checkboxTodos" onchange="toggleSelecionarTodos()">
+                      </th>
+                      <th>ID</th>
+                      <th>Número RPS</th>
+                      <th>Série</th>
+                      <th>Data Emissão</th>
+                      <th>Tomador</th>
+                      <th>Discriminação</th>
+                      <th>Valor Serviços</th>
+                      <th>Valor ISS</th>
+                      <th>Valor Líquido</th>
+                      <th>Status</th>
+                      <th>Arquivo</th>
+                      <th width="120">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="corpoTabelaRPS">
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -856,7 +918,7 @@
       </div>
 
       <!-- Relatórios Page -->
-      <div id="page-relatorios" class="page-content" style="display: none;">
+      <div id="page-relatorios" class="page-content hidden">
         <div class="page-header">
           <h1 class="page-title">
             <i class="fas fa-chart-bar me-2"></i>
@@ -882,23 +944,402 @@
     </div>
   </div>
 
+  <!-- Modal de Edição em Massa -->
+  <div class="modal fade" id="modalEditarMassa" tabindex="-1" aria-labelledby="modalEditarMassaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEditarMassaLabel">
+            <i class="fas fa-edit me-2"></i>
+            Edição em Massa - Valores
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info d-flex align-items-center mb-4">
+            <i class="fas fa-info-circle me-2"></i>
+            <div>
+              <strong>Atenção:</strong> Esta operação irá alterar os valores de <span id="qtdSelecionados">0</span> RPS selecionados. 
+              Apenas os campos preenchidos serão atualizados.
+            </div>
+          </div>
+
+          <form id="formEditarMassa">
+            <!-- Valores Principais -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-dollar-sign me-2"></i>Valores Principais
+                </h6>
+              </div>
+              <div class="col-md-6">
+                <label for="massaValorServicos" class="form-label">Valor dos Serviços</label>
+                <input type="number" class="form-control" id="massaValorServicos" step="0.01" min="0" placeholder="Deixe vazio para não alterar">
+              </div>
+              <div class="col-md-6">
+                <label for="massaValorDeducoes" class="form-label">Valor das Deduções</label>
+                <input type="number" class="form-control" id="massaValorDeducoes" step="0.01" min="0" placeholder="Deixe vazio para não alterar">
+              </div>
+              <div class="col-md-6">
+                <label for="massaAliquota" class="form-label">Alíquota (%)</label>
+                <input type="number" class="form-control" id="massaAliquota" step="0.0001" min="0" max="100" placeholder="Deixe vazio para não alterar">
+              </div>
+              <div class="col-md-6">
+                <label for="massaValorIss" class="form-label">Valor ISS</label>
+                <input type="number" class="form-control" id="massaValorIss" step="0.01" min="0" placeholder="Deixe vazio para não alterar">
+              </div>
+            </div>
+
+            <!-- Retenções -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-percentage me-2"></i>Retenções
+                </h6>
+              </div>
+              <div class="col-md-3">
+                <label for="massaValorPis" class="form-label">PIS</label>
+                <input type="number" class="form-control" id="massaValorPis" step="0.01" min="0" placeholder="Deixe vazio para não alterar">
+              </div>
+              <div class="col-md-3">
+                <label for="massaValorCofins" class="form-label">COFINS</label>
+                <input type="number" class="form-control" id="massaValorCofins" step="0.01" min="0" placeholder="Deixe vazio para não alterar">
+              </div>
+              <div class="col-md-3">
+                <label for="massaValorInss" class="form-label">INSS</label>
+                <input type="number" class="form-control" id="massaValorInss" step="0.01" min="0" placeholder="Deixe vazio para não alterar">
+              </div>
+              <div class="col-md-3">
+                <label for="massaValorIr" class="form-label">IR</label>
+                <input type="number" class="form-control" id="massaValorIr" step="0.01" min="0" placeholder="Deixe vazio para não alterar">
+              </div>
+              <div class="col-md-6">
+                <label for="massaValorCsll" class="form-label">CSLL</label>
+                <input type="number" class="form-control" id="massaValorCsll" step="0.01" min="0" placeholder="Deixe vazio para não alterar">
+              </div>
+              <div class="col-md-6">
+                <label for="massaValorOutrasRetencoes" class="form-label">Outras Retenções</label>
+                <input type="number" class="form-control" id="massaValorOutrasRetencoes" step="0.01" min="0" placeholder="Deixe vazio para não alterar">
+              </div>
+            </div>
+
+            <!-- Opções de Cálculo -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-cog me-2"></i>Opções de Cálculo
+                </h6>
+              </div>
+              <div class="col-12">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="massaRecalcularLiquido">
+                  <label class="form-check-label" for="massaRecalcularLiquido">
+                    <strong>Recalcular valor líquido automaticamente</strong>
+                    <small class="d-block text-muted">Calcula: Valor Serviços - Deduções - Retenções</small>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-1"></i>Cancelar
+          </button>
+          <button type="button" class="btn btn-warning" onclick="salvarEdicaoMassa()">
+            <i class="fas fa-save me-1"></i>Aplicar Alterações
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Edição de RPS -->
+  <div class="modal fade" id="modalEditarRps" tabindex="-1" aria-labelledby="modalEditarRpsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEditarRpsLabel">
+            <i class="fas fa-edit me-2"></i>
+            Editar RPS
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formEditarRps">
+            <!-- Informações Básicas -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-info-circle me-2"></i>Informações Básicas
+                </h6>
+              </div>
+              <div class="col-md-4">
+                <label for="editNumeroRps" class="form-label">Número RPS *</label>
+                <input type="text" class="form-control" id="editNumeroRps" required>
+              </div>
+              <div class="col-md-4">
+                <label for="editSerieRps" class="form-label">Série RPS</label>
+                <input type="text" class="form-control" id="editSerieRps">
+              </div>
+              <div class="col-md-4">
+                <label for="editTipoRps" class="form-label">Tipo RPS</label>
+                <select class="form-select" id="editTipoRps">
+                  <option value="">Selecione...</option>
+                  <option value="1">RPS - Recibo Provisório de Serviços</option>
+                  <option value="2">RPS-M - Recibo Provisório de Serviços - Misto</option>
+                  <option value="3">RPS-C - Recibo Provisório de Serviços - Cupom</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Datas -->
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <label for="editDataEmissao" class="form-label">Data de Emissão *</label>
+                <input type="date" class="form-control" id="editDataEmissao" required>
+              </div>
+              <div class="col-md-6">
+                <label for="editDataCompetencia" class="form-label">Data de Competência</label>
+                <input type="date" class="form-control" id="editDataCompetencia">
+              </div>
+            </div>
+
+            <!-- Prestador -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-building me-2"></i>Prestador
+                </h6>
+              </div>
+              <div class="col-md-6">
+                <label for="editPrestadorCnpj" class="form-label">CNPJ do Prestador</label>
+                <input type="text" class="form-control" id="editPrestadorCnpj" placeholder="00.000.000/0000-00">
+              </div>
+              <div class="col-md-6">
+                <label for="editPrestadorInscricao" class="form-label">Inscrição Municipal</label>
+                <input type="text" class="form-control" id="editPrestadorInscricao">
+              </div>
+            </div>
+
+            <!-- Tomador -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-user me-2"></i>Tomador
+                </h6>
+              </div>
+              <div class="col-md-6">
+                <label for="editTomadorCnpj" class="form-label">CNPJ do Tomador</label>
+                <input type="text" class="form-control" id="editTomadorCnpj" placeholder="00.000.000/0000-00">
+              </div>
+              <div class="col-md-6">
+                <label for="editTomadorCpf" class="form-label">CPF do Tomador</label>
+                <input type="text" class="form-control" id="editTomadorCpf" placeholder="000.000.000-00">
+              </div>
+              <div class="col-md-6">
+                <label for="editTomadorRazaoSocial" class="form-label">Razão Social / Nome</label>
+                <input type="text" class="form-control" id="editTomadorRazaoSocial">
+              </div>
+              <div class="col-md-6">
+                <label for="editTomadorInscricao" class="form-label">Inscrição Municipal</label>
+                <input type="text" class="form-control" id="editTomadorInscricao">
+              </div>
+              <div class="col-md-8">
+                <label for="editTomadorEndereco" class="form-label">Endereço</label>
+                <input type="text" class="form-control" id="editTomadorEndereco">
+              </div>
+              <div class="col-md-4">
+                <label for="editTomadorNumero" class="form-label">Número</label>
+                <input type="text" class="form-control" id="editTomadorNumero">
+              </div>
+              <div class="col-md-4">
+                <label for="editTomadorBairro" class="form-label">Bairro</label>
+                <input type="text" class="form-control" id="editTomadorBairro">
+              </div>
+              <div class="col-md-4">
+                <label for="editTomadorCep" class="form-label">CEP</label>
+                <input type="text" class="form-control" id="editTomadorCep" placeholder="00000-000">
+              </div>
+              <div class="col-md-4">
+                <label for="editTomadorCidade" class="form-label">Cidade</label>
+                <input type="text" class="form-control" id="editTomadorCidade">
+              </div>
+              <div class="col-md-6">
+                <label for="editTomadorUf" class="form-label">UF</label>
+                <select class="form-select" id="editTomadorUf">
+                  <option value="">Selecione...</option>
+                  <option value="AC">Acre</option>
+                  <option value="AL">Alagoas</option>
+                  <option value="AP">Amapá</option>
+                  <option value="AM">Amazonas</option>
+                  <option value="BA">Bahia</option>
+                  <option value="CE">Ceará</option>
+                  <option value="DF">Distrito Federal</option>
+                  <option value="ES">Espírito Santo</option>
+                  <option value="GO">Goiás</option>
+                  <option value="MA">Maranhão</option>
+                  <option value="MT">Mato Grosso</option>
+                  <option value="MS">Mato Grosso do Sul</option>
+                  <option value="MG">Minas Gerais</option>
+                  <option value="PA">Pará</option>
+                  <option value="PB">Paraíba</option>
+                  <option value="PR">Paraná</option>
+                  <option value="PE">Pernambuco</option>
+                  <option value="PI">Piauí</option>
+                  <option value="RJ">Rio de Janeiro</option>
+                  <option value="RN">Rio Grande do Norte</option>
+                  <option value="RS">Rio Grande do Sul</option>
+                  <option value="RO">Rondônia</option>
+                  <option value="RR">Roraima</option>
+                  <option value="SC">Santa Catarina</option>
+                  <option value="SP">São Paulo</option>
+                  <option value="SE">Sergipe</option>
+                  <option value="TO">Tocantins</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="editTomadorTelefone" class="form-label">Telefone</label>
+                <input type="text" class="form-control" id="editTomadorTelefone">
+              </div>
+            </div>
+
+            <!-- Serviços -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-cogs me-2"></i>Serviços
+                </h6>
+              </div>
+              <div class="col-md-4">
+                <label for="editCodigoServico" class="form-label">Código do Serviço</label>
+                <input type="text" class="form-control" id="editCodigoServico">
+              </div>
+              <div class="col-md-4">
+                <label for="editCodigoCnae" class="form-label">Código CNAE</label>
+                <input type="text" class="form-control" id="editCodigoCnae">
+              </div>
+              <div class="col-md-4">
+                <label for="editCodigoMunicipio" class="form-label">Código do Município</label>
+                <input type="text" class="form-control" id="editCodigoMunicipio">
+              </div>
+              <div class="col-12">
+                <label for="editDiscriminacao" class="form-label">Discriminação dos Serviços</label>
+                <textarea class="form-control" id="editDiscriminacao" rows="3"></textarea>
+              </div>
+            </div>
+
+            <!-- Valores -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-dollar-sign me-2"></i>Valores
+                </h6>
+              </div>
+              <div class="col-md-4">
+                <label for="editValorServicos" class="form-label">Valor dos Serviços *</label>
+                <input type="number" class="form-control" id="editValorServicos" step="0.01" min="0" required>
+              </div>
+              <div class="col-md-4">
+                <label for="editValorDeducoes" class="form-label">Valor das Deduções</label>
+                <input type="number" class="form-control" id="editValorDeducoes" step="0.01" min="0">
+              </div>
+              <div class="col-md-4">
+                <label for="editAliquota" class="form-label">Alíquota (%)</label>
+                <input type="number" class="form-control" id="editAliquota" step="0.0001" min="0" max="100">
+              </div>
+              <div class="col-md-3">
+                <label for="editValorPis" class="form-label">PIS</label>
+                <input type="number" class="form-control" id="editValorPis" step="0.01" min="0">
+              </div>
+              <div class="col-md-3">
+                <label for="editValorCofins" class="form-label">COFINS</label>
+                <input type="number" class="form-control" id="editValorCofins" step="0.01" min="0">
+              </div>
+              <div class="col-md-3">
+                <label for="editValorInss" class="form-label">INSS</label>
+                <input type="number" class="form-control" id="editValorInss" step="0.01" min="0">
+              </div>
+              <div class="col-md-3">
+                <label for="editValorIr" class="form-label">IR</label>
+                <input type="number" class="form-control" id="editValorIr" step="0.01" min="0">
+              </div>
+              <div class="col-md-4">
+                <label for="editValorCsll" class="form-label">CSLL</label>
+                <input type="number" class="form-control" id="editValorCsll" step="0.01" min="0">
+              </div>
+              <div class="col-md-4">
+                <label for="editValorIss" class="form-label">ISS</label>
+                <input type="number" class="form-control" id="editValorIss" step="0.01" min="0">
+              </div>
+              <div class="col-md-4">
+                <label for="editValorLiquido" class="form-label">Valor Líquido</label>
+                <input type="number" class="form-control" id="editValorLiquido" step="0.01" min="0" readonly>
+              </div>
+            </div>
+
+            <!-- Opções -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h6 class="text-primary border-bottom pb-2 mb-3">
+                  <i class="fas fa-check-square me-2"></i>Opções
+                </h6>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="editOptanteSimples">
+                  <label class="form-check-label" for="editOptanteSimples">
+                    Optante pelo Simples Nacional
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="editIncentivadorCultural">
+                  <label class="form-check-label" for="editIncentivadorCultural">
+                    Incentivador Cultural
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <input type="hidden" id="editRpsId">
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-1"></i>Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" onclick="salvarRpsEditado()">
+            <i class="fas fa-save me-1"></i>Salvar Alterações
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Notification -->
   <div id="notification" class="notification"></div>
 
+  <!-- Custom JavaScript -->
+  <script src="js/app.js"></script>
+
   <script>
-    // ==================== FUNÇÕES DE NAVEGAÇÃO DO MENU ====================
+    // ==================== VARIÁVEIS GLOBAIS ====================
     
-    function toggleSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      const mainContent = document.getElementById('mainContent');
-      const overlay = document.getElementById('overlay');
-      
-      sidebar.classList.toggle('show');
-      mainContent.classList.toggle('shifted');
-      overlay.classList.toggle('show');
-    }
+    // Set para armazenar IDs de RPS selecionados
+    let rpsSelecionados = new Set();
+    
+    // Variáveis para atualização automática do dashboard
+    let autoUpdateInterval = null;
+    let autoUpdateActive = false;
+    let autoUpdateFrequency = 30000; // 30 segundos
+    
+    // ==================== FUNÇÕES DE NAVEGAÇÃO DO MENU ====================
 
     function showPage(pageName) {
+      console.log(`🔄 Mostrando página: ${pageName}`);
+      
       // Remove active de todos os links de navegação
       document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
@@ -906,14 +1347,28 @@
       
       // Esconde todas as páginas
       document.querySelectorAll('.page-content').forEach(page => {
-        page.style.display = 'none';
+        page.classList.add('hidden');
+        page.classList.remove('active');
       });
       
       // Adiciona active ao link selecionado
-      document.querySelector(`[data-page="${pageName}"]`).classList.add('active');
+      const navLink = document.querySelector(`[data-page="${pageName}"]`);
+      if (navLink) {
+        navLink.classList.add('active');
+        console.log(`✅ Link ${pageName} ativado`);
+      } else {
+        console.error(`❌ Link não encontrado para: ${pageName}`);
+      }
       
       // Mostra a página selecionada
-      document.getElementById(`page-${pageName}`).style.display = 'block';
+      const pageElement = document.getElementById(`page-${pageName}`);
+      if (pageElement) {
+        pageElement.classList.remove('hidden');
+        pageElement.classList.add('active');
+        console.log(`✅ Página ${pageName} exibida`);
+      } else {
+        console.error(`❌ Elemento da página não encontrado: page-${pageName}`);
+      }
       
       // Atualiza o título da página
       const titles = {
@@ -925,22 +1380,641 @@
         relatorios: 'Relatórios e Analytics'
       };
       
-      document.getElementById('pageTitle').textContent = titles[pageName] || 'RPS Manager Pro';
-      
-      // Carrega dados específicos da página
-      if (pageName === 'empresas') {
-        carregarEmpresas();
-      } else if (pageName === 'layouts') {
-        atualizarListaLayouts();
-      } else if (pageName === 'dashboard') {
-        carregarDashboard();
-      } else if (pageName === 'importacao') {
-        carregarDadosImportacao();
+      const pageTitle = document.getElementById('pageTitle');
+      if (pageTitle) {
+        pageTitle.textContent = titles[pageName] || 'RPS Manager Pro';
+        console.log(`📝 Título atualizado para: ${pageTitle.textContent}`);
       }
       
-      // Fecha o sidebar em dispositivos móveis
-      if (window.innerWidth <= 768) {
-        toggleSidebar();
+      // Carrega dados específicos da página
+      try {
+        if (pageName === 'empresas') {
+          carregarEmpresas();
+        } else if (pageName === 'layouts') {
+          atualizarListaLayouts();
+        } else if (pageName === 'dashboard') {
+          carregarDashboard();
+          // Ativar atualização automática apenas na dashboard
+          if (!autoUpdateActive) {
+            setTimeout(() => toggleAutoUpdate(), 500);
+          }
+        } else if (pageName === 'importacao') {
+          carregarDadosImportacao();
+        } else if (pageName === 'gestao') {
+          carregarEmpresasGestao();
+          carregarEstatisticasGestao();
+        }
+        
+        // Desativar atualização automática se não estiver na dashboard
+        if (pageName !== 'dashboard' && autoUpdateActive) {
+          toggleAutoUpdate();
+        }
+      } catch (error) {
+        // Erro ao carregar dados da página
+      }
+    }
+
+    // ==================== FUNÇÕES DE LAYOUTS ====================
+    
+    async function atualizarListaLayouts() {
+      try {
+        console.log('📋 Carregando layouts...');
+        const response = await fetch('/api/layouts');
+        
+        if (!response.ok) {
+          throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        
+        const layouts = await response.json();
+        console.log('📋 Layouts carregados:', layouts.length);
+        
+        const container = document.getElementById('layoutsContainer');
+        
+        if (!container) {
+          console.error('❌ Container de layouts não encontrado');
+          return;
+        }
+        
+        container.innerHTML = '';
+        
+        if (layouts.length === 0) {
+          container.innerHTML = `
+            <div class="text-center text-muted p-4">
+              <i class="fas fa-table fa-2x mb-2"></i>
+              <p class="mb-0">Nenhum layout cadastrado</p>
+              <small>Clique em "Novo Layout" para criar o primeiro</small>
+            </div>
+          `;
+          return;
+        }
+        
+        layouts.forEach(layout => {
+          const layoutCard = document.createElement('div');
+          layoutCard.className = 'card mb-3';
+          layoutCard.innerHTML = `
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="card-title">${layout.nome || layout.id}</h6>
+                  <p class="card-text text-muted">${layout.descricao || 'Sem descrição'}</p>
+                  <small class="text-muted">
+                    <i class="fas fa-code me-1"></i> ID: ${layout.id}
+                    <span class="ms-3"><i class="fas fa-tag me-1"></i> v${layout.versao || '1.0'}</span>
+                    <span class="ms-3">
+                      <span class="badge ${layout.status === 'ativo' ? 'bg-success' : 'bg-secondary'}">
+                        ${layout.status || 'inativo'}
+                      </span>
+                    </span>
+                  </small>
+                </div>
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="editarLayout('${layout.id}')" title="Editar">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-info" onclick="testarLayout('${layout.id}')" title="Testar">
+                    <i class="fas fa-vial"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-danger" onclick="excluirLayout('${layout.id}')" title="Excluir">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          container.appendChild(layoutCard);
+        });
+        
+      } catch (error) {
+        console.error('❌ Erro ao carregar layouts:', error);
+        const container = document.getElementById('layoutsContainer');
+        if (container) {
+          container.innerHTML = `
+            <div class="text-center text-danger p-4">
+              <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+              <p class="mb-0">Erro ao carregar layouts: ${error.message}</p>
+            </div>
+          `;
+        }
+      }
+    }
+
+    // ==================== FUNÇÕES DE LAYOUTS ====================
+    
+    function mostrarFormularioLayout(layoutId = null) {
+      console.log('mostrarFormularioLayout chamada com layoutId:', layoutId);
+      const formulario = document.getElementById('formularioLayout');
+      const titulo = document.getElementById('tituloFormulario');
+      
+      if (formulario) {
+        formulario.classList.remove('hidden');
+        
+        if (layoutId) {
+          // Modo edição
+          titulo.textContent = 'Editar Layout';
+          console.log('Chamando carregarDadosLayout para ID:', layoutId);
+          carregarDadosLayout(layoutId);
+        } else {
+          // Modo criação
+          titulo.textContent = 'Criar Novo Layout';
+          limparFormularioLayout();
+        }
+        
+        // Scroll para o formulário
+        formulario.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        console.error('Elemento formularioLayout não encontrado!');
+      }
+    }
+
+    function ocultarFormularioLayout() {
+      const formulario = document.getElementById('formularioLayout');
+      if (formulario) {
+        formulario.classList.add('hidden');
+      }
+    }
+
+    function limparFormularioLayout() {
+      document.getElementById('layoutIdEdicao').value = '';
+      document.getElementById('layoutId').value = '';
+      document.getElementById('layoutNome').value = '';
+      document.getElementById('layoutVersao').value = '1.0';
+      document.getElementById('layoutStatus').value = 'ativo';
+      document.getElementById('layoutDescricao').value = '';
+      
+      // Habilitar edição do ID
+      document.getElementById('layoutId').disabled = false;
+      
+      // Limpar tipos de registro
+      const tiposContainer = document.getElementById('tiposRegistro');
+      if (tiposContainer) {
+        tiposContainer.innerHTML = '';
+      }
+      
+      // Limpar campos dinâmicos se existirem
+      const camposContainer = document.getElementById('camposContainer');
+      if (camposContainer) {
+        camposContainer.innerHTML = '';
+      }
+    }
+
+    async function carregarDadosLayout(layoutId) {
+      try {
+        const response = await fetch(`/api/layouts/${layoutId}`);
+        if (!response.ok) throw new Error('Layout não encontrado');
+        
+        const layout = await response.json();
+        
+        // Preencher formulário básico
+        document.getElementById('layoutIdEdicao').value = layout.id;
+        document.getElementById('layoutId').value = layout.layout_id || layout.id;
+        document.getElementById('layoutNome').value = layout.nome || '';
+        document.getElementById('layoutVersao').value = layout.versao || '1.0';
+        document.getElementById('layoutStatus').value = layout.status || 'ativo';
+        document.getElementById('layoutDescricao').value = layout.descricao || '';
+        
+        // Desabilitar edição do ID em modo edição
+        document.getElementById('layoutId').disabled = true;
+        
+        // Carregar tipos de registro
+        await carregarTiposRegistroLayout(layoutId);
+        
+      } catch (error) {
+        showNotification(`Erro ao carregar layout: ${error.message}`, 'error');
+      }
+    }
+
+    async function carregarTiposRegistroLayout(layoutId) {
+      try {
+        console.log('Carregando tipos para layout ID:', layoutId);
+        const response = await fetch(`/api/layouts/${layoutId}/tipos`);
+        if (response.ok) {
+          const tipos = await response.json();
+          console.log('Tipos recebidos:', tipos.length, tipos);
+          
+          // Limpar tipos existentes
+          const container = document.getElementById('tiposRegistro');
+          console.log('Container tiposRegistro encontrado:', container ? 'SIM' : 'NÃO');
+          if (container) {
+            console.log('Container HTML antes de limpar:', container.innerHTML.length > 0 ? 'TEM CONTEÚDO' : 'VAZIO');
+            container.innerHTML = '';
+            console.log('Container limpo');
+          }
+          
+          // Adicionar cada tipo
+          tipos.forEach((tipo, index) => {
+            console.log(`Adicionando tipo ${index + 1}:`, tipo);
+            adicionarTipoRegistroComDados(tipo);
+          });
+        } else {
+          console.log('Erro ao carregar tipos. Status:', response.status);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar tipos de registro:', error);
+        // Não é crítico se não conseguir carregar os tipos
+      }
+    }
+
+    function gerarHtmlCampo(campo = {}) {
+      return `
+        <div class="border-start border-3 border-info ps-3 mb-2 campo-item">
+          <div class="row g-2">
+            <div class="col-md-3">
+              <label class="form-label small">Nome do Campo</label>
+              <input type="text" class="form-control form-control-sm campo-nome" value="${campo.nome || ''}" placeholder="ex: numero">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">Posição</label>
+              <input type="number" class="form-control form-control-sm campo-posicao" value="${campo.posicao || ''}" min="1" placeholder="1">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">Tamanho</label>
+              <input type="number" class="form-control form-control-sm campo-tamanho" value="${campo.tamanho || ''}" min="1" placeholder="10">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">Tipo</label>
+              <select class="form-control form-control-sm campo-tipo">
+                <option value="string" ${campo.tipo === 'string' ? 'selected' : ''}>Texto</option>
+                <option value="number" ${campo.tipo === 'number' ? 'selected' : ''}>Número</option>
+                <option value="date" ${campo.tipo === 'date' ? 'selected' : ''}>Data</option>
+                <option value="decimal" ${campo.tipo === 'decimal' ? 'selected' : ''}>Decimal</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">Obrigatório</label>
+              <select class="form-control form-control-sm campo-obrigatorio">
+                <option value="false" ${!campo.obrigatorio ? 'selected' : ''}>Não</option>
+                <option value="true" ${campo.obrigatorio ? 'selected' : ''}>Sim</option>
+              </select>
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerCampoTipo(this)">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function adicionarTipoRegistroComDados(tipo = null) {
+      console.log('adicionarTipoRegistroComDados chamada com tipo:', tipo);
+      const container = document.getElementById('tiposRegistro');
+      console.log('Container encontrado:', container ? 'SIM' : 'NÃO');
+      if (!container) {
+        console.error('Container tiposRegistro não encontrado!');
+        return;
+      }
+      
+      const tipoIndex = container.children.length;
+      console.log('Índice do tipo:', tipoIndex);
+      
+      const tipoDiv = document.createElement('div');
+      tipoDiv.className = 'border rounded p-3 mb-3';
+      tipoDiv.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h6 class="mb-0">Tipo de Registro ${tipoIndex + 1}</h6>
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerTipoRegistro(this)">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+        <div class="row">
+          <div class="col-md-3">
+            <label class="form-label">Código (2 dígitos)</label>
+            <input type="text" class="form-control codigo-tipo" placeholder="ex: 10" maxlength="2" pattern="[0-9]{2}" value="${tipo ? tipo.codigo_tipo || '' : ''}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Descrição</label>
+            <input type="text" class="form-control nome-tipo" placeholder="ex: Cabeçalho" value="${tipo ? tipo.nome_tipo || '' : ''}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Obrigatório</label>
+            <select class="form-control obrigatorio-tipo">
+              <option value="false" ${tipo && !tipo.obrigatorio ? 'selected' : ''}>Não</option>
+              <option value="true" ${tipo && tipo.obrigatorio ? 'selected' : ''}>Sim</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Tamanho Linha</label>
+            <input type="number" class="form-control tamanho-linha" placeholder="ex: 80" min="1" max="1000" value="${tipo ? tipo.tamanho_linha || 80 : 80}">
+          </div>
+        </div>
+        
+        <!-- Seção de Campos -->
+        <div class="mt-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="form-label mb-0"><strong>Campos do Registro</strong></label>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="adicionarCampoTipo(this)">
+              <i class="fas fa-plus"></i> Adicionar Campo
+            </button>
+          </div>
+          <div class="campos-container">
+            <!-- Campos serão adicionados aqui dinamicamente -->
+          </div>
+        </div>
+      `;
+      
+      container.appendChild(tipoDiv);
+      
+      // Se há dados do tipo, carregar os campos
+      if (tipo && tipo.campos && tipo.campos.length > 0) {
+        console.log('Carregando campos para tipo:', tipo.nome_tipo, 'Quantidade de campos:', tipo.campos.length);
+        const camposContainer = tipoDiv.querySelector('.campos-container');
+        tipo.campos.forEach((campo, index) => {
+          console.log(`  Campo ${index + 1}:`, campo);
+          const campoHtml = gerarHtmlCampo(campo);
+          camposContainer.insertAdjacentHTML('beforeend', campoHtml);
+        });
+        console.log('Campos adicionados ao container. Total de elementos no container:', camposContainer.children.length);
+      } else {
+        console.log('Nenhum campo para carregar. Tipo:', tipo ? tipo.nome_tipo : 'null', 'Campos:', tipo ? tipo.campos : 'undefined');
+      }
+    }
+
+    function adicionarCampoTipo(button) {
+      const tipoDiv = button.closest('.border');
+      const container = tipoDiv.querySelector('.campos-container');
+      const campoHtml = gerarHtmlCampo({}, container.children.length);
+      container.insertAdjacentHTML('beforeend', campoHtml);
+    }
+
+    function removerCampoTipo(button) {
+      const campoDiv = button.closest('.campo-item');
+      if (campoDiv) {
+        campoDiv.remove();
+      }
+    }
+
+    async function salvarLayout() {
+      const layoutIdEdicao = document.getElementById('layoutIdEdicao').value;
+      const isEdicao = layoutIdEdicao !== '';
+      
+      // Coletar dados do formulário
+      const tiposRegistro = [];
+      const container = document.getElementById('tiposRegistro');
+      
+      Array.from(container.children).forEach(tipoDiv => {
+        const codigoTipo = tipoDiv.querySelector('.codigo-tipo').value;
+        const nomeTipo = tipoDiv.querySelector('.nome-tipo').value;
+        const obrigatorio = tipoDiv.querySelector('.obrigatorio-tipo').value === 'true';
+        const tamanhoLinha = parseInt(tipoDiv.querySelector('.tamanho-linha').value) || 80;
+        
+        if (codigoTipo && nomeTipo) {
+          // Coletar campos deste tipo
+          const campos = [];
+          const camposContainer = tipoDiv.querySelector('.campos-container');
+          
+          Array.from(camposContainer.children).forEach(campoDiv => {
+            const nomeCampo = campoDiv.querySelector('.campo-nome').value;
+            const posicao = parseInt(campoDiv.querySelector('.campo-posicao').value);
+            const tamanho = parseInt(campoDiv.querySelector('.campo-tamanho').value);
+            const tipo = campoDiv.querySelector('.campo-tipo').value;
+            const obrigatorioCampo = campoDiv.querySelector('.campo-obrigatorio').value === 'true';
+            
+            if (nomeCampo && posicao && tamanho) {
+              campos.push({
+                nome: nomeCampo,
+                posicao: posicao,
+                tamanho: tamanho,
+                tipo: tipo,
+                obrigatorio: obrigatorioCampo,
+                ordem: campos.length
+              });
+            }
+          });
+          
+          tiposRegistro.push({
+            codigo_tipo: codigoTipo,
+            nome_tipo: nomeTipo,
+            obrigatorio: obrigatorio,
+            tamanho_linha: tamanhoLinha,
+            descricao: `Registro ${nomeTipo}`,
+            campos: campos,
+            ordem: tiposRegistro.length
+          });
+        }
+      });
+      
+      const dadosLayout = {
+        layout_id: document.getElementById('layoutId').value,
+        nome: document.getElementById('layoutNome').value,
+        versao: document.getElementById('layoutVersao').value,
+        status: document.getElementById('layoutStatus').value,
+        descricao: document.getElementById('layoutDescricao').value,
+        tipos_registro: tiposRegistro
+      };
+      
+      // Validação básica
+      if (!dadosLayout.layout_id || !dadosLayout.nome) {
+        showNotification('Por favor, preencha todos os campos obrigatórios (ID e Nome)', 'error');
+        return;
+      }
+      
+      if (tiposRegistro.length === 0) {
+        showNotification('Por favor, adicione pelo menos um tipo de registro', 'error');
+        return;
+      }
+      
+      try {
+        const url = isEdicao ? `/api/layouts/${layoutIdEdicao}` : '/api/layouts';
+        const method = isEdicao ? 'PUT' : 'POST';
+        
+        console.log('Enviando dados do layout:', dadosLayout); // Debug
+        
+        const response = await fetch(url, {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(dadosLayout)
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.erro || result.error || 'Erro ao salvar layout');
+        }
+        
+        showNotification(
+          isEdicao ? 'Layout atualizado com sucesso!' : 'Layout criado com sucesso!', 
+          'success'
+        );
+        
+        ocultarFormularioLayout();
+        atualizarListaLayouts();
+        
+      } catch (error) {
+        console.error('Erro ao salvar layout:', error); // Debug
+        showNotification(`Erro ao salvar layout: ${error.message}`, 'error');
+      }
+    }
+
+    function editarLayout(id) {
+      mostrarFormularioLayout(id);
+    }
+
+    async function excluirLayout(id) {
+      if (!confirm(`Tem certeza que deseja excluir o layout "${id}"?\n\nEsta ação não pode ser desfeita.`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/layouts/${id}`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Erro ao excluir layout');
+        }
+        
+        showNotification('Layout excluído com sucesso!', 'success');
+        atualizarListaLayouts();
+        
+      } catch (error) {
+        showNotification(`Erro ao excluir layout: ${error.message}`, 'error');
+      }
+    }
+
+    async function testarLayout(id) {
+      try {
+        const response = await fetch(`/api/layouts/${id}/testar`, {
+          method: 'POST'
+        });
+        
+        const resultado = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(resultado.error || 'Erro no teste');
+        }
+        
+        showNotification(`Teste do layout "${id}" executado com sucesso!`, 'success');
+        
+      } catch (error) {
+        showNotification(`Erro ao testar layout: ${error.message}`, 'error');
+      }
+    }
+
+    function abrirModalTestarLayout() {
+      // Implementação de modal para testar layouts com arquivo
+      showNotification('Modal de teste em desenvolvimento', 'info');
+    }
+
+    function filtrarLayouts() {
+      const filtroTexto = document.getElementById('filtroBuscaLayout')?.value.toLowerCase() || '';
+      const filtroStatus = document.getElementById('filtroStatusLayout')?.value || '';
+      
+      const cards = document.querySelectorAll('#layoutsContainer .card');
+      
+      cards.forEach(card => {
+        const nome = card.querySelector('.card-title')?.textContent.toLowerCase() || '';
+        const status = card.querySelector('.badge')?.textContent.toLowerCase() || '';
+        
+        const textoMatch = !filtroTexto || nome.includes(filtroTexto);
+        const statusMatch = !filtroStatus || status.includes(filtroStatus);
+        
+        if (textoMatch && statusMatch) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    function adicionarTipoRegistro() {
+      adicionarTipoRegistroComDados(null);
+    }
+
+    function removerTipoRegistro(button) {
+      const tipoDiv = button.closest('.border');
+      if (tipoDiv) {
+        tipoDiv.remove();
+        // Renumerar tipos restantes
+        const container = document.getElementById('tiposRegistro');
+        Array.from(container.children).forEach((child, index) => {
+          const titulo = child.querySelector('h6');
+          if (titulo) {
+            titulo.textContent = `Tipo de Registro ${index + 1}`;
+          }
+        });
+      }
+    }
+
+    function previewLayoutJSON() {
+      const dadosLayout = coletarDadosFormulario();
+      
+      // Criar modal para mostrar o JSON
+      const modalHTML = `
+        <div class="modal fade" id="modalPreviewJSON" tabindex="-1">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Preview JSON do Layout</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <pre><code>${JSON.stringify(dadosLayout, null, 2)}</code></pre>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="copiarJSON()">
+                  <i class="fas fa-copy"></i> Copiar JSON
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Remover modal existente se houver
+      const modalExistente = document.getElementById('modalPreviewJSON');
+      if (modalExistente) {
+        modalExistente.remove();
+      }
+      
+      // Adicionar novo modal
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+      
+      // Mostrar modal
+      const modal = new bootstrap.Modal(document.getElementById('modalPreviewJSON'));
+      modal.show();
+    }
+
+    function coletarDadosFormulario() {
+      const tiposRegistro = [];
+      const container = document.getElementById('tiposRegistro');
+      
+      Array.from(container.children).forEach(tipoDiv => {
+        const inputs = tipoDiv.querySelectorAll('input, select');
+        if (inputs.length >= 4 && inputs[0].value && inputs[1].value) {
+          tiposRegistro.push({
+            codigo_tipo: inputs[0].value,
+            nome_tipo: inputs[1].value,
+            obrigatorio: inputs[2].value === 'true',
+            descricao: `Registro ${inputs[1].value}`,
+            tamanhoLinha: parseInt(inputs[3].value) || 80,
+            campos: []
+          });
+        }
+      });
+      
+      return {
+        layout_id: document.getElementById('layoutId').value,
+        nome: document.getElementById('layoutNome').value,
+        versao: document.getElementById('layoutVersao').value,
+        status: document.getElementById('layoutStatus').value,
+        descricao: document.getElementById('layoutDescricao').value,
+        tipos_registro: tiposRegistro
+      };
+    }
+
+    function copiarJSON() {
+      const codigo = document.querySelector('#modalPreviewJSON code');
+      if (codigo) {
+        navigator.clipboard.writeText(codigo.textContent).then(() => {
+          showNotification('JSON copiado para a área de transferência!', 'success');
+        }).catch(err => {
+          showNotification('Erro ao copiar JSON', 'error');
+        });
       }
     }
 
@@ -954,22 +2028,98 @@
     }
 
     async function carregarEstatisticas() {
+      // Indicar que está carregando
+      const iconSync = document.getElementById('iconSync');
+      if (iconSync) {
+        iconSync.classList.add('fa-spin');
+      }
+      
       try {
-        // Carrega total de empresas
-        const empresasResponse = await fetch('/api/empresas');
-        const empresas = await empresasResponse.json();
-        document.getElementById('totalEmpresas').textContent = empresas.length;
-
-        // Carrega total de layouts
-        const layoutsResponse = await fetch('/api/layouts');
-        const layouts = await layoutsResponse.json();
-        document.getElementById('totalLayouts').textContent = layouts.length;
-
-        // Simula outras estatísticas (implementar conforme necessário)
-        document.getElementById('totalRPS').textContent = '0';
-        document.getElementById('totalImportacoes').textContent = '0';
+        // Carrega estatísticas do dashboard usando o novo endpoint
+        const response = await fetch('/api/dashboard/estatisticas');
+        const estatisticas = await response.json();
+        
+        if (estatisticas.erro) {
+          throw new Error(estatisticas.erro);
+        }
+        
+        // Atualiza os cards com as estatísticas
+        document.getElementById('totalEmpresas').textContent = estatisticas.totalEmpresas || 0;
+        document.getElementById('totalLayouts').textContent = estatisticas.totalLayouts || 0;
+        document.getElementById('totalRPS').textContent = estatisticas.totalRPS || 0;
+        document.getElementById('totalImportacoes').textContent = estatisticas.totalImportacoes || 0;
+        
+        // Atualizar indicador de última atualização
+        const agora = new Date();
+        const horaFormatada = agora.toLocaleTimeString('pt-BR');
+        const ultimaAtualizacaoInfo = document.getElementById('ultimaAtualizacaoInfo');
+        if (ultimaAtualizacaoInfo) {
+          ultimaAtualizacaoInfo.textContent = horaFormatada;
+        }
+        
       } catch (error) {
-        console.error('Erro ao carregar estatísticas:', error);
+        // Fallback: carrega individualmente em caso de erro
+        try {
+          const empresasResponse = await fetch('/api/empresas');
+          const empresas = await empresasResponse.json();
+          document.getElementById('totalEmpresas').textContent = empresas.length;
+
+          const layoutsResponse = await fetch('/api/layouts');
+          const layouts = await layoutsResponse.json();
+          document.getElementById('totalLayouts').textContent = layouts.length;
+          
+          // Atualizar indicador mesmo com erro parcial
+          const agora = new Date();
+          const horaFormatada = agora.toLocaleTimeString('pt-BR');
+          const ultimaAtualizacaoInfo = document.getElementById('ultimaAtualizacaoInfo');
+          if (ultimaAtualizacaoInfo) {
+            ultimaAtualizacaoInfo.textContent = `${horaFormatada} (parcial)`;
+          }
+        } catch (fallbackError) {
+          const ultimaAtualizacaoInfo = document.getElementById('ultimaAtualizacaoInfo');
+          if (ultimaAtualizacaoInfo) {
+            ultimaAtualizacaoInfo.textContent = 'Erro ao atualizar';
+          }
+        }
+      } finally {
+        // Parar indicador de carregamento
+        const iconSync = document.getElementById('iconSync');
+        if (iconSync) {
+          iconSync.classList.remove('fa-spin');
+        }
+      }
+    }
+
+    // Função para ativar/desativar atualização automática
+    function toggleAutoUpdate() {
+      const btn = document.getElementById('btnAutoUpdate');
+      const text = document.getElementById('autoUpdateText');
+      const icon = btn.querySelector('i');
+      
+      if (autoUpdateActive) {
+        // Desativar
+        clearInterval(autoUpdateInterval);
+        autoUpdateActive = false;
+        autoUpdateInterval = null;
+        
+        btn.classList.remove('btn-outline-success');
+        btn.classList.add('btn-outline-primary');
+        icon.classList.remove('fa-stop');
+        icon.classList.add('fa-play');
+        text.textContent = 'Ativar';
+      } else {
+        // Ativar
+        autoUpdateInterval = setInterval(carregarEstatisticas, autoUpdateFrequency);
+        autoUpdateActive = true;
+        
+        btn.classList.remove('btn-outline-primary');
+        btn.classList.add('btn-outline-success');
+        icon.classList.remove('fa-play');
+        icon.classList.add('fa-stop');
+        text.textContent = 'Parar';
+        
+        // Primeira atualização imediata
+        carregarEstatisticas();
       }
     }
 
@@ -1005,6 +2155,20 @@
       // Carrega empresas e layouts para os selects de importação
       carregarEmpresasSelect();
       carregarLayoutsSelect();
+      
+      // Adicionar listeners para validação
+      setTimeout(() => {
+        const empresaSelect = document.getElementById('empresaImportacao');
+        const layoutSelect = document.getElementById('layoutImportacao');
+        
+        if (empresaSelect) {
+          empresaSelect.addEventListener('change', validarCamposImportacao);
+        }
+        
+        if (layoutSelect) {
+          layoutSelect.addEventListener('change', validarCamposImportacao);
+        }
+      }, 100);
     }
 
     async function carregarEmpresasSelect() {
@@ -1032,32 +2196,12 @@
         const select = document.getElementById('layoutImportacao');
         
         select.innerHTML = '<option value="">Selecione um layout</option>';
-        
-        let layoutPadraoSelecionado = false;
-        
         layouts.forEach(layout => {
           const option = document.createElement('option');
           option.value = layout.id;
           option.textContent = layout.nome;
-          
-          // Selecionar automaticamente o layout padrão (RJ Padrão V1 ou similar)
-          if (!layoutPadraoSelecionado && (
-            layout.nome.toLowerCase().includes('padrão') || 
-            layout.nome.toLowerCase().includes('padrao') ||
-            layout.layout_id === 'layout_rj_padrao_v1'
-          )) {
-            option.selected = true;
-            layoutPadraoSelecionado = true;
-          }
-          
           select.appendChild(option);
         });
-        
-        // Se não encontrou um layout padrão, seleciona o primeiro disponível
-        if (!layoutPadraoSelecionado && layouts.length > 0) {
-          select.selectedIndex = 1; // Pula a opção "Selecione um layout"
-        }
-        
       } catch (error) {
         console.error('Erro ao carregar layouts:', error);
       }
@@ -1084,290 +2228,27 @@
       }, 5000);
     }
 
-    // ==================== FUNÇÕES DE GESTÃO DE RPS ====================
-    
-    let rpsData = [];
-    let rpsFiltered = [];
-    
-    // Carrega empresas no select da gestão
-    async function carregarEmpresasGestao() {
-      try {
-        const response = await fetch('/api/empresas');
-        const empresas = await response.json();
-        const select = document.getElementById('empresaGestao');
-        
-        select.innerHTML = '<option value="">Selecione uma empresa</option>';
-        empresas.forEach(empresa => {
-          const option = document.createElement('option');
-          option.value = empresa.id;
-          option.textContent = `${empresa.razao_social} (${formatarCNPJ(empresa.cnpj)})`;
-          select.appendChild(option);
-        });
-      } catch (error) {
-        console.error('Erro ao carregar empresas:', error);
-        showNotification('Erro ao carregar empresas', 'danger');
-      }
-    }
-
-    // Carrega RPS da empresa selecionada
-    async function carregarRpsEmpresa() {
-      const empresaId = document.getElementById('empresaGestao').value;
-      const dataInicio = document.getElementById('dataInicioGestao').value;
-      const dataFim = document.getElementById('dataFimGestao').value;
-      
-      if (!empresaId) {
-        showNotification('Selecione uma empresa primeiro', 'warning');
-        return;
-      }
-      
-      if (!dataInicio || !dataFim) {
-        showNotification('Selecione o período inicial e final', 'warning');
-        return;
-      }
-      
-      try {
-        const response = await fetch(`/api/rps/empresa/${empresaId}?dataInicio=${dataInicio}&dataFim=${dataFim}`);
-        
-        if (!response.ok) {
-          throw new Error('Erro ao buscar RPS');
-        }
-        
-        const data = await response.json();
-        rpsData = data;
-        rpsFiltered = [...rpsData];
-        
-        exibirRpsTabela();
-        atualizarTotais();
-        
-        showNotification(`${rpsData.length} RPS encontrados`, 'success');
-        
-      } catch (error) {
-        console.error('Erro ao carregar RPS:', error);
-        showNotification('Erro ao carregar RPS da empresa', 'danger');
-        
-        // Limpar tabela em caso de erro
-        const tbody = document.getElementById('corpoTabelaRps');
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="11" class="text-center text-muted py-4">
-              <i class="fas fa-exclamation-triangle fa-2x mb-2 text-warning"></i>
-              <br>Erro ao carregar dados. Tente novamente.
-            </td>
-          </tr>
-        `;
-      }
-    }
-    
-    // Exibe RPS na tabela
-    function exibirRpsTabela() {
-      const tbody = document.getElementById('corpoTabelaRps');
-      
-      if (rpsFiltered.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="11" class="text-center text-muted py-4">
-              <i class="fas fa-inbox fa-2x mb-2"></i>
-              <br>Nenhum RPS encontrado para o período selecionado
-            </td>
-          </tr>
-        `;
-        return;
-      }
-      
-      tbody.innerHTML = rpsFiltered.map(rps => `
-        <tr data-rps-id="${rps.id}">
-          <td>
-            <input type="checkbox" class="form-check-input rps-checkbox" 
-                   value="${rps.id}" 
-                   data-valor="${rps.valor_servicos || 0}"
-                   onchange="atualizarSelecao()">
-          </td>
-          <td>${rps.numero_rps || '-'}</td>
-          <td>${rps.serie_rps || '-'}</td>
-          <td>${formatarData(rps.data_emissao)}</td>
-          <td>${rps.tomador_razao_social || '-'}</td>
-          <td class="text-truncate" style="max-width: 300px;" title="${rps.discriminacao || '-'}">
-            ${rps.discriminacao || '-'}
-          </td>
-          <td class="text-end">${formatarMoeda(rps.valor_servicos || 0)}</td>
-          <td class="text-end">${formatarMoeda(rps.valor_iss || 0)}</td>
-          <td class="text-end">${formatarMoeda(rps.valor_liquido || 0)}</td>
-          <td>
-            <span class="badge ${getStatusBadgeClass(rps.status)}">${rps.status || 'Pendente'}</span>
-          </td>
-          <td>
-            <div class="btn-group" role="group">
-              <button type="button" class="btn btn-sm btn-outline-primary" onclick="visualizarRps(${rps.id})" title="Visualizar">
-                <i class="fas fa-eye"></i>
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-warning" onclick="editarRps(${rps.id})" title="Editar">
-                <i class="fas fa-edit"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `).join('');
-    }
-    
-    // Funções de seleção
-    function selecionarTodosRps() {
-      const checkboxes = document.querySelectorAll('.rps-checkbox');
-      checkboxes.forEach(cb => cb.checked = true);
-      document.getElementById('checkTodos').checked = true;
-      atualizarSelecao();
-    }
-    
-    function desmarcarTodosRps() {
-      const checkboxes = document.querySelectorAll('.rps-checkbox');
-      checkboxes.forEach(cb => cb.checked = false);
-      document.getElementById('checkTodos').checked = false;
-      atualizarSelecao();
-    }
-    
-    function toggleTodosRps(checked) {
-      const checkboxes = document.querySelectorAll('.rps-checkbox');
-      checkboxes.forEach(cb => cb.checked = checked);
-      atualizarSelecao();
-    }
-    
-    // Atualiza contadores de seleção
-    function atualizarSelecao() {
-      const checkboxes = document.querySelectorAll('.rps-checkbox:checked');
-      const quantidade = checkboxes.length;
-      const valor = Array.from(checkboxes).reduce((total, cb) => {
-        return total + parseFloat(cb.dataset.valor || 0);
-      }, 0);
-      
-      const divSelecionados = document.getElementById('totalSelecionados');
-      if (quantidade > 0) {
-        divSelecionados.style.display = 'block';
-        document.getElementById('quantidadeSelecionados').textContent = quantidade;
-        document.getElementById('valorSelecionado').textContent = formatarMoeda(valor);
-      } else {
-        divSelecionados.style.display = 'none';
-      }
-      
-      // Atualizar checkbox "Todos"
-      const totalCheckboxes = document.querySelectorAll('.rps-checkbox').length;
-      const checkTodos = document.getElementById('checkTodos');
-      if (quantidade === 0) {
-        checkTodos.checked = false;
-        checkTodos.indeterminate = false;
-      } else if (quantidade === totalCheckboxes) {
-        checkTodos.checked = true;
-        checkTodos.indeterminate = false;
-      } else {
-        checkTodos.checked = false;
-        checkTodos.indeterminate = true;
-      }
-    }
-    
-    // Filtros da tabela
-    function filtrarTabela(campo, valor) {
-      if (!valor.trim()) {
-        rpsFiltered = [...rpsData];
-      } else {
-        rpsFiltered = rpsData.filter(rps => {
-          const valorCampo = rps[campo] || '';
-          if (campo === 'valorServicos' || campo === 'valorIss' || campo === 'valorLiquido') {
-            return formatarMoeda(valorCampo).toLowerCase().includes(valor.toLowerCase());
-          }
-          if (campo === 'dataEmissao') {
-            return formatarData(valorCampo) === valor;
-          }
-          return valorCampo.toString().toLowerCase().includes(valor.toLowerCase());
-        });
-      }
-      
-      exibirRpsTabela();
-      atualizarTotais();
-      atualizarSelecao();
-    }
-    
-    function limparFiltros() {
-      // Limpar todos os campos de filtro
-      const filtros = document.querySelectorAll('[onkeyup*="filtrarTabela"], [onchange*="filtrarTabela"]');
-      filtros.forEach(filtro => filtro.value = '');
-      
-      // Resetar dados filtrados
-      rpsFiltered = [...rpsData];
-      exibirRpsTabela();
-      atualizarTotais();
-      atualizarSelecao();
-    }
-    
-    // Atualiza totais no rodapé
-    function atualizarTotais() {
-      const total = rpsFiltered.length;
-      const valorTotal = rpsFiltered.reduce((sum, rps) => sum + (rps.valor_servicos || 0), 0);
-      
-      document.getElementById('totalRegistros').textContent = total;
-      document.getElementById('valorTotalExibido').textContent = formatarMoeda(valorTotal);
-    }
-    
-    // Funções auxiliares
-    function formatarData(data) {
-      if (!data) return '-';
-      try {
-        return new Date(data).toLocaleDateString('pt-BR');
-      } catch {
-        return data;
-      }
-    }
-    
-    function formatarMoeda(valor) {
-      return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-      }).format(valor / 100);
-    }
-    
-    function formatarCNPJ(cnpj) {
-      if (!cnpj) return '';
-      const numeros = cnpj.replace(/\D/g, '');
-      return numeros.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-    }
-    
-    function getStatusBadgeClass(status) {
-      switch (status?.toLowerCase()) {
-        case 'emitido': return 'bg-success';
-        case 'cancelado': return 'bg-danger';
-        case 'pendente': return 'bg-warning';
-        default: return 'bg-secondary';
-      }
-    }
-    
-    // Funções de ações (placeholder)
-    function visualizarRps(id) {
-      showNotification('Função de visualização em desenvolvimento', 'info');
-    }
-    
-    function editarRps(id) {
-      showNotification('Função de edição em desenvolvimento', 'info');
-    }
-
     // ==================== INICIALIZAÇÃO ====================
     
     document.addEventListener('DOMContentLoaded', function() {
       // Carrega a página inicial (dashboard)
       showPage('dashboard');
       
-      // Atualiza o status do sistema a cada 30 segundos
-      setInterval(atualizarStatusSistema, 30000);
+      // Ativar atualização automática do dashboard por padrão
+      setTimeout(() => {
+        if (document.getElementById('page-dashboard').classList.contains('active')) {
+          toggleAutoUpdate();
+        }
+      }, 1000);
       
       // Setup do upload de arquivos
       setupFileUpload();
       
-      // Carrega empresas para gestão de RPS
-      carregarEmpresasGestao();
+      // Inicializar contador de selecionados
+      atualizarContadorSelecionados();
       
-      // Define datas padrão (último mês)
-      const hoje = new Date();
-      const mesPassado = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
-      const ultimoDiaMesPassado = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
-      
-      document.getElementById('dataInicioGestao').value = mesPassado.toISOString().split('T')[0];
-      document.getElementById('dataFimGestao').value = ultimoDiaMesPassado.toISOString().split('T')[0];
+      // Setup do formulário de empresa
+      setupFormularioEmpresa();
     });
 
     function setupFileUpload() {
@@ -1399,7 +2280,7 @@
       }
     }
 
-    function handleFileSelection(files) {
+    async function handleFileSelection(files) {
       const arquivosSelecionados = document.getElementById('arquivosSelecionados');
       const listaArquivos = document.getElementById('listaArquivos');
       const btnImportar = document.getElementById('btnImportar');
@@ -1418,178 +2299,1302 @@
           listaArquivos.appendChild(fileItem);
         });
         
-        btnImportar.disabled = false;
+        // Analisar primeiro arquivo automaticamente
+        if (files.length > 0) {
+          await analisarPrimeiroArquivo(files[0]);
+        }
+        
+        validarCamposImportacao();
       }
+    }
+    
+    async function analisarPrimeiroArquivo(arquivo) {
+      try {
+        // Verificar se as funções do app.js estão disponíveis
+        if (typeof analisarArquivo !== 'function') {
+          throw new Error('Função analisarArquivo não está disponível. Verifique se o arquivo app.js foi carregado corretamente.');
+        }
+        
+        // Mostrar indicador de análise
+        const resumoDiv = document.getElementById('resumoArquivo');
+        resumoDiv.innerHTML = `
+          <div class="alert alert-info">
+            <i class="fas fa-spinner fa-spin"></i> Analisando arquivo...
+          </div>
+        `;
+        resumoDiv.style.display = 'block';
+        
+        // Analisar arquivo usando função do app.js
+        const analise = await analisarArquivo(arquivo);
+        
+        // Atualizar resumo usando função do app.js
+        if (typeof atualizarResumoImportacao === 'function') {
+          atualizarResumoImportacao(analise);
+        } else {
+          // Fallback se a função não estiver disponível
+          resumoDiv.innerHTML = `
+            <div class="alert alert-success">
+              <h6>Arquivo analisado:</h6>
+              <p><strong>CNPJ:</strong> ${analise.cnpj || 'Não encontrado'}</p>
+              <p><strong>Total de RPS:</strong> ${analise.totalRps || 0}</p>
+              <p><strong>Período:</strong> ${analise.dataInicio || 'N/A'} até ${analise.dataFim || 'N/A'}</p>
+            </div>
+          `;
+        }
+        
+        // Tentar detectar empresa automaticamente
+        if (analise.cnpj && typeof buscarEmpresaPorCnpj === 'function') {
+          try {
+            const empresa = await buscarEmpresaPorCnpj(analise.cnpj);
+            if (empresa) {
+              document.getElementById('empresaImportacao').value = empresa.id;
+              showNotification(`Empresa detectada automaticamente: ${empresa.razao_social}`, 'success');
+            } else {
+              showNotification(`CNPJ ${analise.cnpj} não encontrado no cadastro. Selecione a empresa manualmente.`, 'warning');
+            }
+          } catch (empresaError) {
+            console.error('Erro ao buscar empresa:', empresaError);
+            showNotification(`CNPJ ${analise.cnpj} não encontrado no cadastro. Selecione a empresa manualmente.`, 'warning');
+          }
+        }
+        
+        // Selecionar layout padrão automaticamente
+        const layoutSelect = document.getElementById('layoutImportacao');
+        if (layoutSelect.options.length > 1) {
+          // Procurar por layout "Padrão RJ" ou similar
+          for (let option of layoutSelect.options) {
+            if (option.text.toLowerCase().includes('padrão') || option.text.toLowerCase().includes('rj')) {
+              layoutSelect.value = option.value;
+              showNotification('Layout padrão selecionado automaticamente', 'info');
+              break;
+            }
+          }
+          // Se não encontrou, seleciona o primeiro disponível
+          if (!layoutSelect.value && layoutSelect.options.length > 1) {
+            layoutSelect.value = layoutSelect.options[1].value;
+            showNotification('Primeiro layout disponível selecionado', 'info');
+          }
+        }
+        
+      } catch (error) {
+        console.error('Erro ao analisar arquivo:', error);
+        const resumoDiv = document.getElementById('resumoArquivo');
+        resumoDiv.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> Erro ao analisar arquivo: ${error.message}
+          </div>
+        `;
+        showNotification('Erro ao analisar arquivo', 'danger');
+      }
+    }
+
+    function validarCamposImportacao() {
+      const fileInput = document.getElementById('fileInput');
+      const empresaId = document.getElementById('empresaImportacao').value;
+      const layoutId = document.getElementById('layoutImportacao').value;
+      const btnImportar = document.getElementById('btnImportar');
+
+      const camposValidos = fileInput.files && fileInput.files.length > 0 && empresaId && layoutId;
+      btnImportar.disabled = !camposValidos;
+
+      return camposValidos;
+    }
+
+    // Função para iniciar o processo de importação
+    async function iniciarImportacao() {
+      if (!validarCamposImportacao()) {
+        showNotification('Preencha todos os campos obrigatórios', 'warning');
+        return;
+      }
+
+      const fileInput = document.getElementById('fileInput');
+      const empresaId = document.getElementById('empresaImportacao').value;
+      const layoutId = document.getElementById('layoutImportacao').value;
+      const atualizarExistentes = document.getElementById('atualizarExistentes').checked;
+      const ignorarDuplicadas = document.getElementById('ignorarDuplicadas').checked;
+
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      const progressPercent = document.getElementById('progressPercent');
+      const btnImportar = document.getElementById('btnImportar');
+
+      try {
+        // Mostrar progresso
+        progressContainer.style.display = 'block';
+        btnImportar.disabled = true;
+
+        // Preparar FormData
+        const formData = new FormData();
+        formData.append('arquivo', fileInput.files[0]);
+        formData.append('empresaId', empresaId);
+        formData.append('layoutId', layoutId);
+        formData.append('atualizarExistentes', atualizarExistentes);
+        formData.append('ignorarDuplicadas', ignorarDuplicadas);
+
+        // Simular progresso
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+          progress += Math.random() * 15;
+          if (progress > 90) progress = 90;
+          
+          progressBar.style.width = progress + '%';
+          progressPercent.textContent = Math.round(progress) + '%';
+          
+          if (progress < 30) {
+            progressText.textContent = 'Analisando arquivo...';
+          } else if (progress < 60) {
+            progressText.textContent = 'Processando registros...';
+          } else {
+            progressText.textContent = 'Salvando no banco de dados...';
+          }
+        }, 200);
+
+        // Fazer upload
+        const response = await fetch('/api/importar-rps', {
+          method: 'POST',
+          body: formData
+        });
+
+        clearInterval(progressInterval);
+
+        if (!response.ok) {
+          throw new Error(`Erro na importação: ${response.statusText}`);
+        }
+
+        const resultado = await response.json();
+
+        // Finalizar progresso
+        progressBar.style.width = '100%';
+        progressPercent.textContent = '100%';
+        progressText.textContent = 'Importação concluída!';
+
+        // Mostrar resultado
+        const resultadoDiv = document.getElementById('resultadoImportacao');
+        const resultadoConteudo = document.getElementById('resultadoConteudo');
+        
+        resultadoConteudo.innerHTML = `
+          <div class="alert alert-success">
+            <h6><i class="fas fa-check-circle me-2"></i>Importação Concluída com Sucesso!</h6>
+            <hr>
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Registros processados:</strong> ${resultado.totalProcessados || 0}</p>
+                <p><strong>Registros importados:</strong> ${resultado.totalImportados || 0}</p>
+                <p><strong>Registros atualizados:</strong> ${resultado.totalAtualizados || 0}</p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Registros com erro:</strong> ${resultado.totalErros || 0}</p>
+                <p><strong>Registros duplicados:</strong> ${resultado.totalDuplicados || 0}</p>
+                <p><strong>Tempo de processamento:</strong> ${resultado.tempoProcessamento || '< 1s'}</p>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        resultadoDiv.style.display = 'block';
+
+        showNotification('Importação realizada com sucesso!', 'success');
+
+        // Limpar formulário após sucesso
+        setTimeout(() => {
+          progressContainer.style.display = 'none';
+          document.getElementById('arquivosSelecionados').style.display = 'none';
+          document.getElementById('resumoArquivo').style.display = 'none';
+          fileInput.value = '';
+          btnImportar.disabled = true;
+        }, 3000);
+
+      } catch (error) {
+        console.error('Erro na importação:', error);
+        
+        // Esconder progresso
+        progressContainer.style.display = 'none';
+        btnImportar.disabled = false;
+        
+        showNotification('Erro na importação: ' + error.message, 'error');
+      }
+    }
+
+    function setupFormularioEmpresa() {
+      const form = document.getElementById('formEmpresa');
+      if (!form) return;
+      
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        try {
+          const formData = {
+            cnpj: document.getElementById('cnpj').value.trim(),
+            razaoSocial: document.getElementById('razaoSocial').value.trim(),
+            nomeFantasia: document.getElementById('nomeFantasia').value.trim(),
+            inscricaoMunicipal: document.getElementById('inscricaoMunicipal').value.trim(),
+            telefone: document.getElementById('telefone').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            endereco: document.getElementById('endereco').value.trim()
+          };
+          
+          // Validações básicas
+          if (!formData.cnpj) {
+            showNotification('CNPJ é obrigatório', 'error');
+            return;
+          }
+          
+          if (!formData.razaoSocial) {
+            showNotification('Razão Social é obrigatória', 'error');
+            return;
+          }
+          
+          let url = '/api/empresas';
+          let method = 'POST';
+          let mensagem = 'Empresa cadastrada com sucesso!';
+          
+          // Se estiver editando
+          if (window.empresaEditando) {
+            url = `/api/empresas/${window.empresaEditando}`;
+            method = 'PUT';
+            mensagem = 'Empresa atualizada com sucesso!';
+          }
+          
+          const response = await fetch(url, {
+            method: method,
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.erro || `Erro HTTP: ${response.status}`);
+          }
+          
+          showNotification(mensagem, 'success');
+          limparFormularioEmpresa();
+          await carregarEmpresas(); // Recarregar lista
+          
+        } catch (error) {
+          console.error('Erro ao salvar empresa:', error);
+          showNotification('Erro ao salvar empresa: ' + error.message, 'error');
+        }
+      });
+    }
+
+    // ==================== FUNÇÕES DE GESTÃO DE RPS ====================
+    
+    let dadosRPS = [];
+
+    // Funções utilitárias para controlar estado do loading
+    function mostrarLoadingRPS() {
+      const loading = document.getElementById('loadingRPS');
+      const mensagem = document.getElementById('mensagemRPS');
+      const grid = document.getElementById('gridRPS');
+      const totalizadores = document.getElementById('totalizadores');
+      const btnExportar = document.getElementById('btnExportar');
+      
+      // Mostrar loading
+      loading.classList.remove('d-none-important');
+      loading.classList.add('d-flex-important');
+      
+      // Esconder outros elementos
+      mensagem.classList.add('d-none-important');
+      grid.classList.add('d-none-important');
+      totalizadores.classList.add('d-none-important');
+      btnExportar.classList.add('d-none-important');
+    }
+
+    function esconderLoadingRPS() {
+      const loading = document.getElementById('loadingRPS');
+      loading.classList.remove('d-flex-important');
+      loading.classList.add('d-none-important');
+    }
+
+    function mostrarResultadosRPS(dadosRPS) {
+      const loading = document.getElementById('loadingRPS');
+      const mensagem = document.getElementById('mensagemRPS');
+      const grid = document.getElementById('gridRPS');
+      const totalizadores = document.getElementById('totalizadores');
+      const btnExportar = document.getElementById('btnExportar');
+      
+      // Esconder loading e mensagem
+      loading.classList.remove('d-flex-important');
+      loading.classList.add('d-none-important');
+      mensagem.classList.add('d-none-important');
+      
+      // Mostrar resultados
+      grid.classList.remove('d-none-important');
+      grid.classList.add('d-block-important');
+      totalizadores.classList.remove('d-none-important');
+      totalizadores.classList.add('d-flex-important');
+      btnExportar.classList.remove('d-none-important');
+      btnExportar.classList.add('d-block-important');
+    }
+
+    function mostrarMensagemRPS(mensagem) {
+      const loading = document.getElementById('loadingRPS');
+      const mensagemEl = document.getElementById('mensagemRPS');
+      const grid = document.getElementById('gridRPS');
+      const totalizadores = document.getElementById('totalizadores');
+      const btnExportar = document.getElementById('btnExportar');
+      
+      // Esconder loading
+      loading.classList.remove('d-flex-important');
+      loading.classList.add('d-none-important');
+      
+      // Mostrar mensagem
+      mensagemEl.innerHTML = mensagem;
+      mensagemEl.classList.remove('d-none-important');
+      mensagemEl.classList.add('d-block-important');
+      
+      // Esconder outros elementos
+      grid.classList.add('d-none-important');
+      totalizadores.classList.add('d-none-important');
+      btnExportar.classList.add('d-none-important');
+    }
+
+    // ==================== FUNÇÕES DE EMPRESA ====================
+
+    async function carregarEmpresas() {
+      try {
+        console.log('🏢 Carregando empresas...');
+        const response = await fetch('/api/empresas');
+        
+        if (!response.ok) {
+          throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        
+        const empresas = await response.json();
+        console.log('🏢 Empresas carregadas:', empresas.length);
+        
+        const tbody = document.getElementById('empresasTable');
+        
+        if (!tbody) {
+          console.error('❌ Elemento empresasTable não encontrado');
+          return;
+        }
+        
+        tbody.innerHTML = '';
+        
+        if (empresas.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">
+                <i class="fas fa-building fa-2x mb-2"></i>
+                <p class="mb-0">Nenhuma empresa cadastrada</p>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+        
+        empresas.forEach(empresa => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${empresa.cnpj || '-'}</td>
+            <td>${empresa.razao_social || '-'}</td>
+            <td>${empresa.nome_fantasia || '-'}</td>
+            <td>${empresa.inscricao_municipal || '-'}</td>
+            <td>
+              <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="editarEmpresa(${empresa.id})" title="Editar">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="excluirEmpresa(${empresa.id})" title="Excluir">
+                <i class="fas fa-trash"></i>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+        
+        console.log('✅ Tabela de empresas atualizada');
+        
+      } catch (error) {
+        console.error('❌ Erro ao carregar empresas:', error);
+        const tbody = document.getElementById('empresasTable');
+        if (tbody) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center text-danger py-4">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                <p class="mb-0">Erro ao carregar empresas: ${error.message}</p>
+              </td>
+            </tr>
+          `;
+        }
+      }
+    }
+
+    function limparFormularioEmpresa() {
+      document.getElementById('formEmpresa').reset();
+      // Remover estado de edição se existir
+      delete window.empresaEditando;
+      
+      // Atualizar botão
+      const btnSalvar = document.querySelector('#formEmpresa button[type="submit"]');
+      if (btnSalvar) {
+        btnSalvar.innerHTML = '<i class="fas fa-save"></i> Salvar Empresa';
+      }
+    }
+
+    async function editarEmpresa(id) {
+      try {
+        console.log('🏢 Carregando empresa para edição:', id);
+        const response = await fetch(`/api/empresas/${id}`);
+        
+        if (!response.ok) {
+          throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        
+        const empresa = await response.json();
+        
+        // Preencher formulário
+        document.getElementById('cnpj').value = empresa.cnpj || '';
+        document.getElementById('razaoSocial').value = empresa.razao_social || '';
+        document.getElementById('nomeFantasia').value = empresa.nome_fantasia || '';
+        document.getElementById('inscricaoMunicipal').value = empresa.inscricao_municipal || '';
+        document.getElementById('telefone').value = empresa.telefone || '';
+        document.getElementById('email').value = empresa.email || '';
+        document.getElementById('endereco').value = empresa.endereco || '';
+        
+        // Marcar como edição
+        window.empresaEditando = empresa.id;
+        
+        // Atualizar botão
+        const btnSalvar = document.querySelector('#formEmpresa button[type="submit"]');
+        if (btnSalvar) {
+          btnSalvar.innerHTML = '<i class="fas fa-save"></i> Atualizar Empresa';
+        }
+        
+        // Scroll para o formulário
+        document.getElementById('formEmpresa').scrollIntoView({ behavior: 'smooth' });
+        
+      } catch (error) {
+        console.error('❌ Erro ao carregar empresa:', error);
+        showNotification('Erro ao carregar dados da empresa: ' + error.message, 'error');
+      }
+    }
+
+    async function excluirEmpresa(id) {
+      if (!confirm('Tem certeza que deseja excluir esta empresa? Esta ação não pode ser desfeita.')) {
+        return;
+      }
+      
+      try {
+        console.log('🏢 Excluindo empresa:', id);
+        const response = await fetch(`/api/empresas/${id}`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.erro || `Erro HTTP: ${response.status}`);
+        }
+        
+        showNotification('Empresa excluída com sucesso!', 'success');
+        await carregarEmpresas(); // Recarregar lista
+        
+      } catch (error) {
+        console.error('❌ Erro ao excluir empresa:', error);
+        showNotification('Erro ao excluir empresa: ' + error.message, 'error');
+      }
+    }
+
+    // Função para buscar dados da empresa pelo CNPJ
+    async function buscarDadosCNPJ() {
+      const cnpjInput = document.getElementById('cnpj');
+      const cnpj = cnpjInput.value.replace(/\D/g, ''); // Remove caracteres não numéricos
+      
+      if (cnpj.length !== 14) {
+        showNotification('CNPJ deve ter 14 dígitos', 'warning');
+        return;
+      }
+      
+      try {
+        showNotification('Buscando dados da empresa...', 'info');
+        
+        // Aqui você pode integrar com uma API real de consulta de CNPJ
+        // Por enquanto, vamos simular uma resposta
+        setTimeout(() => {
+          showNotification('Consulta CNPJ - Funcionalidade em desenvolvimento', 'info');
+        }, 1000);
+        
+      } catch (error) {
+        console.error('Erro ao buscar CNPJ:', error);
+        showNotification('Erro ao buscar dados do CNPJ', 'error');
+      }
+    }
+
+    async function carregarEmpresasGestao() {
+      try {
+        const response = await fetch('/api/empresas');
+        const empresas = await response.json();
+        const select = document.getElementById('empresaSelect');
+        
+        select.innerHTML = '<option value="">Selecione uma empresa</option>';
+        empresas.forEach(empresa => {
+          const option = document.createElement('option');
+          option.value = empresa.id;
+          option.textContent = `${empresa.razao_social} (${empresa.cnpj})`;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Erro ao carregar empresas para gestão:', error);
+        document.getElementById('empresaSelect').innerHTML = '<option value="">Erro ao carregar empresas</option>';
+      }
+    }
+
+    async function consultarRPS() {
+      const empresaId = document.getElementById('empresaSelect').value;
+      const dataInicio = document.getElementById('dataInicio').value;
+      const dataFim = document.getElementById('dataFim').value;
+      const status = document.getElementById('statusFilter').value;
+
+      if (!empresaId) {
+        showNotification('Por favor, selecione uma empresa', 'warning');
+        return;
+      }
+
+      if (!dataInicio || !dataFim) {
+        showNotification('Por favor, informe o período de consulta', 'warning');
+        return;
+      }
+
+      // Mostrar loading
+      mostrarLoadingRPS();
+
+      try {
+        let url = `/api/rps/empresa/${empresaId}?dataInicio=${dataInicio}&dataFim=${dataFim}`;
+        if (status) {
+          url += `&status=${status}`;
+        }
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Erro na consulta: ${response.statusText}`);
+        }
+
+        dadosRPS = await response.json();
+        
+        if (dadosRPS.length === 0) {
+          mostrarMensagemRPS('Nenhum RPS encontrado para o período informado');
+          return;
+        }
+
+        preencherGridRPS(dadosRPS);
+        calcularTotalizadores(dadosRPS);
+        
+        // Mostrar resultados
+        mostrarResultadosRPS(dadosRPS);
+
+        showNotification(`${dadosRPS.length} RPS encontrados`, 'success');
+
+      } catch (error) {
+        console.error('Erro ao consultar RPS:', error);
+        mostrarMensagemRPS('Erro ao consultar RPS. Tente novamente.');
+        showNotification('Erro ao consultar RPS', 'error');
+      }
+    }
+
+    async function listarTodosRPS() {
+      const empresaId = document.getElementById('empresaSelect').value;
+      const status = document.getElementById('statusFilter').value;
+
+      if (!empresaId) {
+        showNotification('Por favor, selecione uma empresa', 'warning');
+        return;
+      }
+
+      // Mostrar loading
+      mostrarLoadingRPS();
+
+      try {
+        let url = `/api/rps/empresa/${empresaId}/todos`;
+        if (status) {
+          url += `?status=${status}`;
+        }
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Erro na consulta: ${response.statusText}`);
+        }
+
+        dadosRPS = await response.json();
+        
+        if (dadosRPS.length === 0) {
+          mostrarMensagemRPS('Nenhum RPS encontrado para esta empresa');
+          return;
+        }
+
+        preencherGridRPS(dadosRPS);
+        calcularTotalizadores(dadosRPS);
+        
+        // Mostrar resultados
+        mostrarResultadosRPS(dadosRPS);
+
+        // Limpar campos de data para indicar que está mostrando todos
+        document.getElementById('dataInicio').value = '';
+        document.getElementById('dataFim').value = '';
+
+        showNotification(`${dadosRPS.length} RPS encontrados (todos os períodos)`, 'success');
+
+      } catch (error) {
+        console.error('Erro ao listar todos os RPS:', error);
+        mostrarMensagemRPS('Erro ao consultar RPS. Tente novamente.');
+        showNotification('Erro ao listar RPS', 'error');
+      }
+    }
+
+    function preencherGridRPS(rps) {
+      const tbody = document.getElementById('corpoTabelaRPS');
+      const contador = document.getElementById('contadorRPS');
+      
+      tbody.innerHTML = '';
+      contador.textContent = rps.length;
+
+      // Armazenar RPS originais para filtros
+      window.rpsOriginais = rps;
+
+      rps.forEach(item => {
+        const row = document.createElement('tr');
+        row.setAttribute('data-rps-id', item.id);
+        row.innerHTML = `
+          <td>
+            <input type="checkbox" class="form-check-input checkbox-rps" value="${item.id}" onchange="atualizarContadorSelecionados()">
+          </td>
+          <td>${item.id}</td>
+          <td>${item.numero_rps || '-'}</td>
+          <td>${item.serie_rps || '-'}</td>
+          <td>${formatarData(item.data_emissao)}</td>
+          <td>${item.tomador_razao_social || '-'}</td>
+          <td>${item.discriminacao ? (item.discriminacao.length > 50 ? item.discriminacao.substring(0, 50) + '...' : item.discriminacao) : '-'}</td>
+          <td>${formatarMoeda(item.valor_servicos)}</td>
+          <td>${formatarMoeda(item.valor_iss)}</td>
+          <td>${formatarMoeda(item.valor_liquido)}</td>
+          <td><span class="badge ${item.status == 1 ? 'bg-success' : 'bg-secondary'}">${item.status == 1 ? 'Ativo' : 'Inativo'}</span></td>
+          <td><small>${item.nome_arquivo || '-'}</small></td>
+          <td>
+            <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="editarRps(${item.id})" title="Editar">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="excluirRPS(${item.id})" title="Excluir">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      // Resetar seleções
+      atualizarContadorSelecionados();
+    }
+
+    function calcularTotalizadores(rps) {
+      const totais = rps.reduce((acc, item) => {
+        acc.servicos += parseFloat(item.valor_servicos) || 0;
+        acc.iss += parseFloat(item.valor_iss) || 0;
+        acc.liquido += parseFloat(item.valor_liquido) || 0;
+        return acc;
+      }, { servicos: 0, iss: 0, liquido: 0 });
+
+      document.getElementById('totalRPSGestao').textContent = rps.length;
+      document.getElementById('totalServicos').textContent = formatarMoeda(totais.servicos);
+      document.getElementById('totalISS').textContent = formatarMoeda(totais.iss);
+      document.getElementById('totalLiquido').textContent = formatarMoeda(totais.liquido);
+    }
+
+    function limparFiltros() {
+      document.getElementById('empresaSelect').value = '';
+      document.getElementById('dataInicio').value = '';
+      document.getElementById('dataFim').value = '';
+      document.getElementById('statusFilter').value = '';
+      
+      // Mostrar mensagem inicial
+      mostrarMensagemRPS('Selecione uma empresa e período para consultar os RPS');
+      document.getElementById('contadorRPS').textContent = '0';
+      
+      dadosRPS = [];
+    }
+
+    function exportarCSV() {
+      if (dadosRPS.length === 0) {
+        showNotification('Nenhum dados para exportar', 'warning');
+        return;
+      }
+
+      const headers = ['ID', 'Número RPS', 'Série', 'Data Emissão', 'Tomador', 'Discriminação', 'Valor Serviços', 'Valor ISS', 'Valor Líquido', 'Status', 'Arquivo'];
+      const csvContent = [
+        headers.join(','),
+        ...dadosRPS.map(item => [
+          item.id,
+          `"${item.numero_rps || ''}"`,
+          `"${item.serie_rps || ''}"`,
+          formatarData(item.data_emissao),
+          `"${item.tomador_razao_social || ''}"`,
+          `"${(item.discriminacao || '').replace(/"/g, '""')}"`,
+          item.valor_servicos || 0,
+          item.valor_iss || 0,
+          item.valor_liquido || 0,
+          item.status == 1 ? 'Ativo' : 'Inativo',
+          `"${item.nome_arquivo || ''}"`
+        ].join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `rps_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+
+      showNotification('Arquivo CSV exportado com sucesso', 'success');
+    }
+
+    function formatarData(data) {
+      if (!data) return '-';
+      try {
+        return new Date(data).toLocaleDateString('pt-BR');
+      } catch {
+        return data;
+      }
+    }
+
+    function formatarMoeda(valor) {
+      if (!valor) return 'R$ 0,00';
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(parseFloat(valor));
+    }
+
+    // ==================== FUNÇÕES DE FILTRO E SELEÇÃO ====================
+
+    function atualizarContadorSelecionados() {
+      console.log('📊 Atualizando contador de selecionados...');
+      
+      const checkboxes = document.querySelectorAll('.checkbox-rps:checked');
+      const total = checkboxes.length;
+      const contador = document.getElementById('contadorSelecionados');
+      const btnExcluir = document.getElementById('btnExcluirSelecionados');
+      const btnEditar = document.getElementById('btnEditarSelecionados');
+      
+      console.log(`📊 Total selecionados: ${total}`);
+      console.log(`📊 Elementos encontrados:`, {
+        contador: !!contador,
+        btnExcluir: !!btnExcluir,
+        btnEditar: !!btnEditar
+      });
+      
+      if (contador) {
+        contador.textContent = `${total} selecionado${total !== 1 ? 's' : ''}`;
+        console.log('📊 Contador de texto atualizado');
+      }
+      
+      if (btnExcluir) {
+        btnExcluir.disabled = total === 0;
+        console.log(`🗑️ Botão excluir ${total === 0 ? 'desabilitado' : 'habilitado'} - disabled: ${btnExcluir.disabled}`);
+      }
+      
+      if (btnEditar) {
+        const anteriorDisabled = btnEditar.disabled;
+        btnEditar.disabled = total === 0;
+        console.log(`✏️ Botão editar ${total === 0 ? 'desabilitado' : 'habilitado'} - disabled: ${btnEditar.disabled}`);
+        console.log(`✏️ Estado mudou de ${anteriorDisabled} para ${btnEditar.disabled}`);
+        
+        // Teste adicional quando habilitado
+        if (total > 0) {
+          console.log('✏️ Testando estado do botão editar:');
+          console.log('  - onclick:', btnEditar.onclick);
+          console.log('  - offsetParent (visível?):', btnEditar.offsetParent !== null);
+          console.log('  - display:', window.getComputedStyle(btnEditar).display);
+          console.log('  - visibility:', window.getComputedStyle(btnEditar).visibility);
+          console.log('  - pointer-events:', window.getComputedStyle(btnEditar).pointerEvents);
+        }
+      }
+      
+      // Limpar seleções se não há checkboxes selecionados
+      if (total === 0) {
+        rpsSelecionados.clear();
+      } else {
+        // Atualizar o Set com os IDs selecionados
+        rpsSelecionados.clear();
+        checkboxes.forEach(checkbox => {
+          rpsSelecionados.add(parseInt(checkbox.value));
+        });
+      }
+      
+      console.log(`📊 RPS selecionados no Set: [${Array.from(rpsSelecionados).join(', ')}]`);
+      
+      // Atualizar estado do "Selecionar Todos"
+      const checkboxTodos = document.getElementById('checkboxTodos');
+      const todosCheckboxes = document.querySelectorAll('.checkbox-rps');
+      if (checkboxTodos) {
+        checkboxTodos.checked = todosCheckboxes.length > 0 && checkboxes.length === todosCheckboxes.length;
+        checkboxTodos.indeterminate = checkboxes.length > 0 && checkboxes.length < todosCheckboxes.length;
+      }
+    }
+
+    function toggleSelecionarTodos() {
+      const checkboxTodos = document.getElementById('checkboxTodos');
+      const checkboxes = document.querySelectorAll('.checkbox-rps');
+      
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = checkboxTodos.checked;
+      });
+      
+      atualizarContadorSelecionados();
+    }
+
+    function selecionarTodos() {
+      const checkboxTodos = document.getElementById('checkboxTodos');
+      const checkboxes = document.querySelectorAll('.checkbox-rps');
+      
+      checkboxTodos.checked = true;
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+      });
+      
+      atualizarContadorSelecionados();
+    }
+
+    function deselecionarTodos() {
+      const checkboxTodos = document.getElementById('checkboxTodos');
+      const checkboxes = document.querySelectorAll('.checkbox-rps');
+      
+      checkboxTodos.checked = false;
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      
+      atualizarContadorSelecionados();
+    }
+
+    function filtrarRPS() {
+      if (!window.rpsOriginais) return;
+
+      const numeroFiltro = document.getElementById('filtroNumero').value.toLowerCase();
+      const serieFiltro = document.getElementById('filtroSerie').value.toLowerCase();
+      const statusFiltro = document.getElementById('filtroStatus').value;
+      const tomadorFiltro = document.getElementById('filtroTomador').value.toLowerCase();
+
+      const rpsFiltrados = window.rpsOriginais.filter(rps => {
+        const numeroOk = !numeroFiltro || (rps.numero_rps && rps.numero_rps.toString().toLowerCase().includes(numeroFiltro));
+        const serieOk = !serieFiltro || (rps.serie_rps && rps.serie_rps.toLowerCase().includes(serieFiltro));
+        const statusOk = !statusFiltro || rps.status.toString() === statusFiltro;
+        const tomadorOk = !tomadorFiltro || (rps.tomador_razao_social && rps.tomador_razao_social.toLowerCase().includes(tomadorFiltro));
+        
+        return numeroOk && serieOk && statusOk && tomadorOk;
+      });
+
+      preencherGridRPS(rpsFiltrados);
+    }
+
+    function limparFiltrosGrid() {
+      document.getElementById('filtroNumero').value = '';
+      document.getElementById('filtroSerie').value = '';
+      document.getElementById('filtroStatus').value = '';
+      document.getElementById('filtroTomador').value = '';
+      
+      if (window.rpsOriginais) {
+        preencherGridRPS(window.rpsOriginais);
+      }
+    }
+
+    // ==================== FUNÇÕES DE EDIÇÃO EM MASSA ====================
+
+    function editarSelecionados() {
+      console.log('🟡 Função editarSelecionados chamada');
+      
+      const checkboxes = document.querySelectorAll('.checkbox-rps:checked');
+      console.log(`🟡 Checkboxes selecionados: ${checkboxes.length}`);
+      
+      if (checkboxes.length === 0) {
+        alert('Selecione pelo menos uma RPS para editar.');
+        return;
+      }
+
+      // Limpar seleções anteriores e adicionar as atuais
+      rpsSelecionados.clear();
+      checkboxes.forEach(checkbox => {
+        rpsSelecionados.add(parseInt(checkbox.value));
+      });
+
+      console.log(`🟡 RPS selecionados para edição: [${Array.from(rpsSelecionados).join(', ')}]`);
+      
+      // Abrir modal de edição em massa
+      const modal = new bootstrap.Modal(document.getElementById('modalEditarMassa'));
+      modal.show();
+    }
+
+    async function salvarEdicaoMassa() {
+      try {
+        if (rpsSelecionados.size === 0) {
+          alert('Nenhuma RPS selecionada para edição.');
+          return;
+        }
+
+        // Pegar valores do formulário
+        const formData = {
+          valor_servicos: document.getElementById('massaValorServicos').value,
+          valor_deducoes: document.getElementById('massaValorDeducoes').value,
+          aliquota: document.getElementById('massaAliquota').value,
+          valor_iss: document.getElementById('massaValorIss').value,
+          valor_pis: document.getElementById('massaValorPis').value,
+          valor_cofins: document.getElementById('massaValorCofins').value,
+          valor_inss: document.getElementById('massaValorInss').value,
+          valor_ir: document.getElementById('massaValorIr').value,
+          valor_csll: document.getElementById('massaValorCsll').value,
+          valor_outras_retencoes: document.getElementById('massaValorOutrasRetencoes').value,
+          recalcular_liquido: document.getElementById('massaRecalcularLiquido').checked
+        };
+
+        console.log('📤 Dados para edição em massa:', formData);
+        console.log('📤 IDs selecionados:', Array.from(rpsSelecionados));
+
+        // Enviar para o servidor
+        const response = await fetch('/api/rps/massa', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ids: Array.from(rpsSelecionados),
+            dados: formData
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('🚨 Erro da resposta do servidor:', errorText);
+          throw new Error(`Erro HTTP: ${response.status} - ${errorText}`);
+        }
+
+        const resultado = await response.json();
+        console.log('📥 Resultado da edição:', resultado);
+
+        showNotification(`${resultado.atualizados} RPS atualizadas com sucesso!`, 'success');
+        
+        // Fechar modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarMassa'));
+        modal.hide();
+        
+        // Recarregar grid
+        await listarTodosRPS();
+        
+        // Limpar seleções
+        rpsSelecionados.clear();
+        atualizarContadorSelecionados();
+
+      } catch (error) {
+        console.error('Erro ao salvar edição em massa:', error);
+        showNotification('Erro ao salvar edição em massa: ' + error.message, 'error');
+      }
+    }
+
+    function excluirSelecionados() {
+      const checkboxes = document.querySelectorAll('.checkbox-rps:checked');
+      if (checkboxes.length === 0) {
+        alert('Selecione pelo menos uma RPS para excluir.');
+        return;
+      }
+
+      const ids = Array.from(checkboxes).map(cb => cb.value);
+      if (confirm(`Tem certeza que deseja excluir ${ids.length} RPS selecionada(s)?`)) {
+        excluirMultiplasRPS(ids);
+      }
+    }
+
+    async function excluirMultiplasRPS(ids) {
+      try {
+        for (const id of ids) {
+          const response = await fetch(`/api/rps/${id}`, { method: 'DELETE' });
+          if (!response.ok) {
+            throw new Error(`Erro ao excluir RPS ${id}: ${response.status}`);
+          }
+        }
+        showNotification(`${ids.length} RPS excluída(s) com sucesso!`, 'success');
+        await listarTodosRPS();
+      } catch (error) {
+        console.error('Erro ao excluir RPS:', error);
+        showNotification('Erro ao excluir RPS selecionadas.', 'error');
+      }
+    }
+
+    async function excluirRPS(id) {
+      if (confirm('Tem certeza que deseja excluir esta RPS?')) {
+        try {
+          const response = await fetch(`/api/rps/${id}`, { method: 'DELETE' });
+          if (!response.ok) {
+            throw new Error(`Erro ao excluir RPS: ${response.status}`);
+          }
+          showNotification('RPS excluída com sucesso!', 'success');
+          await listarTodosRPS();
+        } catch (error) {
+          console.error('Erro ao excluir RPS:', error);
+          showNotification('Erro ao excluir RPS.', 'error');
+        }
+      }
+    }
+
+    // ==================== EDIÇÃO INDIVIDUAL DE RPS ====================
+
+    async function editarRps(id) {
+      try {
+        console.log('🔧 Editando RPS:', id);
+        const response = await fetch(`/api/rps/${id}`);
+        
+        if (!response.ok) {
+          throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        
+        const rps = await response.json();
+        console.log('📝 Dados do RPS carregados:', rps);
+        
+        // Preencher modal de edição
+        document.getElementById('editRpsId').value = rps.id;
+        document.getElementById('editNumeroRps').value = rps.numero_rps || '';
+        document.getElementById('editSerieRps').value = rps.serie_rps || '';
+        document.getElementById('editTipoRps').value = rps.tipo_rps || '';
+        document.getElementById('editDataEmissao').value = rps.data_emissao ? rps.data_emissao.split('T')[0] : '';
+        document.getElementById('editDataCompetencia').value = rps.data_competencia ? rps.data_competencia.split('T')[0] : '';
+        
+        // Prestador
+        document.getElementById('editPrestadorCnpj').value = rps.prestador_cnpj || '';
+        document.getElementById('editPrestadorInscricao').value = rps.prestador_inscricao_municipal || '';
+        
+        // Tomador
+        document.getElementById('editTomadorCnpj').value = rps.tomador_cnpj || '';
+        document.getElementById('editTomadorCpf').value = rps.tomador_cpf || '';
+        document.getElementById('editTomadorRazaoSocial').value = rps.tomador_razao_social || '';
+        document.getElementById('editTomadorInscricao').value = rps.tomador_inscricao_municipal || '';
+        document.getElementById('editTomadorEndereco').value = rps.tomador_endereco || '';
+        document.getElementById('editTomadorNumero').value = rps.tomador_numero || '';
+        document.getElementById('editTomadorBairro').value = rps.tomador_bairro || '';
+        document.getElementById('editTomadorCep').value = rps.tomador_cep || '';
+        document.getElementById('editTomadorCidade').value = rps.tomador_cidade || '';
+        document.getElementById('editTomadorUf').value = rps.tomador_uf || '';
+        document.getElementById('editTomadorTelefone').value = rps.tomador_telefone || '';
+        
+        // Serviços
+        document.getElementById('editCodigoServico').value = rps.codigo_servico || '';
+        document.getElementById('editCodigoCnae').value = rps.codigo_cnae || '';
+        document.getElementById('editCodigoMunicipio').value = rps.codigo_municipio || '';
+        document.getElementById('editDiscriminacao').value = rps.discriminacao || '';
+        
+        // Valores
+        document.getElementById('editValorServicos').value = rps.valor_servicos || 0;
+        document.getElementById('editValorDeducoes').value = rps.valor_deducoes || 0;
+        document.getElementById('editAliquota').value = rps.aliquota || 0;
+        document.getElementById('editValorPis').value = rps.valor_pis || 0;
+        document.getElementById('editValorCofins').value = rps.valor_cofins || 0;
+        document.getElementById('editValorInss').value = rps.valor_inss || 0;
+        document.getElementById('editValorIr').value = rps.valor_ir || 0;
+        document.getElementById('editValorCsll').value = rps.valor_csll || 0;
+        document.getElementById('editValorIss').value = rps.valor_iss || 0;
+        document.getElementById('editValorLiquido').value = rps.valor_liquido || 0;
+        
+        // Opções
+        document.getElementById('editOptanteSimples').checked = rps.optante_simples_nacional == 1;
+        document.getElementById('editIncentivadorCultural').checked = rps.incentivador_cultural == 1;
+        
+        // Abrir modal
+        const modal = new bootstrap.Modal(document.getElementById('modalEditarRps'));
+        modal.show();
+        
+      } catch (error) {
+        console.error('❌ Erro ao carregar RPS para edição:', error);
+        showNotification('Erro ao carregar dados do RPS: ' + error.message, 'error');
+      }
+    }
+
+    async function salvarRpsEditado() {
+      try {
+        const id = document.getElementById('editRpsId').value;
+        
+        const formData = {
+          numero_rps: document.getElementById('editNumeroRps').value,
+          serie_rps: document.getElementById('editSerieRps').value,
+          tipo_rps: document.getElementById('editTipoRps').value,
+          data_emissao: document.getElementById('editDataEmissao').value,
+          data_competencia: document.getElementById('editDataCompetencia').value,
+          
+          prestador_cnpj: document.getElementById('editPrestadorCnpj').value,
+          prestador_inscricao_municipal: document.getElementById('editPrestadorInscricao').value,
+          
+          tomador_cnpj: document.getElementById('editTomadorCnpj').value,
+          tomador_cpf: document.getElementById('editTomadorCpf').value,
+          tomador_razao_social: document.getElementById('editTomadorRazaoSocial').value,
+          tomador_inscricao_municipal: document.getElementById('editTomadorInscricao').value,
+          tomador_endereco: document.getElementById('editTomadorEndereco').value,
+          tomador_numero: document.getElementById('editTomadorNumero').value,
+          tomador_bairro: document.getElementById('editTomadorBairro').value,
+          tomador_cep: document.getElementById('editTomadorCep').value,
+          tomador_cidade: document.getElementById('editTomadorCidade').value,
+          tomador_uf: document.getElementById('editTomadorUf').value,
+          tomador_telefone: document.getElementById('editTomadorTelefone').value,
+          
+          codigo_servico: document.getElementById('editCodigoServico').value,
+          codigo_cnae: document.getElementById('editCodigoCnae').value,
+          codigo_municipio: document.getElementById('editCodigoMunicipio').value,
+          discriminacao: document.getElementById('editDiscriminacao').value,
+          
+          valor_servicos: document.getElementById('editValorServicos').value,
+          valor_deducoes: document.getElementById('editValorDeducoes').value,
+          aliquota: document.getElementById('editAliquota').value,
+          valor_pis: document.getElementById('editValorPis').value,
+          valor_cofins: document.getElementById('editValorCofins').value,
+          valor_inss: document.getElementById('editValorInss').value,
+          valor_ir: document.getElementById('editValorIr').value,
+          valor_csll: document.getElementById('editValorCsll').value,
+          valor_iss: document.getElementById('editValorIss').value,
+          valor_liquido: document.getElementById('editValorLiquido').value,
+          
+          optante_simples_nacional: document.getElementById('editOptanteSimples').checked ? 1 : 0,
+          incentivador_cultural: document.getElementById('editIncentivadorCultural').checked ? 1 : 0
+        };
+        
+        console.log('📤 Salvando RPS editado:', formData);
+        
+        const response = await fetch(`/api/rps/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Erro HTTP: ${response.status} - ${errorText}`);
+        }
+        
+        const resultado = await response.json();
+        console.log('📥 RPS salvo:', resultado);
+        
+        showNotification('RPS atualizado com sucesso!', 'success');
+        
+        // Fechar modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarRps'));
+        modal.hide();
+        
+        // Recarregar grid
+        await listarTodosRPS();
+        
+      } catch (error) {
+        console.error('❌ Erro ao salvar RPS:', error);
+        showNotification('Erro ao salvar RPS: ' + error.message, 'error');
+      }
+    }
+
+    // ==================== OPERAÇÕES ADMINISTRATIVAS ====================
+    
+    async function atualizarEstatisticasSistema() {
+      try {
+        // Buscar estatísticas atualizadas
+        const response = await fetch('/api/dashboard/estatisticas');
+        const stats = await response.json();
+        
+        document.getElementById('totalRPSSistema').textContent = stats.totalRPS || 0;
+        
+        showNotification('Estatísticas atualizadas', 'success');
+      } catch (error) {
+        console.error('Erro ao atualizar estatísticas:', error);
+        showNotification('Erro ao atualizar estatísticas', 'error');
+      }
+    }
+
+    async function confirmarExclusaoTodosRPS() {
+      // Primeira confirmação
+      const confirmacao1 = confirm(
+        '⚠️ ATENÇÃO: Esta operação irá excluir TODOS os RPS do sistema permanentemente!\n\n' +
+        'Esta ação NÃO PODE SER DESFEITA!\n\n' +
+        'Deseja realmente continuar?'
+      );
+      
+      if (!confirmacao1) {
+        return;
+      }
+      
+      // Segunda confirmação com digitação
+      const textoConfirmacao = prompt(
+        '⚠️ CONFIRMAÇÃO FINAL ⚠️\n\n' +
+        'Para confirmar a exclusão de TODOS os RPS, digite exatamente:\n' +
+        'EXCLUIR TODOS OS RPS\n\n' +
+        'Digite o texto acima:'
+      );
+      
+      if (textoConfirmacao !== 'EXCLUIR TODOS OS RPS') {
+        showNotification('Operação cancelada - texto de confirmação incorreto', 'warning');
+        return;
+      }
+      
+      // Terceira confirmação numérica
+      const numeroAleatorio = Math.floor(Math.random() * 9000) + 1000;
+      const numeroDigitado = prompt(
+        '⚠️ ÚLTIMA CONFIRMAÇÃO ⚠️\n\n' +
+        'Digite o número abaixo para confirmar definitivamente:\n' +
+        numeroAleatorio
+      );
+      
+      if (parseInt(numeroDigitado) !== numeroAleatorio) {
+        showNotification('Operação cancelada - número incorreto', 'warning');
+        return;
+      }
+      
+      // Executar exclusão
+      await executarExclusaoTodosRPS();
+    }
+
+    async function executarExclusaoTodosRPS() {
+      try {
+        showNotification('Executando exclusão de todos os RPS...', 'info');
+        
+        const response = await fetch('/api/rps/debug/excluir-todos?confirmacao=CONFIRMO_EXCLUSAO_TODOS_RPS', {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erro na exclusão: ${response.statusText}`);
+        }
+        
+        const resultado = await response.json();
+        
+        if (resultado.sucesso) {
+          showNotification(
+            `✅ Exclusão concluída! ${resultado.totalExcluidos} RPS foram removidos do sistema.`,
+            'success'
+          );
+          
+          // Atualizar interface
+          limparFiltros();
+          atualizarEstatisticasSistema();
+          
+          // Mostrar detalhes da operação
+          console.log('Detalhes da exclusão:', resultado);
+          
+        } else {
+          throw new Error(resultado.erro || 'Erro desconhecido na exclusão');
+        }
+        
+      } catch (error) {
+        console.error('Erro ao excluir todos os RPS:', error);
+        showNotification(`❌ Erro na exclusão: ${error.message}`, 'error');
+      }
+    }
+
+    // Carregar estatísticas ao inicializar a página de gestão
+    function carregarEstatisticasGestao() {
+      atualizarEstatisticasSistema();
     }
 
     // ==================== RESPONSIVIDADE ====================
     
-    window.addEventListener('resize', function() {
-      const sidebar = document.getElementById('sidebar');
-      const mainContent = document.getElementById('mainContent');
-      const overlay = document.getElementById('overlay');
-      
-      if (window.innerWidth > 768) {
-        // Em telas grandes, remove classes de mobile
-        sidebar.classList.remove('show');
-        overlay.classList.remove('show');
-      }
-    });
   </script>
-
-  <!-- Modal de Importação de Layouts -->
-  <div class="modal fade" id="modalImportarLayout" tabindex="-1" aria-labelledby="modalImportarLayoutLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title" id="modalImportarLayoutLabel">
-            <i class="fas fa-upload me-2"></i>Importar Layout(s)
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="row">
-            <div class="col-12">
-              <div class="mb-4">
-                <label for="arquivoLayoutImport" class="form-label fs-5">
-                  <i class="fas fa-file-import text-primary"></i> Selecionar arquivo JSON:
-                </label>
-                <input type="file" class="form-control form-control-lg" id="arquivoLayoutImport" accept=".json" onchange="processarArquivoImportacao(this)">
-                <div class="form-text fs-6">
-                  Selecione um arquivo JSON contendo layouts exportados anteriormente.
-                </div>
-              </div>
-              
-              <!-- Área de visualização do arquivo -->
-              <div id="previewImportacao" style="display: none;">
-                <h5><i class="fas fa-eye text-info"></i> Preview do arquivo:</h5>
-                <div class="bg-light p-4 rounded border">
-                  <div id="infoArquivoImport" class="mb-3 fs-6"></div>
-                  <div id="layoutsEncontrados"></div>
-                </div>
-              </div>
-              
-              <!-- Opções de importação -->
-              <div id="opcoesImportacao" style="display: none;">
-                <hr class="my-4">
-                <h5><i class="fas fa-cogs text-success"></i> Opções de Importação:</h5>
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-check mb-3">
-                      <input class="form-check-input" type="checkbox" id="substituirDuplicados" checked>
-                      <label class="form-check-label fs-6" for="substituirDuplicados">
-                        Substituir layouts duplicados (mesmo nome)
-                      </label>
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="form-check mb-3">
-                      <input class="form-check-input" type="checkbox" id="manterIds">
-                      <label class="form-check-label fs-6" for="manterIds">
-                        Manter IDs originais (pode causar conflitos)
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Resultado da importação -->
-              <div id="resultadoImportacao" style="display: none;">
-                <hr class="my-4">
-                <div class="alert alert-info">
-                  <h5><i class="fas fa-info-circle"></i> Resultado da Importação:</h5>
-                  <div id="statusImportacao" class="fs-6"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer bg-light p-3">
-          <button type="button" class="btn btn-outline-secondary btn-lg px-4" data-bs-dismiss="modal">
-            <i class="fas fa-times"></i> Cancelar
-          </button>
-          <button type="button" class="btn btn-primary btn-lg px-4" id="btnExecutarImportacao" onclick="executarImportacaoLayout()" disabled>
-            <i class="fas fa-upload"></i> Importar Layouts
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal de Exportação de Layout -->
-  <div class="modal fade" id="modalExportarLayout" tabindex="-1" aria-labelledby="modalExportarLayoutLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header bg-success text-white">
-          <h5 class="modal-title" id="modalExportarLayoutLabel">
-            <i class="fas fa-download me-2"></i>Exportar Layout
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="row">
-            <div class="col-12">
-              <div class="mb-4">
-                <label for="layoutExportacao" class="form-label fs-5">
-                  <i class="fas fa-table text-success"></i> Selecionar layout para exportação:
-                </label>
-                <select class="form-control form-control-lg" id="layoutExportacao">
-                  <option value="">Selecione um layout...</option>
-                </select>
-                <div class="form-text fs-6">
-                  Escolha o layout que deseja exportar para um arquivo JSON.
-                </div>
-              </div>
-              
-              <!-- Opções de exportação -->
-              <div class="bg-light p-3 rounded border">
-                <h6><i class="fas fa-cog text-info"></i> Opções de Exportação:</h6>
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-check mb-2">
-                      <input class="form-check-input" type="checkbox" id="incluirMetadados" checked>
-                      <label class="form-check-label fs-6" for="incluirMetadados">
-                        Incluir metadados (versão, data de criação)
-                      </label>
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="form-check mb-2">
-                      <input class="form-check-input" type="checkbox" id="formatarJSON">
-                      <label class="form-check-label fs-6" for="formatarJSON">
-                        Formatar JSON (mais legível)
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Preview do layout selecionado -->
-              <div id="previewLayoutExportacao" style="display: none;" class="mt-4">
-                <h6><i class="fas fa-eye text-primary"></i> Preview do Layout:</h6>
-                <div class="bg-light p-3 rounded border">
-                  <div id="infoLayoutExport"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer bg-light p-3">
-          <button type="button" class="btn btn-outline-secondary btn-lg px-4" data-bs-dismiss="modal">
-            <i class="fas fa-times"></i> Cancelar
-          </button>
-          <button type="button" class="btn btn-success btn-lg px-4" id="btnExecutarExportacao" onclick="executarExportacaoLayout()" disabled>
-            <i class="fas fa-download"></i> Exportar Layout
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Custom JavaScript -->
-  <script src="js/app.js"></script>
+  </body>
+</html>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>

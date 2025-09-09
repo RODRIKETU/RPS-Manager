@@ -172,26 +172,6 @@ class Database {
       )
     `);
 
-    // Tabela de campos condicionais/subcampos
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS campos_condicionais (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tipo_registro_id INTEGER NOT NULL,
-        campo_pai_ordem INTEGER NOT NULL, -- ordem do campo pai que determina a condição
-        condicao_valor TEXT NOT NULL, -- valor que ativa esta condição (ex: "1", "2", "3")
-        subcampo_letra TEXT, -- letra do subcampo (A, B, C, etc.)
-        nome_subcampo TEXT NOT NULL,
-        posicao_inicial INTEGER NOT NULL,
-        posicao_final INTEGER NOT NULL,
-        tamanho INTEGER NOT NULL,
-        formato TEXT NOT NULL,
-        obrigatorio BOOLEAN DEFAULT 0,
-        descricao TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (tipo_registro_id) REFERENCES tipos_registro (id)
-      )
-    `);
-
     // Adicionar campo layout_id na tabela empresas se não existir
     this.db.run(`
       ALTER TABLE empresas ADD COLUMN layout_id INTEGER REFERENCES layouts(id)
@@ -303,9 +283,20 @@ class Database {
     });
   }
 
+  async buscarEmpresaPorId(id) {
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT * FROM empresas WHERE id = ? AND ativo = 1';
+      this.db.get(sql, [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+  }
+
   async excluirEmpresa(id) {
     return new Promise((resolve, reject) => {
-      const sql = `DELETE FROM empresas WHERE id = ?`;
+      // Soft delete - apenas marca como inativo
+      const sql = 'UPDATE empresas SET ativo = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?';
       this.db.run(sql, [id], function(err) {
         if (err) reject(err);
         else resolve({ changes: this.changes });
@@ -776,21 +767,51 @@ class Database {
 
   async atualizarLayoutNovoSistema(id, layout) {
     return new Promise((resolve, reject) => {
-      const sql = `
-        UPDATE layouts 
-        SET layout_id = ?, nome = ?, descricao = ?, versao = ?, status = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `;
-      this.db.run(sql, [
-        layout.layout_id,
-        layout.nome,
-        layout.descricao,
-        layout.versao,
-        layout.status,
-        id
-      ], function(err) {
-        if (err) reject(err);
-        else resolve({ changes: this.changes });
+      // Primeiro, vamos verificar quais colunas existem na tabela
+      this.db.all("PRAGMA table_info(layouts)", (err, columns) => {
+        if (err) {
+          console.error('Erro ao verificar estrutura da tabela:', err);
+          reject(err);
+          return;
+        }
+        
+        const columnNames = columns.map(col => col.name);
+        console.log('Colunas disponíveis na tabela layouts:', columnNames);
+        
+        // Construir SQL dinamicamente baseado nas colunas disponíveis
+        let updateFields = ['layout_id = ?', 'nome = ?', 'descricao = ?'];
+        let values = [layout.layout_id, layout.nome, layout.descricao];
+        
+        if (columnNames.includes('versao')) {
+          updateFields.push('versao = ?');
+          values.push(layout.versao);
+        }
+        
+        if (columnNames.includes('status')) {
+          updateFields.push('status = ?');
+          values.push(layout.status);
+        }
+        
+        if (columnNames.includes('updated_at')) {
+          updateFields.push('updated_at = CURRENT_TIMESTAMP');
+        }
+        
+        values.push(id); // ID para o WHERE
+        
+        const sql = `UPDATE layouts SET ${updateFields.join(', ')} WHERE id = ?`;
+        
+        console.log('SQL a ser executado:', sql);
+        console.log('Valores:', values);
+        
+        this.db.run(sql, values, function(err) {
+          if (err) {
+            console.error('Erro na query UPDATE:', err);
+            reject(err);
+          } else {
+            console.log('Layout atualizado, linhas afetadas:', this.changes);
+            resolve({ changes: this.changes });
+          }
+        });
       });
     });
   }
@@ -799,84 +820,6 @@ class Database {
     return new Promise((resolve, reject) => {
       const sql = `DELETE FROM tipos_registro WHERE layout_id = ?`;
       this.db.run(sql, [layoutId], function(err) {
-        if (err) reject(err);
-        else resolve({ changes: this.changes });
-      });
-    });
-  }
-
-  // ==================== MÉTODOS PARA CAMPOS CONDICIONAIS ====================
-  
-  async criarCampoCondicional(tipoRegistroId, campoCondicional) {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        INSERT INTO campos_condicionais 
-        (tipo_registro_id, campo_pai_ordem, condicao_valor, subcampo_letra, nome_subcampo, 
-         posicao_inicial, posicao_final, tamanho, formato, obrigatorio, descricao)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-      this.db.run(sql, [
-        tipoRegistroId,
-        campoCondicional.campo_pai_ordem,
-        campoCondicional.condicao_valor,
-        campoCondicional.subcampo_letra,
-        campoCondicional.nome_subcampo,
-        campoCondicional.posicao_inicial,
-        campoCondicional.posicao_final,
-        campoCondicional.tamanho,
-        campoCondicional.formato,
-        campoCondicional.obrigatorio ? 1 : 0,
-        campoCondicional.descricao
-      ], function(err) {
-        if (err) reject(err);
-        else resolve({ id: this.lastID, ...campoCondicional });
-      });
-    });
-  }
-
-  async buscarCamposCondicionaisPorTipo(tipoRegistroId) {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        SELECT * FROM campos_condicionais 
-        WHERE tipo_registro_id = ? 
-        ORDER BY campo_pai_ordem, condicao_valor
-      `;
-      this.db.all(sql, [tipoRegistroId], (err, rows) => {
-        if (err) reject(err);
-        else {
-          // Agrupar por campo pai e condição
-          const camposAgrupados = {};
-          rows.forEach(row => {
-            const chave = `${row.campo_pai_ordem}_${row.condicao_valor}`;
-            if (!camposAgrupados[chave]) {
-              camposAgrupados[chave] = {
-                campo_pai_ordem: row.campo_pai_ordem,
-                condicao_valor: row.condicao_valor,
-                subcampos: []
-              };
-            }
-            camposAgrupados[chave].subcampos.push({
-              id: row.id,
-              subcampo_letra: row.subcampo_letra,
-              nome_subcampo: row.nome_subcampo,
-              posicao_inicial: row.posicao_inicial,
-              posicao_final: row.posicao_final,
-              tamanho: row.tamanho,
-              formato: row.formato,
-              obrigatorio: row.obrigatorio === 1,
-              descricao: row.descricao
-            });
-          });
-          resolve(Object.values(camposAgrupados));
-        }
-      });
-    });
-  }
-
-  async excluirCamposCondicionaisPorTipo(tipoRegistroId) {
-    return new Promise((resolve, reject) => {
-      const sql = `DELETE FROM campos_condicionais WHERE tipo_registro_id = ?`;
-      this.db.run(sql, [tipoRegistroId], function(err) {
         if (err) reject(err);
         else resolve({ changes: this.changes });
       });
@@ -898,6 +841,66 @@ class Database {
         FROM tipos_registro tr
         JOIN layouts l ON tr.layout_id = l.id
         ORDER BY tr.ordem ASC
+      `;
+      this.db.all(sql, [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  }
+
+  // Estatísticas para dashboard
+  async contarTotalRps() {
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT COUNT(*) as total FROM rps';
+      this.db.get(sql, [], (err, row) => {
+        if (err) {
+          console.warn('Erro ao contar RPS:', err.message);
+          resolve(0); // Retorna 0 em caso de erro
+        } else {
+          resolve(row ? row.total : 0);
+        }
+      });
+    });
+  }
+
+  async contarTotalArquivos() {
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT COUNT(*) as total FROM arquivos_rps';
+      this.db.get(sql, [], (err, row) => {
+        if (err) {
+          console.warn('Erro ao contar arquivos:', err.message);
+          resolve(0); // Retorna 0 em caso de erro
+        } else {
+          resolve(row ? row.total : 0);
+        }
+      });
+    });
+  }
+
+  // Debug: Listar todos os RPS (temporário)
+  async listarTodosRps() {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT 
+          r.id, 
+          r.numero_rps, 
+          r.serie_rps,
+          r.data_emissao, 
+          r.tomador_razao_social, 
+          r.discriminacao, 
+          r.valor_servicos, 
+          r.valor_iss, 
+          r.valor_liquido,
+          r.status,
+          r.empresa_id,
+          e.razao_social as empresa_nome,
+          a.nome_arquivo 
+        FROM rps r
+        LEFT JOIN arquivos_rps a ON r.arquivo_id = a.id
+        LEFT JOIN empresas e ON r.empresa_id = e.id
+        ORDER BY r.data_emissao DESC
+        LIMIT 10
       `;
       this.db.all(sql, [], (err, rows) => {
         if (err) reject(err);
